@@ -40,9 +40,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (event.target.name === "allowance" || event.target.id === "allowance") {
-      event.target.value = moneyInput(event.target.value);
-      calculatePayroll();
-    }
+  const value = parsePayrollMoney(event.target.value);
+
+  event.target.value = value > 0
+    ? moneyInput(value)
+    : "";
+
+  calculatePayroll();
+}
   });
 form.addEventListener("keydown", event => {
     if (event.key === "Enter" && event.target.name === "allowance") {
