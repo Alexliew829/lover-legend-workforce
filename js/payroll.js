@@ -464,7 +464,7 @@ if (form.allowance) {
       absenceDays: calculation.absence.days,
       absenceAction: calculation.absenceAction,
       absenceExpectedAmount: calculation.absence.expectedAmount,
-      absenceDeduction: calculation.absenceDeduction,
+      absenceDeduction: calculation.absenceDeduction, 
       advanceDeduction: deductions["支粮"] || 0,
       permitDeduction: deductions["准证"] || 0,
       medicalDeduction: 0,
