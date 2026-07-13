@@ -177,7 +177,7 @@ function resetPayrollEntryFields({ keepWorkerSelection = false } = {}) {
   form.grossSalary.value = "";
   form.monthlyGrossSalary.value = "";
   const allowanceInput = getAllowanceInput(form);
-  if (allowanceInput) allowanceInput.value = "0.00";
+  if (allowanceInput) allowanceInput.value = "";
   form.remark.value = "";
 
   document.getElementById("dailySalaryRow").style.display = "none";
@@ -348,7 +348,10 @@ function renderDebtList() {
     if (radio) radio.checked = true;
 
     const allowanceInput = getAllowanceInput();
-    if (allowanceInput) allowanceInput.value = moneyInput(current["津贴"] || 0);
+if (allowanceInput) {
+  const savedAllowance = parsePayrollMoney(current["津贴"]);
+  allowanceInput.value = savedAllowance > 0 ? moneyInput(savedAllowance) : "";
+}
   }
 }
 
@@ -486,9 +489,14 @@ if (form.allowance) {
       if (radio) radio.checked = true;
 
       const allowanceInput = getAllowanceInput(form);
-      if (allowanceInput) {
-        allowanceInput.value = moneyInput(current["津贴"] ?? calculation.allowance ?? 0);
-      }
+if (allowanceInput) {
+    const savedAllowance = parsePayrollMoney(
+        current["津贴"] ?? calculation.allowance ?? 0
+    );
+
+    allowanceInput.value =
+        savedAllowance > 0 ? moneyInput(savedAllowance) : "";
+}
     }
 
     renderPayrollHistory();
