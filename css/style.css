@@ -387,3 +387,12 @@ input[readonly] {
 
 /* V1.7 Payroll 实发独立一行 */
 .payroll-net-line { margin-top: 3px; font-weight: 700; color: #111; }
+/* 津贴：空白时像扣款一样，从左边开始输入 */
+#allowance:placeholder-shown {
+  text-align: left;
+}
+
+/* 输入金额后靠右显示 */
+#allowance:not(:placeholder-shown) {
+  text-align: right;
+}
