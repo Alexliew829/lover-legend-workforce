@@ -410,6 +410,6 @@ input[readonly] {
 .allowance-input-box input {
   position: relative;
   z-index: 1;
-  text-align: left;
+ text-align: right;
   background: transparent;
 }
