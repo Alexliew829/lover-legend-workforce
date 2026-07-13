@@ -24,12 +24,23 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   form.addEventListener("input", event => {
-    if (event.target.classList.contains("debt-deduction-input")) calculatePayroll();
+    if (
+      event.target.classList.contains("debt-deduction-input") ||
+      event.target.name === "allowance" ||
+      event.target.id === "allowance"
+    ) {
+      calculatePayroll();
+    }
   });
 
   form.addEventListener("focusout", event => {
     if (event.target.classList.contains("debt-deduction-input")) {
       if (event.target.value.trim()) event.target.value = moneyInput(event.target.value);
+      calculatePayroll();
+    }
+
+    if (event.target.name === "allowance" || event.target.id === "allowance") {
+      event.target.value = moneyInput(event.target.value);
       calculatePayroll();
     }
   });
@@ -160,6 +171,8 @@ function resetPayrollEntryFields({ keepWorkerSelection = false } = {}) {
   form.salaryRateDisplay.value = "";
   form.grossSalary.value = "";
   form.monthlyGrossSalary.value = "";
+  const allowanceInput = getAllowanceInput(form);
+  if (allowanceInput) allowanceInput.value = "0.00";
   form.remark.value = "";
 
   document.getElementById("dailySalaryRow").style.display = "none";
@@ -328,12 +341,26 @@ function renderDebtList() {
     const action = String(current["缺席处理"] || "扣薪");
     const radio = document.querySelector(`input[name="absenceAction"][value="${action}"]`);
     if (radio) radio.checked = true;
+
+    const allowanceInput = getAllowanceInput();
+    if (allowanceInput) allowanceInput.value = moneyInput(current["津贴"] || 0);
   }
+}
+
+function getAllowanceInput(form = document.getElementById("payrollForm")) {
+  if (!form) return null;
+  return form.elements.allowance || document.getElementById("allowance");
+}
+
+function getAllowanceAmount() {
+  const input = getAllowanceInput();
+  return input ? parsePayrollMoney(input.value) : 0;
 }
 
 function calculatePayroll() {
   const form = document.getElementById("payrollForm");
   const grossSalary = getGrossSalary();
+  const allowance = getAllowanceAmount();
   const absence = getAbsenceSummary();
   const absenceAction = form.querySelector('input[name="absenceAction"]:checked')?.value || "扣薪";
   const absenceDeduction = absenceAction === "扣薪" ? absence.expectedAmount : 0;
@@ -359,14 +386,14 @@ function calculatePayroll() {
   document.getElementById("absenceAmountText").textContent = formatPayrollCurrency(absenceDeduction);
 
   const totalDeduction = absenceDeduction + debtDeduction;
-  const netSalary = Math.max(0, grossSalary - totalDeduction);
+  const netSalary = Math.max(0, grossSalary + allowance - totalDeduction);
   const remainingDebt = Math.max(0, totalOutstanding - debtDeduction);
 
   document.getElementById("totalDeductionText").textContent = formatPayrollCurrency(totalDeduction);
   document.getElementById("netSalaryText").textContent = formatPayrollCurrency(netSalary);
   document.getElementById("remainingDebtText").textContent = formatPayrollCurrency(remainingDebt);
 
-  return { grossSalary, absence, absenceAction, absenceDeduction, debtDeduction, totalDeduction, netSalary, remainingDebt, invalidDeduction };
+  return { grossSalary, allowance, absence, absenceAction, absenceDeduction, debtDeduction, totalDeduction, netSalary, remainingDebt, invalidDeduction };
 }
 
 async function handlePayrollSubmit(event) {
@@ -401,7 +428,9 @@ async function handlePayrollSubmit(event) {
     const calculation = calculatePayroll();
     if (calculation.grossSalary <= 0) throw new Error("本月工资必须大于 0");
     if (calculation.invalidDeduction) throw new Error("本月扣除不能超过欠款余额");
-    if (calculation.totalDeduction > calculation.grossSalary) throw new Error("总扣款不能超过本月工资");
+    if (calculation.totalDeduction > calculation.grossSalary + calculation.allowance) {
+      throw new Error("总扣款不能超过本月工资加津贴");
+    }
 
     const deductions = Object.fromEntries(DEBT_TYPES.map(type => [type, 0]));
     document.querySelectorAll(".debt-deduction-input").forEach(input => {
@@ -420,6 +449,7 @@ async function handlePayrollSubmit(event) {
       salaryRate: parsePayrollMoney(selectedPayrollWorker["日薪"]),
       monthlySalary: parsePayrollMoney(selectedPayrollWorker["月薪"]),
       basicSalary: calculation.grossSalary,
+      allowance: calculation.allowance,
       absenceDays: calculation.absence.days,
       absenceAction: calculation.absenceAction,
       absenceExpectedAmount: calculation.absence.expectedAmount,
@@ -438,18 +468,21 @@ async function handlePayrollSubmit(event) {
     const result = await api("savePayroll", { payroll });
     showStatus("status", result && result.updated ? "Payroll 已更新" : "Payroll 已保存", true);
 
-    if (result && result.record) {
-      const keyMonth = normalizePayrollMonth(result.record["月份"]);
-      const keyWorker = String(result.record["工人编号"] || "");
-      const index = payrollRecords.findIndex(item =>
-        normalizePayrollMonth(item["月份"]) === keyMonth &&
-        String(item["工人编号"] || "") === keyWorker
-      );
-      if (index >= 0) payrollRecords[index] = result.record;
-      else payrollRecords.push(result.record);
-    } else {
-      await refreshPayrollSourceData();
+    // 保存后重新读取最新资料，确保扣薪/免扣、津贴、实发和列表完全同步。
+    await refreshPayrollSourceData();
+
+    const current = getCurrentMonthPayrollRecord();
+    if (current) {
+      const action = String(current["缺席处理"] || calculation.absenceAction || "扣薪");
+      const radio = form.querySelector(`input[name="absenceAction"][value="${action}"]`);
+      if (radio) radio.checked = true;
+
+      const allowanceInput = getAllowanceInput(form);
+      if (allowanceInput) {
+        allowanceInput.value = moneyInput(current["津贴"] ?? calculation.allowance ?? 0);
+      }
     }
+
     renderPayrollHistory();
     renderDebtList();
     form.remark.value = "";
@@ -472,6 +505,7 @@ function renderPayrollHistory() {
   const sorted = [...payrollRecords].sort(comparePayrollRecords);
   list.innerHTML = sorted.map(item => {
     const absenceDays = Number(item["缺席天数"]) || 0;
+    const allowance = parsePayrollMoney(item["津贴"]);
     const totalDeduction = Number(item["总扣款"]) || 0;
     const summaryParts = [];
 
@@ -488,6 +522,7 @@ function renderPayrollHistory() {
       <div class="record-item payroll-record-item">
         <div class="worker-name">${escapePayrollHtml(item["工人编号"])} · ${escapePayrollHtml(item["工人名字"])} · ${escapePayrollHtml(item["公司"] || "")}</div>
         <div class="muted">${escapePayrollHtml(normalizePayrollMonth(item["月份"]))} · 本月工资 : ${formatPayrollCurrency(item["基本薪水"])}</div>
+        ${allowance > 0 ? `<div class="muted">津贴 : ${formatPayrollCurrency(allowance)}</div>` : ""}
         ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
         <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
       </div>
