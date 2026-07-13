@@ -388,11 +388,28 @@ input[readonly] {
 /* V1.7 Payroll 实发独立一行 */
 .payroll-net-line { margin-top: 3px; font-weight: 700; color: #111; }
 /* 津贴：空白时像扣款一样，从左边开始输入 */
-#allowance:placeholder-shown {
-  text-align: left;
+.allowance-input-box {
+  position: relative;
 }
 
-/* 输入金额后靠右显示 */
-#allowance:not(:placeholder-shown) {
-  text-align: right;
+.allowance-input-box::after {
+  content: "0.00";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8a948b;
+  pointer-events: none;
+  font-size: 16px;
+}
+
+.allowance-input-box:has(input:not(:placeholder-shown))::after {
+  display: none;
+}
+
+.allowance-input-box input {
+  position: relative;
+  z-index: 1;
+  text-align: left;
+  background: transparent;
 }
