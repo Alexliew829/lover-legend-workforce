@@ -11,7 +11,7 @@ Mobile-first workforce and payroll system for Lover Legend.
 
 ## Format standards
 - 日期：dd-MM-yyyy
-- 金额：RM 1,000.00
+- 金额：1,000.00
 - 手机优先、短字段双栏显示
 
 ## Important
