@@ -13,7 +13,7 @@
       <div class="page-title">Payroll</div>
     </div>
 
-    <div id="status" class="status">Payroll V1.71</div>
+    <div id="status" class="status">Payroll V1.72</div>
 
     <section class="card">
       <form id="payrollForm" class="form">
@@ -55,6 +55,12 @@
         <div id="monthlySalaryRow" style="display:none;">
           <label>本月工资 RM</label>
           <input name="monthlyGrossSalary" class="readonly-field money-right" type="text" readonly placeholder="0.00" />
+        </div>
+
+        <div class="field-group">
+          <label>津贴 RM</label>
+          <input id="allowance" name="allowance" class="money-right" type="text"
+            inputmode="decimal" value="0.00" placeholder="0.00" autocomplete="off" />
         </div>
 
         <div class="section-title">扣款</div>
@@ -102,6 +108,6 @@
 
   <script src="../js/config.js"></script>
   <script src="../js/api.js"></script>
-  <script src="../js/payroll.js"></script>
+  <script src="../js/payroll.js?v=1.72"></script>
 </body>
 </html>
