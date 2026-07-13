@@ -44,7 +44,12 @@ document.addEventListener("DOMContentLoaded", () => {
       calculatePayroll();
     }
   });
-
+form.addEventListener("keydown", event => {
+    if (event.key === "Enter" && event.target.name === "allowance") {
+        event.preventDefault();
+        event.target.blur();
+    }
+});
   form.addEventListener("submit", handlePayrollSubmit);
   loadPayrollPage();
 });
