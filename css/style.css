@@ -1,0 +1,389 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #eef5ec;
+  color: #0d1b12;
+  font-family: Arial, "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+.app {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 18px;
+  background: #fbfdf9;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 22px;
+  padding: 20px 10px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #0f4d24, #2e8b43);
+  color: #fff;
+}
+
+.brand {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.title {
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.version {
+  margin-top: 8px;
+  opacity: 0.85;
+  font-size: 13px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.back {
+  text-decoration: none;
+  color: #0f4d24;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.page-title {
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.menu {
+  display: grid;
+  gap: 14px;
+}
+
+.menu-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  text-decoration: none;
+  border: 1px solid #c8ddc4;
+  border-radius: 18px;
+  background: #fff;
+  color: #0d1b12;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+}
+
+.icon {
+  font-size: 32px;
+  width: 42px;
+  text-align: center;
+}
+
+.menu-card h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.menu-card p {
+  margin: 0;
+  color: #5d6f5d;
+  font-size: 13px;
+}
+
+.card {
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #c8ddc4;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.form label {
+  display: block;
+  margin: 12px 0 6px;
+  font-weight: 800;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #c8ddc4;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 16px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 15px;
+  border: 0;
+  border-radius: 14px;
+  background: #16823a;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btn.secondary {
+  background: #edf7ee;
+  color: #16823a;
+  border: 1px solid #16823a;
+}
+
+.status {
+  min-height: 24px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.status:empty {
+  display: none;
+}
+
+.status.ok {
+  background: #e5f7e8;
+  color: #13752e;
+}
+
+.status.err {
+  background: #ffe1e1;
+  color: #b00020;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+}
+
+.worker-item,
+.record-item {
+  padding: 13px;
+  border: 1px solid #d8e8d4;
+  border-radius: 14px;
+  background: #fbfdf9;
+}
+
+.worker-name {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.muted {
+  color: #627062;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-row input[name="joinDate"] {
+  flex: 1;
+}
+
+.date-btn {
+  width: 52px;
+  height: 46px;
+  border: 1px solid #159447;
+  border-radius: 10px;
+  background: #eef8ef;
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+
+/* V1.5 compact two-column layout */
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.85fr);
+  gap: 10px;
+  align-items: end;
+}
+.field-row.month-year-row { grid-template-columns: 1fr 1.25fr; }
+.field-group { min-width: 0; }
+.field-group label { margin-top: 12px; }
+.field-group input,
+.field-group select { min-width: 0; }
+.form > .field-row + label { margin-top: 12px; }
+.summary-box,
+.payroll-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d8e8d4;
+  border-radius: 14px;
+  background: #fbfdf9;
+}
+.summary-box { margin-top: 14px; }
+.summary-box strong,
+.payroll-summary strong { font-size: 16px; }
+.section-title { margin: 16px 0 8px; font-weight: 900; font-size: 17px; }
+.debt-list { display: grid; gap: 8px; }
+.debt-row {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #d8e8d4;
+  border-radius: 12px;
+  background: #fbfdf9;
+}
+.debt-row .debt-info { min-width: 0; }
+.debt-row .debt-type { font-weight: 900; }
+.debt-row .debt-balance { margin-top: 3px; font-size: 12px; color: #627062; }
+.debt-row input { padding: 11px; text-align: right; }
+.payroll-summary { display: grid; gap: 8px; margin-top: 14px; }
+.payroll-summary > div:nth-child(2) { border-color: #16823a; }
+.payroll-summary > div:nth-child(2) strong { color: #13752e; font-size: 18px; }
+@media (max-width: 360px) {
+  .field-row { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 8px; }
+  .debt-row { grid-template-columns: 1fr 96px; gap: 8px; }
+  input, select, textarea { padding: 12px; }
+}
+
+/* V1.6 Preview */
+.readonly-field,
+input[readonly] {
+  background: #f1f4f0;
+  color: #39483d;
+}
+
+.money-right {
+  text-align: right;
+}
+
+.field-hint {
+  margin-top: 6px;
+  color: #627062;
+  font-size: 12px;
+}
+
+.deduction-head {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding: 0 12px;
+  color: #627062;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.deduction-head span:last-child {
+  text-align: right;
+}
+
+.debt-remaining {
+  margin-top: 3px;
+  color: #13752e;
+  font-size: 12px;
+}
+
+.debt-deduction-input[readonly] {
+  cursor: not-allowed;
+}
+
+.input-error {
+  border-color: #b00020 !important;
+  background: #fff0f0 !important;
+}
+
+
+/* V1.6 Stable */
+.absence-card {
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #d8e8d4;
+  border-radius: 14px;
+  background: #fbfdf9;
+}
+.absence-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.absence-amount {
+  font-size: 17px;
+  font-weight: 900;
+  text-align: right;
+}
+.absence-choice {
+  display: flex;
+  gap: 18px;
+  margin-top: 10px;
+}
+.absence-choice label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-weight: 800;
+}
+.absence-choice input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+}
+
+
+/* V1.6.2 advance ledger */
+.advance-ledger-card { display: grid; gap: 6px; }
+.advance-company { margin-top: 0; }
+.advance-ledger-records { display: grid; gap: 5px; margin-top: 4px; }
+.advance-ledger-line { color: #4f5d50; font-size: 13px; line-height: 1.35; }
+.advance-ledger-total,
+.advance-ledger-remaining { font-weight: 900; font-size: 14px; }
+.advance-ledger-total { margin-top: 4px; }
+.advance-ledger-remaining { margin-top: 5px; color: #13752e; }
+.repayment-records { padding-top: 7px; border-top: 1px dashed #d8e8d4; }
+.repayment-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.payroll-source { text-align: right; white-space: nowrap; color: #627062; font-size: 12px; }
+@media (max-width: 390px) {
+  .repayment-line { grid-template-columns: minmax(0, 1fr) minmax(100px, auto); }
+  .payroll-source { white-space: normal; }
+}
+
+/* V1.6.3 Payroll 紧凑列表 */
+.payroll-record-item .worker-name,
+.payroll-record-item .muted {
+  margin: 0;
+}
+
+.payroll-record-item .muted + .muted {
+  margin-top: 3px;
+}
+
+.payroll-record-summary {
+  line-height: 1.45;
+}
+
+/* V1.7 Payroll 实发独立一行 */
+.payroll-net-line { margin-top: 3px; font-weight: 700; color: #111; }

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payroll</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <a class="back" href="index.html">←</a>
+      <div class="page-title">Payroll</div>
+    </div>
+
+    <div id="status" class="status">Payroll V1.71</div>
+
+    <section class="card">
+      <form id="payrollForm" class="form">
+        <label>月份</label>
+        <div class="field-row month-year-row">
+          <div class="field-group"><select name="payMonth" required><option value="">月</option></select></div>
+          <div class="field-group"><select name="payYear" required><option value="">年</option></select></div>
+        </div>
+
+        <label>公司</label>
+        <select name="company" required>
+          <option value="">选择公司</option>
+          <option>Lover Legend Adenium</option>
+          <option>Lover Legend Gardening</option>
+        </select>
+
+        <div class="field-row worker-salary-row">
+          <div class="field-group">
+            <label>工人</label>
+            <select name="workerNo" required><option value="">先选择公司</option></select>
+          </div>
+          <div class="field-group compact-field">
+            <label>薪水类型</label>
+            <input name="salaryType" class="readonly-field" type="text" readonly placeholder="自动显示" />
+          </div>
+        </div>
+
+        <div id="dailySalaryRow" class="field-row" style="display:none;">
+          <div class="field-group">
+            <label>日薪 RM</label>
+            <input name="salaryRateDisplay" class="readonly-field money-right" type="text" readonly placeholder="0.00" />
+          </div>
+          <div class="field-group">
+            <label>本月工资 RM</label>
+            <input name="grossSalary" class="readonly-field money-right" type="text" readonly placeholder="0.00" />
+          </div>
+        </div>
+
+        <div id="monthlySalaryRow" style="display:none;">
+          <label>本月工资 RM</label>
+          <input name="monthlyGrossSalary" class="readonly-field money-right" type="text" readonly placeholder="0.00" />
+        </div>
+
+        <div class="section-title">扣款</div>
+
+        <div class="absence-card">
+          <div class="absence-top-row">
+            <div>
+              <div class="debt-type">缺席</div>
+              <div id="absenceDaysText" class="debt-balance">本月 0 天</div>
+            </div>
+            <div id="absenceAmountText" class="absence-amount">RM 0.00</div>
+          </div>
+          <div class="absence-choice">
+            <label><input type="radio" name="absenceAction" value="扣薪" checked /> 扣薪</label>
+            <label><input type="radio" name="absenceAction" value="免扣" /> 免扣</label>
+          </div>
+          <div id="absenceNote" class="field-hint">没有缺席记录。</div>
+        </div>
+
+        <div class="deduction-head">
+          <span>欠款项目 / 余额</span>
+          <span>本月扣除</span>
+        </div>
+        <div id="debtList" class="debt-list">
+          <p class="muted">选择工人后自动显示欠款。</p>
+        </div>
+
+        <div class="payroll-summary">
+          <div><span>总扣款</span><strong id="totalDeductionText">RM 0.00</strong></div>
+          <div><span>实发薪水</span><strong id="netSalaryText">RM 0.00</strong></div>
+          <div><span>扣款后剩余欠款</span><strong id="remainingDebtText">RM 0.00</strong></div>
+        </div>
+
+        <label>备注</label>
+        <textarea name="remark" rows="2" placeholder="可以跳过"></textarea>
+
+        <button id="savePayrollBtn" class="btn" type="submit">保存 Payroll</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div id="payrollList" class="list"><p class="muted">还没有 Payroll 记录。</p></div>
+    </section>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/payroll.js"></script>
+</body>
+</html>
