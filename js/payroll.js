@@ -409,6 +409,7 @@ async function handlePayrollSubmit(event) {
 
   try {
     const enteredDeductions = {};
+const enteredAllowance = form.allowance ? form.allowance.value : "";
     document.querySelectorAll(".debt-deduction-input").forEach(input => {
       enteredDeductions[input.dataset.type] = input.value;
     });
@@ -424,7 +425,9 @@ async function handlePayrollSubmit(event) {
         input.value = enteredDeductions[input.dataset.type];
       }
     });
-
+if (form.allowance) {
+    form.allowance.value = enteredAllowance;
+}
     const calculation = calculatePayroll();
     if (calculation.grossSalary <= 0) throw new Error("本月工资必须大于 0");
     if (calculation.invalidDeduction) throw new Error("本月扣除不能超过欠款余额");
