@@ -38,32 +38,51 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     form.name.addEventListener("change", () => {
-  // 编辑现有工人时，允许直接修改名字，不清空其他资料
-  if (editingWorkerNo) return;
+      const selectedCompany = String(form.company.value || "").trim();
+      const enteredName = String(form.name.value || "").trim();
 
-  handleWorkerNameSelect(form.name.value);
-});
+      const matchedWorker = workersCache.find(worker =>
+        String(worker["公司"] || "").trim() === selectedCompany &&
+        String(worker["工人名字"] || "").trim().toUpperCase() === enteredName.toUpperCase()
+      );
+
+      // 从下拉选择了另一位现有工人：立即载入该工人的完整资料
+      if (
+        matchedWorker &&
+        String(matchedWorker["工人编号"]) !== String(editingWorkerNo || "")
+      ) {
+        editWorker(matchedWorker["工人编号"]);
+        return;
+      }
+
+      // 新增模式才执行原本的名字查找
+      if (!editingWorkerNo) {
+        handleWorkerNameSelect(form.name.value);
+      }
+    });
 
     form.name.addEventListener("input", () => {
-  const text = form.name.value;
+      const text = form.name.value;
 
-  // 编辑现有工人时，只修改名字，保留电话、IC、薪水等资料
-  if (editingWorkerNo) {
-    showStatus(
-      "status",
-      "正在编辑：" + editingWorkerNo + " · " + text.trim(),
-      true
-    );
-    return;
-  }
+      if (!text.trim()) {
+        if (!editingWorkerNo) {
+          clearWorkerDetailsForNew();
+        }
+        return;
+      }
 
-  if (!text.trim()) {
-    clearWorkerDetailsForNew();
-    return;
-  }
+      // 编辑现有工人时：允许修改名字，并保留电话、IC、薪水等资料
+      if (editingWorkerNo) {
+        showStatus(
+          "status",
+          "正在编辑：" + editingWorkerNo + " · " + text.trim(),
+          true
+        );
+        return;
+      }
 
-  handleWorkerNameSelect(text);
-});
+      handleWorkerNameSelect(text);
+    });
 
     form.salaryAmount.addEventListener("blur", () => {
       formatInputMoney(form.salaryAmount);
