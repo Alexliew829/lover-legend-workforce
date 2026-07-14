@@ -270,8 +270,10 @@ function renderAbsenceSection() {
 function getCurrentMonthPayrollRecord() {
   if (!selectedPayrollWorker) return null;
   const monthKey = normalizePayrollMonth(getSelectedPayrollMonthKey());
+  const form = document.getElementById("payrollForm");
   return payrollRecords.find(item =>
-    String(item["工人编号"]) === String(selectedPayrollWorker["工人编号"]) &&
+    String(item["公司"] || "") === String(form.company.value || "") &&
+    String(item["工人编号"] || "") === String(selectedPayrollWorker["工人编号"] || "") &&
     normalizePayrollMonth(item["月份"]) === monthKey
   ) || null;
 }
@@ -349,15 +351,23 @@ function renderDebtList() {
   }).join("");
 
   if (current) {
+    const form = document.getElementById("payrollForm");
     const action = String(current["缺席处理"] || "扣薪");
     const radio = document.querySelector(`input[name="absenceAction"][value="${action}"]`);
     if (radio) radio.checked = true;
 
-    const allowanceInput = getAllowanceInput();
-if (allowanceInput) {
-  const savedAllowance = parsePayrollMoney(current["津贴"]);
-  allowanceInput.value = savedAllowance > 0 ? moneyInput(savedAllowance) : "";
-}
+    const allowanceInput = getAllowanceInput(form);
+    if (allowanceInput) {
+      const savedAllowance = parsePayrollMoney(current["津贴"]);
+      allowanceInput.value = savedAllowance > 0 ? moneyInput(savedAllowance) : "";
+    }
+
+    // 同公司 + 同月份 + 同工人：恢复之前保存的全部 Payroll 输入资料。
+    form.remark.value = String(current["备注"] || "");
+    showStatus("status", "正在编辑已保存的 Payroll", true);
+  } else {
+    const form = document.getElementById("payrollForm");
+    form.remark.value = "";
   }
 }
 
@@ -503,6 +513,7 @@ async function handlePayrollSubmit(event) {
     const keyMonth = normalizePayrollMonth(savedRecord["月份"]);
     const keyWorker = String(savedRecord["工人编号"] || "");
     const index = payrollRecords.findIndex(item =>
+      String(item["公司"] || "") === String(savedRecord["公司"] || "") &&
       normalizePayrollMonth(item["月份"]) === keyMonth &&
       String(item["工人编号"] || "") === keyWorker
     );
@@ -512,7 +523,6 @@ async function handlePayrollSubmit(event) {
 
     renderPayrollHistory();
     renderDebtList();
-    form.remark.value = "";
     calculatePayroll();
   } catch (error) {
     showStatus("status", error.message, false);

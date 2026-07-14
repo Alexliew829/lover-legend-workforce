@@ -122,6 +122,10 @@ function createPayslipCopyHtml(item, advances) {
 
 
 function getPayslipDeductionNote(payroll, advances, type, savedNote) {
+  // Payslip 的扣款备注以 Payroll 页面保存的“备注”为最新版本，确保修改后同步更新。
+  const payrollRemark = String(payroll["备注"] || "").trim();
+  if (payrollRemark) return payrollRemark;
+
   const direct = String(savedNote || "").trim();
   if (direct) return direct;
 
