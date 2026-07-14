@@ -42,9 +42,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     form.name.addEventListener("input", () => {
-      const text = form.name.value.trim();
+      const text = form.name.value;
 
-      if (!text) {
+      if (!text.trim()) {
         clearWorkerDetailsForNew();
         return;
       }
@@ -117,7 +117,8 @@ function renderWorkerNameList() {
 function handleWorkerNameSelect(name) {
   const form = document.getElementById("workerForm");
   const selectedCompany = String(form.company.value || "").trim();
-  const text = String(name || "").trim();
+  const rawText = String(name || "");
+  const text = rawText.trim();
 
   if (!text) {
     clearWorkerDetailsForNew();
@@ -135,7 +136,7 @@ function handleWorkerNameSelect(name) {
   }
 
   clearWorkerDetailsForNew();
-  form.name.value = text;
+  form.name.value = rawText;
 
   if (matchedWorkers.length > 1) {
     showStatus("status", "同名工人超过一个，请从下面列表点击选择", false);
