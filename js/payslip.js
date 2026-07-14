@@ -16,6 +16,7 @@ async function loadPayslipPage() {
 
     const data = await api("getPayrollBootstrap");
     const payrolls = data?.payrolls || [];
+    const advances = data?.advances || [];
     const record = payrolls.find(item =>
       String(item["工人编号"] || "") === workerNo &&
       normalizePayslipMonth(item["月份"]) === month
@@ -25,7 +26,7 @@ async function loadPayslipPage() {
       throw new Error("找不到 Payroll 记录。 / Payroll record was not found.");
     }
 
-    renderPayslipCopies(record);
+    renderPayslipCopies(record, advances);
     setPdfFileName(record);
     status.textContent = "工资单已准备，可以打印。 / Payslip is ready to print.";
     status.className = "status ok no-print";
@@ -38,13 +39,13 @@ async function loadPayslipPage() {
   }
 }
 
-function renderPayslipCopies(item) {
+function renderPayslipCopies(item, advances) {
   document.querySelectorAll(".payslip-copy-content").forEach(container => {
-    container.innerHTML = createPayslipCopyHtml(item);
+    container.innerHTML = createPayslipCopyHtml(item, advances);
   });
 }
 
-function createPayslipCopyHtml(item) {
+function createPayslipCopyHtml(item, advances) {
   const basicSalary = parsePayslipMoney(item["基本薪水"]);
   const allowance = parsePayslipMoney(item["津贴"]);
   const totalDeduction = parsePayslipMoney(item["总扣款"]);
@@ -54,10 +55,22 @@ function createPayslipCopyHtml(item) {
 
   const deductionItems = [
     ["Potongan Tidak Hadir / Absence Deduction", item["缺席扣款"]],
-    ["Potongan Pendahuluan / Advance Deduction", item["支粮扣款"], item["支粮扣款说明"]],
-    ["Potongan Permit / Permit Deduction", item["准证扣款"], item["准证扣款说明"]],
+    [
+      "Potongan Pendahuluan / Advance Deduction",
+      item["支粮扣款"],
+      getPayslipDeductionNote(item, advances, "支粮", item["支粮扣款说明"])
+    ],
+    [
+      "Potongan Permit / Permit Deduction",
+      item["准证扣款"],
+      getPayslipDeductionNote(item, advances, "准证", item["准证扣款说明"])
+    ],
     ["Potongan Perubatan / Medical Deduction", item["医疗扣款"]],
-    ["Potongan Hutang Lain-lain / Other Debt Deduction", item["欠款其他扣款"], item["其他扣款说明"]],
+    [
+      "Potongan Hutang Lain-lain / Other Debt Deduction",
+      item["欠款其他扣款"],
+      getPayslipDeductionNote(item, advances, "其他", item["其他扣款说明"])
+    ],
     ["Potongan Gaji Lain-lain / Other Payroll Deduction", item["其他工资扣款"]]
   ].filter(([, value]) => parsePayslipMoney(value) > 0);
 
@@ -105,6 +118,28 @@ function createPayslipCopyHtml(item) {
       <div><div class="signature-line"></div><span>Tandatangan Majikan / Employer Signature</span></div>
     </div>
   `;
+}
+
+
+function getPayslipDeductionNote(payroll, advances, type, savedNote) {
+  const direct = String(savedNote || "").trim();
+  if (direct) return direct;
+
+  const workerNo = String(payroll["工人编号"] || "");
+  const normalizedType = type === "医疗" ? "其他" : type;
+
+  const notes = (advances || [])
+    .filter(item => {
+      const itemType = String(item["项目"] || item["类型"] || "");
+      const normalizedItemType = itemType === "医疗" ? "其他" : itemType;
+      return String(item["工人编号"] || "") === workerNo &&
+        normalizedItemType === normalizedType &&
+        parsePayslipMoney(item["金额"]) > 0;
+    })
+    .map(item => String(item["备注"] || "").trim())
+    .filter(Boolean);
+
+  return [...new Set(notes)].join(" / ");
 }
 
 function setPdfFileName(item) {

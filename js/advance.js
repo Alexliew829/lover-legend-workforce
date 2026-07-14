@@ -31,13 +31,71 @@ async function loadAdvancePage() {
   try {
     const data = await api("getAdvanceBootstrap");
     workersCache = data?.workers || [];
-    advanceLedgerCache = data?.ledger || [];
+    advanceLedgerCache = (data?.advances || []).map(item => ({
+      ...item,
+      "交易来源": "新增",
+      "显示金额": Number(item["金额"]) || 0
+    }));
+
     renderWorkerOptions();
     renderAdvanceLedger(advanceLedgerCache);
     showStatus("status", "系统已就绪，可以记录扣款", true);
+
+    // Payroll 扣回记录放到后台载入，不阻塞“系统已就绪”。
+    loadPayrollRepaymentsInBackground();
   } catch (error) {
     showStatus("status", error.message, false);
   }
+}
+
+async function loadPayrollRepaymentsInBackground() {
+  try {
+    const payrolls = await api("getPayrolls");
+    const repayments = [];
+
+    (payrolls || []).forEach(payroll => {
+      const date = payroll["发薪日期"] || payrollMonthEndDate(payroll["月份"]);
+      [
+        ["支粮", payroll["支粮扣款"], payroll["支粮扣款说明"]],
+        ["准证", payroll["准证扣款"], payroll["准证扣款说明"]],
+        ["其他", Number(payroll["欠款其他扣款"] || 0) + Number(payroll["医疗扣款"] || 0), payroll["其他扣款说明"]]
+      ].forEach(([type, amount, note]) => {
+        const value = Number(amount) || 0;
+        if (value <= 0) return;
+
+        repayments.push({
+          "日期时间": date,
+          "公司": payroll["公司"],
+          "工人编号": payroll["工人编号"],
+          "工人名字": payroll["工人名字"],
+          "项目": type,
+          "金额": -value,
+          "显示金额": -value,
+          "备注": `Payroll ${payroll["月份"]} 扣回${note ? ` · ${note}` : ""}`,
+          "交易来源": "Payroll"
+        });
+      });
+    });
+
+    advanceLedgerCache = [
+      ...advanceLedgerCache.filter(item => item["交易来源"] !== "Payroll"),
+      ...repayments
+    ];
+    renderAdvanceLedger(advanceLedgerCache);
+  } catch (_) {
+    // Payroll 历史载入失败不影响扣款输入与保存。
+  }
+}
+
+function payrollMonthEndDate(monthValue) {
+  const text = String(monthValue || "").trim();
+  const match = text.match(/^(\d{2})-(\d{4})$/);
+  if (!match) return text;
+
+  const month = Number(match[1]);
+  const year = Number(match[2]);
+  const day = new Date(year, month, 0).getDate();
+  return `${String(day).padStart(2, "0")}-${match[1]}-${match[2]}`;
 }
 
 function handleCompanyChange() {
@@ -205,33 +263,33 @@ async function handleAdvanceSubmit(event) {
       remark: form.remark.value.trim()
     };
 
-    let savedRecord = null;
+    let result = null;
     if (editingAdvanceRow) {
       item.row = editingAdvanceRow;
-      const updateResult = await api("updateAdvance", { item });
-      savedRecord = updateResult && updateResult.record ? updateResult.record : null;
-      if (savedRecord) {
-        const index = advanceLedgerCache.findIndex(row => Number(row.row) === Number(savedRecord.row) && row["交易来源"] !== "Payroll");
-        if (index >= 0) advanceLedgerCache[index] = savedRecord;
-      }
-      showStatus("status", "扣款记录已修改并保存到 Google Sheet", true);
+      result = await api("updateAdvance", { item });
     } else {
-      const result = await api("addAdvance", { item });
-      if (result && result.duplicate) {
-        item.row = result.row;
-        const updateResult = await api("updateAdvance", { item });
-        savedRecord = updateResult && updateResult.record ? updateResult.record : null;
-        if (savedRecord) {
-          const index = advanceLedgerCache.findIndex(row => Number(row.row) === Number(savedRecord.row) && row["交易来源"] !== "Payroll");
-          if (index >= 0) advanceLedgerCache[index] = savedRecord;
-        }
-        showStatus("status", "扣款记录已修改并保存到 Google Sheet", true);
-      } else {
-        savedRecord = result && result.record ? result.record : null;
-        if (savedRecord) advanceLedgerCache.push(savedRecord);
-        showStatus("status", "扣款记录已保存到 Google Sheet", true);
-      }
+      // 后端会在同工人 + 同日期 + 同项目时直接更新，避免第二次 API 请求。
+      result = await api("addAdvance", { item });
     }
+
+    const savedRecord = result && result.record ? result.record : null;
+    if (savedRecord) {
+      const index = advanceLedgerCache.findIndex(row =>
+        Number(row.row) === Number(savedRecord.row) &&
+        row["交易来源"] !== "Payroll"
+      );
+
+      if (index >= 0) advanceLedgerCache[index] = savedRecord;
+      else advanceLedgerCache.push(savedRecord);
+    }
+
+    showStatus(
+      "status",
+      result && (result.updated || result.duplicate)
+        ? "扣款记录已修改并保存到 Google Sheet"
+        : "扣款记录已保存到 Google Sheet",
+      true
+    );
 
     form.reset();
     renderWorkerOptions();
