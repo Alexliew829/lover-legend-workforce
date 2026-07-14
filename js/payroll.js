@@ -528,15 +528,11 @@ function renderPayrollHistory() {
     normalizePayrollMonth(item["月份"]) === selectedMonth
   );
 
- const totalNetSalary = payrollRecords
-  .filter(item =>
-    normalizePayrollMonth(item["月份"]) === selectedMonth
-  )
-  .reduce(
-    (sum, item) => sum + parsePayrollMoney(item["实发薪水"]),
-    0
-  );
-  const recordsHtml = sorted.map(item => {
+ const totalNetSalary = currentMonthRecords.reduce(
+  (sum, item) => sum + parsePayrollMoney(item["实发薪水"]),
+  0
+);
+  const recordsHtml = currentMonthRecords.map(item => {
     const absenceDays = Number(item["缺席天数"]) || 0;
     const allowance = parsePayrollMoney(item["津贴"]);
     const totalDeduction = parsePayrollMoney(item["总扣款"]);
