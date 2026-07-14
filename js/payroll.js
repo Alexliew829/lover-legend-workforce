@@ -545,7 +545,13 @@ function renderPayrollHistory() {
         <div class="muted">${escapePayrollHtml(normalizePayrollMonth(item["月份"]))} · 本月工资 : ${formatPayrollCurrency(item["基本薪水"])}</div>
         ${allowance > 0 ? `<div class="muted">津贴 : ${formatPayrollCurrency(allowance)}</div>` : ""}
         ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
-        <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
+     <div class="payroll-net-line">
+  实发 : ${formatPayrollCurrency(item["实发薪水"])}
+</div>
+
+<div class="payroll-remaining-debt-line">
+  剩余欠款 : ${formatPayrollCurrency(item["剩余欠款"])}
+</div>
       </div>
     `;
   }).join("");
