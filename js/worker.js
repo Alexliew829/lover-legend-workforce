@@ -62,27 +62,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     form.name.addEventListener("input", () => {
-      const text = form.name.value;
+  const text = form.name.value;
 
-      if (!text.trim()) {
-        if (!editingWorkerNo) {
-          clearWorkerDetailsForNew();
-        }
-        return;
-      }
+  // 名字全部删掉，立即进入新增模式
+  if (!text.trim()) {
+    clearWorkerDetailsForNew();
+    form.name.value = "";
+    return;
+  }
 
-      // 编辑现有工人时：允许修改名字，并保留电话、IC、薪水等资料
-      if (editingWorkerNo) {
-        showStatus(
-          "status",
-          "正在编辑：" + editingWorkerNo + " · " + text.trim(),
-          true
-        );
-        return;
-      }
+  // 正在编辑工人，只允许修改名字
+  if (editingWorkerNo) {
+    showStatus(
+      "status",
+      "正在编辑：" + editingWorkerNo + " · " + text.trim(),
+      true
+    );
+    return;
+  }
 
-      handleWorkerNameSelect(text);
-    });
+  // 新增模式才检查是否已有同名工人
+  handleWorkerNameSelect(text);
+});
 
     form.salaryAmount.addEventListener("blur", () => {
       formatInputMoney(form.salaryAmount);
