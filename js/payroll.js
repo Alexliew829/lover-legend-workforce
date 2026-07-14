@@ -27,7 +27,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (
       event.target.classList.contains("debt-deduction-input") ||
       event.target.name === "allowance" ||
-      event.target.id === "allowance"
+      event.target.id === "allowance" ||
+      event.target.name === "liveCommission" ||
+      event.target.id === "liveCommission"
     ) {
       calculatePayroll();
     }
@@ -39,18 +41,26 @@ document.addEventListener("DOMContentLoaded", () => {
       calculatePayroll();
     }
 
-    if (event.target.name === "allowance" || event.target.id === "allowance") {
-  const value = parsePayrollMoney(event.target.value);
+    if (
+      event.target.name === "allowance" ||
+      event.target.id === "allowance" ||
+      event.target.name === "liveCommission" ||
+      event.target.id === "liveCommission"
+    ) {
+      const value = parsePayrollMoney(event.target.value);
 
-  event.target.value = value > 0
-    ? moneyInput(value)
-    : "";
+      event.target.value = value > 0
+        ? moneyInput(value)
+        : "";
 
-  calculatePayroll();
-}
+      calculatePayroll();
+    }
   });
 form.addEventListener("keydown", event => {
-    if (event.key === "Enter" && event.target.name === "allowance") {
+    if (
+      event.key === "Enter" &&
+      (event.target.name === "allowance" || event.target.name === "liveCommission")
+    ) {
         event.preventDefault();
         event.target.blur();
     }
@@ -169,6 +179,10 @@ function resetPayrollEntryFields({ keepWorkerSelection = false } = {}) {
   form.monthlyGrossSalary.value = "";
   const allowanceInput = getAllowanceInput(form);
   if (allowanceInput) allowanceInput.value = "";
+
+  const liveCommissionInput = getLiveCommissionInput(form);
+  if (liveCommissionInput) liveCommissionInput.value = "";
+
   form.remark.value = "";
 
   document.getElementById("dailySalaryRow").style.display = "none";
@@ -362,6 +376,14 @@ function renderDebtList() {
       allowanceInput.value = savedAllowance > 0 ? moneyInput(savedAllowance) : "";
     }
 
+    const liveCommissionInput = getLiveCommissionInput(form);
+    if (liveCommissionInput) {
+      const savedLiveCommission = parsePayrollMoney(current["直播佣金"]);
+      liveCommissionInput.value = savedLiveCommission > 0
+        ? moneyInput(savedLiveCommission)
+        : "";
+    }
+
     // 同公司 + 同月份 + 同工人：恢复之前保存的全部 Payroll 输入资料。
     form.remark.value = String(current["备注"] || "");
     showStatus("status", "正在编辑已保存的 Payroll", true);
@@ -381,10 +403,21 @@ function getAllowanceAmount() {
   return input ? parsePayrollMoney(input.value) : 0;
 }
 
+function getLiveCommissionInput(form = document.getElementById("payrollForm")) {
+  if (!form) return null;
+  return form.elements.liveCommission || document.getElementById("liveCommission");
+}
+
+function getLiveCommissionAmount() {
+  const input = getLiveCommissionInput();
+  return input ? parsePayrollMoney(input.value) : 0;
+}
+
 function calculatePayroll() {
   const form = document.getElementById("payrollForm");
   const grossSalary = getGrossSalary();
   const allowance = getAllowanceAmount();
+  const liveCommission = getLiveCommissionAmount();
   const absence = getAbsenceSummary();
   const absenceAction = form.querySelector('input[name="absenceAction"]:checked')?.value || "扣薪";
   const absenceDeduction = absenceAction === "扣薪" ? absence.expectedAmount : 0;
@@ -410,14 +443,29 @@ function calculatePayroll() {
   document.getElementById("absenceAmountText").textContent = formatPayrollCurrency(absenceDeduction);
 
   const totalDeduction = absenceDeduction + debtDeduction;
-  const netSalary = Math.max(0, grossSalary + allowance - totalDeduction);
+  const netSalary = Math.max(
+    0,
+    grossSalary + allowance + liveCommission - totalDeduction
+  );
   const remainingDebt = Math.max(0, totalOutstanding - debtDeduction);
 
   document.getElementById("totalDeductionText").textContent = formatPayrollCurrency(totalDeduction);
   document.getElementById("netSalaryText").textContent = formatPayrollCurrency(netSalary);
   document.getElementById("remainingDebtText").textContent = formatPayrollCurrency(remainingDebt);
 
-  return { grossSalary, allowance, absence, absenceAction, absenceDeduction, debtDeduction, totalDeduction, netSalary, remainingDebt, invalidDeduction };
+  return {
+    grossSalary,
+    allowance,
+    liveCommission,
+    absence,
+    absenceAction,
+    absenceDeduction,
+    debtDeduction,
+    totalDeduction,
+    netSalary,
+    remainingDebt,
+    invalidDeduction
+  };
 }
 
 async function handlePayrollSubmit(event) {
@@ -435,8 +483,11 @@ async function handlePayrollSubmit(event) {
     const calculation = calculatePayroll();
     if (calculation.grossSalary <= 0) throw new Error("本月工资必须大于 0");
     if (calculation.invalidDeduction) throw new Error("本月扣除不能超过欠款余额");
-    if (calculation.totalDeduction > calculation.grossSalary + calculation.allowance) {
-      throw new Error("总扣款不能超过本月工资加津贴");
+    if (
+      calculation.totalDeduction >
+      calculation.grossSalary + calculation.allowance + calculation.liveCommission
+    ) {
+      throw new Error("总扣款不能超过本月工资、津贴和直播佣金总额");
     }
 
     const deductions = Object.fromEntries(DEBT_TYPES.map(type => [type, 0]));
@@ -457,6 +508,7 @@ async function handlePayrollSubmit(event) {
       monthlySalary: parsePayrollMoney(selectedPayrollWorker["月薪"]),
       basicSalary: calculation.grossSalary,
       allowance: calculation.allowance,
+      liveCommission: calculation.liveCommission,
       absenceDays: calculation.absence.days,
       absenceAction: calculation.absenceAction,
       absenceExpectedAmount: calculation.absence.expectedAmount,

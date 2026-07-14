@@ -48,6 +48,7 @@ function renderPayslipCopies(item, advances) {
 function createPayslipCopyHtml(item, advances) {
   const basicSalary = parsePayslipMoney(item["基本薪水"]);
   const allowance = parsePayslipMoney(item["津贴"]);
+  const liveCommission = parsePayslipMoney(item["直播佣金"]);
   const totalDeduction = parsePayslipMoney(item["总扣款"]);
   const netSalary = parsePayslipMoney(item["实发薪水"]);
   const debtBalance = parsePayslipMoney(item["欠款余额"]);
@@ -99,7 +100,8 @@ function createPayslipCopyHtml(item, advances) {
     <div class="payslip-lines">
       <div><span>Gaji Bulan Ini / Current Month Salary</span><strong>${formatPayslipCurrency(basicSalary)}</strong></div>
       ${allowance > 0 ? `<div><span>Elaun / Allowance</span><strong>${formatPayslipCurrency(allowance)}</strong></div>` : ""}
-      <div class="payslip-total-line"><span>Jumlah Pendapatan / Total Income</span><strong>${formatPayslipCurrency(basicSalary + allowance)}</strong></div>
+      ${liveCommission > 0 ? `<div><span>Komisen Jualan Live / Live Sales Commission</span><strong>${formatPayslipCurrency(liveCommission)}</strong></div>` : ""}
+      <div class="payslip-total-line"><span>Jumlah Pendapatan / Total Income</span><strong>${formatPayslipCurrency(basicSalary + allowance + liveCommission)}</strong></div>
     </div>
 
     <div class="payslip-section-title">Potongan / Deduction</div>
