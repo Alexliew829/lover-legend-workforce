@@ -535,3 +535,13 @@ input[readonly] {
   .payslip-signatures { margin-top: 16px; }
   @page { size: A4 portrait; margin: 8mm; }
 }
+
+
+/* V1.76 Payroll + Payslip integrated title */
+.payroll-combined-title {
+  font-size: 20px;
+  line-height: 1.25;
+}
+@media (max-width: 390px) {
+  .payroll-combined-title { font-size: 18px; }
+}

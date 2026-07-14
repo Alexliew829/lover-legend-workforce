@@ -1,4 +1,4 @@
-const CACHE_NAME = "ll-workforce-v175";
+const CACHE_NAME = "ll-workforce-v176";
 const ASSETS = [
   "./app/index.html", "./css/style.css", "./assets/icons/icon-192.png", "./assets/icons/icon-512.png"
 ];

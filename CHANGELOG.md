@@ -108,3 +108,10 @@
 - Payslip month is bold black.
 - Home page adds green and red Lover Legend logos.
 - Added Windows, Android and iPhone icons plus PWA manifest.
+
+
+## V1.76
+- Updated desktop and mobile Payroll System icons.
+- Integrated the Payroll and Payslip entry points into a single Payroll module.
+- Removed the separate Payslip card from the home page.
+- Updated frontend cache version to V1.76.
