@@ -1,6 +1,6 @@
 {
-  "name": "Payroll System - Lover Legend Workforce ERP V1.77",
-  "short_name": "Payroll System",
+ "name": "Lover Legend Workforce ERP",
+"short_name": "Workforce ERP",
   "start_url": "/lover-legend-workforce/app/index.html",
   "scope": "./",
   "display": "standalone",
