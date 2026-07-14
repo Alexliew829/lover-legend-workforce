@@ -9,6 +9,14 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDashboardPeriod();
   document.getElementById("dashboardMonth").addEventListener("change", loadDashboard);
   document.getElementById("dashboardYear").addEventListener("change", loadDashboard);
+
+  document.getElementById("yearlyBackupBtn").addEventListener("click", handleYearlyBackup);
+  document.getElementById("restoreBackupBtn").addEventListener("click", () => {
+    document.getElementById("restoreBackupFile").click();
+  });
+  document.getElementById("restoreBackupFile").addEventListener("change", handleRestoreBackup);
+  document.getElementById("yearEndCloseBtn").addEventListener("click", handleYearEndClose);
+
   loadDashboard();
 });
 
@@ -124,7 +132,7 @@ function getDashboardMonthKey() {
 
 function readDashboardBrowserCache(monthKey) {
   try {
-    const raw = sessionStorage.getItem(`ll-dashboard-v180-${monthKey}`);
+    const raw = sessionStorage.getItem(`ll-dashboard-v182-${monthKey}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed && parsed.data ? parsed.data : null;
@@ -135,7 +143,7 @@ function readDashboardBrowserCache(monthKey) {
 
 function writeDashboardBrowserCache(monthKey, data) {
   try {
-    sessionStorage.setItem(`ll-dashboard-v180-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
+    sessionStorage.setItem(`ll-dashboard-v182-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
   } catch (error) {}
 }
 
@@ -150,4 +158,133 @@ function formatDashboardDay(value) {
 
 function escapeDashboardHtml(value) {
   return String(value || "").replace(/[&<>\"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;" }[char]));
+}
+
+
+async function handleYearlyBackup() {
+  const year = Number(document.getElementById("dashboardYear").value);
+  const button = document.getElementById("yearlyBackupBtn");
+
+  try {
+    button.disabled = true;
+    button.textContent = "正在准备备份...";
+
+    const backup = await api("createYearlyBackup", { year });
+    downloadBackupJson(backup);
+
+    showStatus(
+      "maintenanceStatus",
+      `${year} 年度备份已经下载。请妥善保存 JSON 文件。`,
+      true
+    );
+  } catch (error) {
+    showStatus("maintenanceStatus", error.message, false);
+  } finally {
+    button.disabled = false;
+    button.textContent = "💾 年度备份 / Backup";
+  }
+}
+
+async function handleRestoreBackup(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+
+  const confirmed = confirm(
+    "恢复会覆盖目前的系统资料。确定继续吗？\n\nRestore will overwrite current data."
+  );
+  if (!confirmed) return;
+
+  const button = document.getElementById("restoreBackupBtn");
+
+  try {
+    button.disabled = true;
+    button.textContent = "正在恢复...";
+
+    const text = await file.text();
+    const backup = JSON.parse(text);
+    const result = await api("restoreYearlyBackup", { backup });
+
+    sessionStorage.clear();
+    showStatus(
+      "maintenanceStatus",
+      `恢复完成，共恢复 ${Number(result.restoredSheets) || 0} 个工作表。`,
+      true
+    );
+
+    await loadDashboard();
+  } catch (error) {
+    showStatus("maintenanceStatus", "恢复失败：" + error.message, false);
+  } finally {
+    button.disabled = false;
+    button.textContent = "♻ Restore / 恢复";
+  }
+}
+
+async function handleYearEndClose() {
+  const year = Number(document.getElementById("dashboardYear").value);
+  const requiredText = `CLOSE ${year}`;
+
+  const confirmation = prompt(
+    `年底结转会清空 ${year} 年度的扣款、Payroll、Payslip、Dashboard 与 AuditLog。\\n` +
+    `工人资料会保留，未还欠款会结转到 ${year + 1}。\\n\\n` +
+    `请输入：${requiredText}`
+  );
+
+  if (confirmation === null) return;
+  if (String(confirmation).trim().toUpperCase() !== requiredText) {
+    showStatus("maintenanceStatus", "确认文字不正确，已经取消。", false);
+    return;
+  }
+
+  const button = document.getElementById("yearEndCloseBtn");
+
+  try {
+    button.disabled = true;
+    button.textContent = "正在执行年底结转...";
+
+    const result = await api("yearEndClose", {
+      year,
+      confirmation: requiredText
+    });
+
+    if (result.backup) downloadBackupJson(result.backup);
+
+    sessionStorage.clear();
+    document.getElementById("dashboardYear").value = String(result.newYear || year + 1);
+    document.getElementById("dashboardMonth").value = "01";
+
+    showStatus(
+      "maintenanceStatus",
+      `${year} 年底结转完成。已自动下载备份，并结转 ${Number(result.carriedDebtRecords) || 0} 笔未还欠款。`,
+      true
+    );
+
+    await loadDashboard();
+  } catch (error) {
+    showStatus("maintenanceStatus", error.message, false);
+  } finally {
+    button.disabled = false;
+    button.textContent = "⚠ 年底结转 / Year-End Closing";
+  }
+}
+
+function downloadBackupJson(backup) {
+  const year = Number(backup && backup.backupYear) || new Date().getFullYear();
+  const dateText = new Date().toISOString().slice(0, 10).split("-").reverse().join("-");
+  const filename = `Lover Legend Workforce Backup ${year} ${dateText}.json`;
+
+  const blob = new Blob(
+    [JSON.stringify(backup, null, 2)],
+    { type: "application/json;charset=utf-8" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }

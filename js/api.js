@@ -10,7 +10,8 @@ const API_READ_ACTIONS = new Set([
   "getAdvanceLedger",
   "getPayrolls",
   "getPayrollBootstrap",
-  "getPayrollData"
+  "getPayrollData",
+  "createYearlyBackup"
 ]);
 
 const API_WRITE_ACTIONS = new Set([
@@ -20,11 +21,44 @@ const API_WRITE_ACTIONS = new Set([
   "addAdvance",
   "updateAdvance",
   "savePayroll",
-  "clearCache"
+  "clearCache",
+  "restoreYearlyBackup",
+  "yearEndClose"
 ]);
 
 function clearApiReadCache() {
   apiReadCache.clear();
+
+  try {
+    Object.keys(localStorage)
+      .filter(key => key.startsWith("ll-api-cache-v182:"))
+      .forEach(key => localStorage.removeItem(key));
+  } catch (_) {}
+}
+
+function readPersistentApiCache(cacheKey) {
+  try {
+    const raw = localStorage.getItem("ll-api-cache-v182:" + cacheKey);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || Date.now() - Number(parsed.time || 0) >= API_READ_CACHE_MS) {
+      localStorage.removeItem("ll-api-cache-v182:" + cacheKey);
+      return null;
+    }
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writePersistentApiCache(cacheKey, data) {
+  try {
+    localStorage.setItem(
+      "ll-api-cache-v182:" + cacheKey,
+      JSON.stringify({ time: Date.now(), data })
+    );
+  } catch (_) {}
 }
 
 async function api(action, payload = {}) {
@@ -39,8 +73,9 @@ async function api(action, payload = {}) {
   const cacheKey = isRead ? `${action}:${JSON.stringify(payload)}` : "";
 
   if (isRead) {
-    const cached = apiReadCache.get(cacheKey);
+    const cached = apiReadCache.get(cacheKey) || readPersistentApiCache(cacheKey);
     if (cached && Date.now() - cached.time < API_READ_CACHE_MS) {
+      apiReadCache.set(cacheKey, cached);
       return cached.data;
     }
 
@@ -71,7 +106,9 @@ async function api(action, payload = {}) {
     const result = data.data || data;
 
     if (isRead) {
-      apiReadCache.set(cacheKey, { time: Date.now(), data: result });
+      const cachedValue = { time: Date.now(), data: result };
+      apiReadCache.set(cacheKey, cachedValue);
+      writePersistentApiCache(cacheKey, result);
     } else if (API_WRITE_ACTIONS.has(action)) {
       clearApiReadCache();
     }

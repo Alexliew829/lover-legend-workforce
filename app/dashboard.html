@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payroll System - Dashboard</title>
-  <link rel="manifest" href="../manifest.json?v=1.81.1" />
-  <link rel="icon" href="../assets/icons/payroll-system.ico?v=1.81.1" />
-  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=1.81.1" />
-  <link rel="stylesheet" href="../css/style.css?v=1.81.1" />
+  <link rel="manifest" href="../manifest.json?v=1.82" />
+  <link rel="icon" href="../assets/icons/payroll-system.ico?v=1.82" />
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=1.82" />
+  <link rel="stylesheet" href="../css/style.css?v=1.82" />
 </head>
 <body>
   <div class="app">
@@ -43,10 +43,34 @@
         <a class="dashboard-action" href="index.html">🏠<span>首页</span></a>
       </div>
     </section>
+
+    <section class="card">
+      <div class="section-title dashboard-section-title">系统维护 / System Maintenance</div>
+      <p class="field-hint maintenance-hint">
+        建议在年底结转前先下载年度备份。工人资料会保留，未还欠款会自动结转。
+      </p>
+
+      <div class="maintenance-actions">
+        <button id="yearlyBackupBtn" class="btn secondary maintenance-btn" type="button">
+          💾 年度备份 / Backup
+        </button>
+
+        <button id="restoreBackupBtn" class="btn secondary maintenance-btn" type="button">
+          ♻ Restore / 恢复
+        </button>
+
+        <button id="yearEndCloseBtn" class="btn danger maintenance-btn" type="button">
+          ⚠ 年底结转 / Year-End Closing
+        </button>
+      </div>
+
+      <input id="restoreBackupFile" type="file" accept=".json,application/json" hidden />
+      <div id="maintenanceStatus" class="status"></div>
+    </section>
   </div>
 
-  <script src="../js/config.js?v=1.81.1"></script>
-  <script src="../js/api.js?v=1.81.1"></script>
-  <script src="../js/dashboard.js?v=1.81.1"></script>
+  <script src="../js/config.js?v=1.82"></script>
+  <script src="../js/api.js?v=1.82"></script>
+  <script src="../js/dashboard.js?v=1.82"></script>
 </body>
 </html>
