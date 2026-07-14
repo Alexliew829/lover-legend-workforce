@@ -5,7 +5,7 @@ let selectedPayrollWorker = null;
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const DEBT_TYPES = ["支粮", "准证", "其他"];
+const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
   "Lover Legend Adenium": 1,
   "Lover Legend Gardening": 2
@@ -326,7 +326,8 @@ function getCurrentMonthPayrollRecord() {
 }
 
 function normalizeDebtType(type) {
-  return type === "医疗" ? "其他" : type;
+  const text = String(type || "").trim();
+  return text === "其他" || text === "医疗" ? "支粮" : text;
 }
 
 function getOutstandingByType(workerNo) {
@@ -344,9 +345,9 @@ function getOutstandingByType(workerNo) {
     if (normalizePayrollMonth(item["月份"]) === currentMonth) return;
 
     totals["支粮"] -= parsePayrollMoney(item["支粮扣款"]);
+    totals["支粮"] -= parsePayrollMoney(item["欠款其他扣款"]);
+    totals["支粮"] -= parsePayrollMoney(item["医疗扣款"]);
     totals["准证"] -= parsePayrollMoney(item["准证扣款"]);
-    totals["其他"] -= parsePayrollMoney(item["欠款其他扣款"]);
-    totals["其他"] -= parsePayrollMoney(item["医疗扣款"]);
   });
 
   DEBT_TYPES.forEach(type => totals[type] = Math.max(0, totals[type]));
@@ -371,13 +372,13 @@ function getDebtOriginalNoteField(type) {
   const current = getCurrentMonthPayrollRecord();
   const savedFields = {
     "支粮": "支粮扣款说明",
-    "准证": "准证扣款说明",
-    "其他": "其他扣款说明"
+    "准证": ""
   };
 
+  const field = savedFields[type];
   const saved = String(
-    current && current[savedFields[type]]
-      ? current[savedFields[type]]
+    field && current && current[field]
+      ? current[field]
       : ""
   ).trim();
 
@@ -397,13 +398,13 @@ function getDebtMalayNoteField(type) {
   const current = getCurrentMonthPayrollRecord();
   const savedFields = {
     "支粮": "支粮马来文说明",
-    "准证": "准证马来文说明",
-    "其他": "其他马来文说明"
+    "准证": ""
   };
 
+  const field = savedFields[type];
   return String(
-    current && current[savedFields[type]]
-      ? current[savedFields[type]]
+    field && current && current[field]
+      ? current[field]
       : ""
   ).trim();
 }
@@ -418,7 +419,7 @@ async function fillMissingMalayDebtNotes() {
   const runId = ++payrollRemarkTranslationRun;
   const jobs = [];
 
-  DEBT_TYPES.forEach(type => {
+  ["支粮"].forEach(type => {
     const originalInput = getDebtNoteInput(type, "source");
     const malayInput = getDebtNoteInput(type, "ms");
 
@@ -478,19 +479,22 @@ function renderDebtList() {
   const balances = getOutstandingByType(selectedPayrollWorker["工人编号"]);
   const current = getCurrentMonthPayrollRecord();
   const saved = {
-    "支粮": parsePayrollMoney(current && current["支粮扣款"]),
-    "准证": parsePayrollMoney(current && current["准证扣款"]),
-    "其他": parsePayrollMoney(current && current["欠款其他扣款"])
+    "支粮":
+      parsePayrollMoney(current && current["支粮扣款"]) +
+      parsePayrollMoney(current && current["欠款其他扣款"]) +
+      parsePayrollMoney(current && current["医疗扣款"]),
+    "准证": parsePayrollMoney(current && current["准证扣款"])
   };
 
   list.innerHTML = DEBT_TYPES.map(type => {
     const balance = balances[type] || 0;
     const value = Math.min(saved[type] || 0, balance);
-    const originalNote = getDebtOriginalNoteField(type);
-    const malayNote = getDebtMalayNoteField(type);
+    const isAdvance = type === "支粮";
+    const originalNote = isAdvance ? getDebtOriginalNoteField(type) : "";
+    const malayNote = isAdvance ? getDebtMalayNoteField(type) : "";
 
     return `
-      <div class="debt-row debt-row-with-notes">
+      <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""}">
         <div class="debt-info">
           <div class="debt-type">${type}</div>
           <div class="debt-balance">余额 ${formatPayrollCurrency(balance)}</div>
@@ -501,29 +505,31 @@ function renderDebtList() {
           type="text" inputmode="decimal" placeholder="0.00" value="${value > 0 ? moneyInput(value) : ""}"
           ${balance <= 0 ? "readonly" : ""} />
 
-        <div class="debt-note-editor">
-          <label>扣款备注</label>
-          <input
-            class="debt-note-input"
-            data-type="${type}"
-            data-language="source"
-            type="text"
-            value="${escapePayrollHtml(originalNote)}"
-            placeholder="自动带入扣款管理备注，可修改"
-            ${balance <= 0 && value <= 0 ? "readonly" : ""}
-          />
+        ${isAdvance ? `
+          <div class="debt-note-editor">
+            <label>扣款备注</label>
+            <input
+              class="debt-note-input"
+              data-type="支粮"
+              data-language="source"
+              type="text"
+              value="${escapePayrollHtml(originalNote)}"
+              placeholder="自动带入扣款管理备注，可修改"
+              ${balance <= 0 && value <= 0 ? "readonly" : ""}
+            />
 
-          <label>Payslip 马来文备注</label>
-          <input
-            class="debt-note-input"
-            data-type="${type}"
-            data-language="ms"
-            type="text"
-            value="${escapePayrollHtml(malayNote)}"
-            placeholder="自动翻译成马来文，可修改"
-            ${balance <= 0 && value <= 0 ? "readonly" : ""}
-          />
-        </div>
+            <label>Payslip 马来文备注</label>
+            <input
+              class="debt-note-input"
+              data-type="支粮"
+              data-language="ms"
+              type="text"
+              value="${escapePayrollHtml(malayNote)}"
+              placeholder="自动翻译成马来文，可修改"
+              ${balance <= 0 && value <= 0 ? "readonly" : ""}
+            />
+          </div>
+        ` : ""}
       </div>
     `;
   }).join("");
@@ -687,20 +693,12 @@ async function handlePayrollSubmit(event) {
         getDebtNoteInput("支粮", "ms")?.value || ""
       ).trim(),
       permitDeduction: deductions["准证"] || 0,
-      permitDeductionRemark: String(
-        getDebtNoteInput("准证", "source")?.value || ""
-      ).trim(),
-      permitDeductionMalayRemark: String(
-        getDebtNoteInput("准证", "ms")?.value || ""
-      ).trim(),
+      permitDeductionRemark: "",
+      permitDeductionMalayRemark: "",
       medicalDeduction: 0,
-      debtOtherDeduction: deductions["其他"] || 0,
-      debtOtherDeductionRemark: String(
-        getDebtNoteInput("其他", "source")?.value || ""
-      ).trim(),
-      debtOtherDeductionMalayRemark: String(
-        getDebtNoteInput("其他", "ms")?.value || ""
-      ).trim(),
+      debtOtherDeduction: 0,
+      debtOtherDeductionRemark: "",
+      debtOtherDeductionMalayRemark: "",
       otherPayrollDeduction: 0,
       totalDeduction: calculation.totalDeduction,
       netSalary: calculation.netSalary,
@@ -733,12 +731,12 @@ async function handlePayrollSubmit(event) {
       "支粮扣款说明": payroll.advanceDeductionRemark,
       "支粮马来文说明": payroll.advanceDeductionMalayRemark,
       "准证扣款": payroll.permitDeduction,
-      "准证扣款说明": payroll.permitDeductionRemark,
-      "准证马来文说明": payroll.permitDeductionMalayRemark,
-      "医疗扣款": payroll.medicalDeduction,
-      "欠款其他扣款": payroll.debtOtherDeduction,
-      "其他扣款说明": payroll.debtOtherDeductionRemark,
-      "其他马来文说明": payroll.debtOtherDeductionMalayRemark,
+      "准证扣款说明": "",
+      "准证马来文说明": "",
+      "医疗扣款": 0,
+      "欠款其他扣款": 0,
+      "其他扣款说明": "",
+      "其他马来文说明": "",
       "其他工资扣款": payroll.otherPayrollDeduction,
       "总扣款": payroll.totalDeduction,
       "实发薪水": payroll.netSalary,

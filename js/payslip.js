@@ -54,25 +54,20 @@ function createPayslipCopyHtml(item, advances) {
   const debtBalance = parsePayslipMoney(item["欠款余额"]);
   const month = normalizePayslipMonth(item["月份"]);
 
+  const advanceDeduction =
+    parsePayslipMoney(item["支粮扣款"]) +
+    parsePayslipMoney(item["欠款其他扣款"]) +
+    parsePayslipMoney(item["医疗扣款"]) +
+    parsePayslipMoney(item["其他工资扣款"]);
+
   const deductionItems = [
     ["Potongan Tidak Hadir / Absence Deduction", item["缺席扣款"]],
     [
       "Potongan Pendahuluan / Advance Deduction",
-      item["支粮扣款"],
+      advanceDeduction,
       String(item["支粮马来文说明"] || "").trim()
     ],
-    [
-      "Potongan Permit / Permit Deduction",
-      item["准证扣款"],
-      String(item["准证马来文说明"] || "").trim()
-    ],
-    ["Potongan Perubatan / Medical Deduction", item["医疗扣款"]],
-    [
-      "Potongan Hutang Lain-lain / Other Debt Deduction",
-      item["欠款其他扣款"],
-      String(item["其他马来文说明"] || "").trim()
-    ],
-    ["Potongan Gaji Lain-lain / Other Payroll Deduction", item["其他工资扣款"]]
+    ["Potongan Permit / Permit Deduction", item["准证扣款"]]
   ].filter(([, value]) => parsePayslipMoney(value) > 0);
 
   const deductionHtml = deductionItems.length

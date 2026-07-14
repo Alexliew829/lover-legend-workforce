@@ -1,11 +1,11 @@
-const CACHE_NAME = "ll-workforce-v1831";
+const CACHE_NAME = "ll-workforce-v184";
 const ASSETS = [
   "./app/index.html",
   "./app/dashboard.html",
-  "./css/style.css?v=1.83.1",
-  "./js/dashboard.js?v=1.83.1",
-  "./assets/icons/icon-192.png?v=1.83.1",
-  "./assets/icons/icon-512.png?v=1.83.1"
+  "./css/style.css?v=1.84",
+  "./js/dashboard.js?v=1.84",
+  "./assets/icons/icon-192.png?v=1.84",
+  "./assets/icons/icon-512.png?v=1.84"
 ];
 
 self.addEventListener("install", event => {

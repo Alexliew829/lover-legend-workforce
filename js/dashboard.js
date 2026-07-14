@@ -106,7 +106,7 @@ function renderDashboard(data) {
     <article class="dashboard-card dashboard-debt-card">
       <div class="dashboard-card-label">全部欠款余额</div>
       <div class="dashboard-big-money dashboard-debt-money">${formatDashboardCurrency(data?.totalDebt)}</div>
-      <div class="dashboard-card-note">支粮 · 准证 · 其他</div>
+      <div class="dashboard-card-note">支粮 · 准证</div>
     </article>
 
     <article class="dashboard-card">

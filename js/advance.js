@@ -56,9 +56,14 @@ async function loadPayrollRepaymentsInBackground() {
     (payrolls || []).forEach(payroll => {
       const date = payroll["发薪日期"] || payrollMonthEndDate(payroll["月份"]);
       [
-        ["支粮", payroll["支粮扣款"], payroll["支粮扣款说明"]],
-        ["准证", payroll["准证扣款"], payroll["准证扣款说明"]],
-        ["其他", Number(payroll["欠款其他扣款"] || 0) + Number(payroll["医疗扣款"] || 0), payroll["其他扣款说明"]]
+        [
+          "支粮",
+          Number(payroll["支粮扣款"] || 0) +
+            Number(payroll["欠款其他扣款"] || 0) +
+            Number(payroll["医疗扣款"] || 0),
+          payroll["支粮扣款说明"] || payroll["其他扣款说明"]
+        ],
+        ["准证", payroll["准证扣款"], ""]
       ].forEach(([type, amount, note]) => {
         const value = Number(amount) || 0;
         if (value <= 0) return;
