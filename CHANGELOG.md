@@ -1,10 +1,4 @@
 # V1.74
-
-- Added printable Malay payslip (Slip Gaji).
-- Added a payslip button to each Payroll record.
-- Payslip includes salary, allowance, deductions, net salary, debt balance and signatures.
-
-# V1.73 Final
 - 修正 Payroll 列表只显示所选月份。
 - 月底总数统计所选月份两间公司的全部实发工资。
 
@@ -15,7 +9,7 @@
 - 全系统 API 加入短时间读取缓存与相同请求合并，减少重复网络请求。
 - Apps Script 不再每次 API 请求检查 Google Sheet 格式。
 - Payroll 保存不再每次执行整表去重与排序，缩短保存时间。
-- 版本更新为 V1.73。
+- 版本更新为 V1.74。
 
 # V1.72
 

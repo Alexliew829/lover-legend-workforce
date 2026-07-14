@@ -557,6 +557,7 @@ function renderPayrollHistory() {
         ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
         <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
         <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
+        <a class="payslip-link" href="payslip.html?workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}">工资单</a>
       </div>
     `;
   }).join("");

@@ -1,20 +1,75 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="ms">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>payslip</title>
-  <link rel="stylesheet" href="../css/style.css?v=1.73" />
+  <title>Slip Gaji</title>
+  <link rel="stylesheet" href="../css/style.css?v=1.74" />
 </head>
 <body>
-  <div class="app">
-    <div class="topbar">
-      <a class="back" href="index.html">←</a>
-      <div class="page-title">payslip</div>
+  <div class="app payslip-app">
+    <div class="topbar no-print">
+      <a class="back" href="payroll.html">←</a>
+      <div class="page-title">Slip Gaji</div>
     </div>
-    <section class="card">
-      <p>Coming in next version.</p>
+
+    <div id="payslipStatus" class="status no-print">Memuatkan slip gaji...</div>
+
+    <section id="payslipPaper" class="payslip-paper" hidden>
+      <header class="payslip-header">
+        <div id="payslipCompany" class="payslip-company">LOVER LEGEND</div>
+        <div class="payslip-title">SLIP GAJI</div>
+        <div id="payslipMonth" class="payslip-month"></div>
+      </header>
+
+      <div class="payslip-info-grid">
+        <div><span>No. Pekerja</span><strong id="workerNo">-</strong></div>
+        <div><span>Nama Pekerja</span><strong id="workerName">-</strong></div>
+        <div><span>Syarikat</span><strong id="companyName">-</strong></div>
+        <div><span>Jenis Gaji</span><strong id="salaryType">-</strong></div>
+        <div><span>Tarikh Bayaran</span><strong id="payDate">-</strong></div>
+      </div>
+
+      <div class="payslip-section-title">Pendapatan</div>
+      <div class="payslip-lines">
+        <div><span>Gaji Bulan Ini</span><strong id="basicSalary">RM 0.00</strong></div>
+        <div id="allowanceRow"><span>Elaun</span><strong id="allowance">RM 0.00</strong></div>
+        <div class="payslip-total-line"><span>Jumlah Pendapatan</span><strong id="grossIncome">RM 0.00</strong></div>
+      </div>
+
+      <div class="payslip-section-title">Potongan</div>
+      <div id="deductionLines" class="payslip-lines"></div>
+      <div class="payslip-lines">
+        <div class="payslip-total-line"><span>Jumlah Potongan</span><strong id="totalDeduction">RM 0.00</strong></div>
+      </div>
+
+      <div class="payslip-net-box">
+        <span>Gaji Bersih</span>
+        <strong id="netSalary">RM 0.00</strong>
+      </div>
+
+      <div class="payslip-debt-box">
+        <span>Baki Hutang</span>
+        <strong id="debtBalance">RM 0.00</strong>
+      </div>
+
+      <div class="payslip-signatures">
+        <div>
+          <div class="signature-line"></div>
+          <span>Tandatangan Pekerja</span>
+        </div>
+        <div>
+          <div class="signature-line"></div>
+          <span>Tandatangan Majikan</span>
+        </div>
+      </div>
     </section>
+
+    <button id="printPayslipBtn" class="btn no-print" type="button" hidden>Cetak Slip Gaji</button>
   </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/payslip.js?v=1.74"></script>
 </body>
 </html>
