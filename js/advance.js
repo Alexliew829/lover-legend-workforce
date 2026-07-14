@@ -39,7 +39,7 @@ async function loadAdvancePage() {
 
     renderWorkerOptions();
     renderAdvanceLedger(advanceLedgerCache);
-    showStatus("status", "系统已就绪，可以记录扣款", true);
+    showStatus("status", "系统已就绪，可以记录欠款", true);
 
     // Payroll 扣回记录放到后台载入，不阻塞“系统已就绪”。
     loadPayrollRepaymentsInBackground();
