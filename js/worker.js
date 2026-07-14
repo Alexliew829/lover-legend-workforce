@@ -38,19 +38,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     form.name.addEventListener("change", () => {
-      handleWorkerNameSelect(form.name.value);
-    });
+  // 编辑现有工人时，允许直接修改名字，不清空其他资料
+  if (editingWorkerNo) return;
+
+  handleWorkerNameSelect(form.name.value);
+});
 
     form.name.addEventListener("input", () => {
-      const text = form.name.value;
+  const text = form.name.value;
 
-      if (!text.trim()) {
-        clearWorkerDetailsForNew();
-        return;
-      }
+  // 编辑现有工人时，只修改名字，保留电话、IC、薪水等资料
+  if (editingWorkerNo) {
+    showStatus(
+      "status",
+      "正在编辑：" + editingWorkerNo + " · " + text.trim(),
+      true
+    );
+    return;
+  }
 
-      handleWorkerNameSelect(text);
-    });
+  if (!text.trim()) {
+    clearWorkerDetailsForNew();
+    return;
+  }
+
+  handleWorkerNameSelect(text);
+});
 
     form.salaryAmount.addEventListener("blur", () => {
       formatInputMoney(form.salaryAmount);
