@@ -528,10 +528,11 @@ function renderPayrollHistory() {
     normalizePayrollMonth(item["月份"]) === selectedMonth
   );
 
- const totalNetSalary = currentMonthRecords.reduce(
-  (sum, item) => sum + parsePayrollMoney(item["实发薪水"]),
-  0
-);
+  const totalNetSalary = currentMonthRecords.reduce(
+    (sum, item) => sum + parsePayrollMoney(item["实发薪水"]),
+    0
+  );
+
   const recordsHtml = currentMonthRecords.map(item => {
     const absenceDays = Number(item["缺席天数"]) || 0;
     const allowance = parsePayrollMoney(item["津贴"]);
@@ -562,9 +563,7 @@ function renderPayrollHistory() {
 
   const totalHtml = `
     <div class="payroll-total-card">
-     <div class="payroll-total-title">
-  ${escapePayrollHtml(selectedMonth)} · 两间公司本月实发工资总数
-</div>
+      <div class="payroll-total-title">${escapePayrollHtml(selectedMonth)} · 两间公司本月实发工资总数</div>
       <div class="payroll-total-amount">${formatPayrollCurrency(totalNetSalary)}</div>
     </div>
   `;
