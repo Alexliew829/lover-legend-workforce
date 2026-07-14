@@ -148,6 +148,7 @@ async function handlePayrollWorkerChange() {
 }
 
 async function handlePayrollPeriodChange() {
+  // 无论有没有选工人，月份切换后都立即刷新 Payroll 列表。
   renderPayrollHistory();
 
   if (!selectedPayrollWorker) return;
@@ -156,7 +157,6 @@ async function handlePayrollPeriodChange() {
   renderAbsenceSection();
   renderDebtList();
   calculatePayroll();
-  renderPayrollHistory();
 
   try {
     await refreshPayrollSourceData();
@@ -531,6 +531,11 @@ function renderPayrollHistory() {
     normalizePayrollMonth(item["月份"]) === selectedMonth
   );
 
+  if (!currentMonthRecords.length) {
+    list.innerHTML = `<p class="muted">${escapePayrollHtml(selectedMonth)} 这个月份还没有 Payroll 记录。</p>`;
+    return;
+  }
+
   const totalNetSalary = currentMonthRecords.reduce(
     (sum, item) => sum + parsePayrollMoney(item["实发薪水"]),
     0
@@ -560,7 +565,7 @@ function renderPayrollHistory() {
         ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
         <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
         <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
-        <a class="payslip-link" href="payslip.html?workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}">工资单</a>
+        <a class="payslip-link" href="payslip.html?workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}">打印工资单 / Print Payslip</a>
       </div>
     `;
   }).join("");

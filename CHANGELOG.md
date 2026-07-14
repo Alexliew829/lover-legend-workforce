@@ -96,3 +96,15 @@
 - 免扣仍保存缺席天数和应扣金额，方便年度查询。
 - 支粮、准证、其他支持分期扣除，并显示扣后余额。
 - 同一工人同一月份再次保存 Payroll 时更新原记录，不重复新增。
+
+
+## V1.75
+- Payroll list refreshes immediately by selected month.
+- Print Payslip button uses Chinese and English.
+- Admin Payslip page uses Chinese and English.
+- Printed payslip uses Malay and English.
+- One A4 page prints employee and company copies with a cut line.
+- PDF title includes worker name and month.
+- Payslip month is bold black.
+- Home page adds green and red Lover Legend logos.
+- Added Windows, Android and iPhone icons plus PWA manifest.

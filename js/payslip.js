@@ -11,7 +11,7 @@ async function loadPayslipPage() {
     const month = normalizePayslipMonth(params.get("month") || "");
 
     if (!workerNo || !month) {
-      throw new Error("Maklumat slip gaji tidak lengkap.");
+      throw new Error("工资单资料不完整。 / Payslip information is incomplete.");
     }
 
     const data = await api("getPayrollBootstrap");
@@ -22,11 +22,12 @@ async function loadPayslipPage() {
     );
 
     if (!record) {
-      throw new Error("Rekod payroll tidak dijumpai.");
+      throw new Error("找不到 Payroll 记录。 / Payroll record was not found.");
     }
 
-    renderPayslip(record);
-    status.textContent = "Slip gaji sedia untuk dicetak.";
+    renderPayslipCopies(record);
+    setPdfFileName(record);
+    status.textContent = "工资单已准备，可以打印。 / Payslip is ready to print.";
     status.className = "status ok no-print";
     paper.hidden = false;
     printBtn.hidden = false;
@@ -37,55 +38,89 @@ async function loadPayslipPage() {
   }
 }
 
-function renderPayslip(item) {
+function renderPayslipCopies(item) {
+  document.querySelectorAll(".payslip-copy-content").forEach(container => {
+    container.innerHTML = createPayslipCopyHtml(item);
+  });
+}
+
+function createPayslipCopyHtml(item) {
   const basicSalary = parsePayslipMoney(item["基本薪水"]);
   const allowance = parsePayslipMoney(item["津贴"]);
   const totalDeduction = parsePayslipMoney(item["总扣款"]);
   const netSalary = parsePayslipMoney(item["实发薪水"]);
   const debtBalance = parsePayslipMoney(item["欠款余额"]);
-
-  setPayslipText("payslipCompany", item["公司"] || "LOVER LEGEND");
-  setPayslipText("payslipMonth", `Bulan: ${normalizePayslipMonth(item["月份"])}`);
-  setPayslipText("workerNo", item["工人编号"] || "-");
-  setPayslipText("workerName", item["工人名字"] || "-");
-  setPayslipText("companyName", item["公司"] || "-");
-  setPayslipText("salaryType", translateSalaryType(item["薪水类型"]));
-  setPayslipText("payDate", formatPayslipDate(item["发薪日期"]));
-  setPayslipText("basicSalary", formatPayslipCurrency(basicSalary));
-  setPayslipText("allowance", formatPayslipCurrency(allowance));
-  setPayslipText("grossIncome", formatPayslipCurrency(basicSalary + allowance));
-  setPayslipText("totalDeduction", formatPayslipCurrency(totalDeduction));
-  setPayslipText("netSalary", formatPayslipCurrency(netSalary));
-  setPayslipText("debtBalance", formatPayslipCurrency(debtBalance));
-
-  document.getElementById("allowanceRow").style.display = allowance > 0 ? "flex" : "none";
+  const month = normalizePayslipMonth(item["月份"]);
 
   const deductionItems = [
-    ["Potongan Tidak Hadir", item["缺席扣款"]],
-    ["Potongan Pendahuluan", item["支粮扣款"]],
-    ["Potongan Permit", item["准证扣款"]],
-    ["Potongan Perubatan", item["医疗扣款"]],
-    ["Potongan Hutang Lain-lain", item["欠款其他扣款"]],
-    ["Potongan Gaji Lain-lain", item["其他工资扣款"]]
+    ["Potongan Tidak Hadir / Absence Deduction", item["缺席扣款"]],
+    ["Potongan Pendahuluan / Advance Deduction", item["支粮扣款"]],
+    ["Potongan Permit / Permit Deduction", item["准证扣款"]],
+    ["Potongan Perubatan / Medical Deduction", item["医疗扣款"]],
+    ["Potongan Hutang Lain-lain / Other Debt Deduction", item["欠款其他扣款"]],
+    ["Potongan Gaji Lain-lain / Other Payroll Deduction", item["其他工资扣款"]]
   ].filter(([, value]) => parsePayslipMoney(value) > 0);
 
-  const deductionLines = document.getElementById("deductionLines");
-  deductionLines.innerHTML = deductionItems.length
+  const deductionHtml = deductionItems.length
     ? deductionItems.map(([label, value]) => `
         <div><span>${escapePayslipHtml(label)}</span><strong>${formatPayslipCurrency(value)}</strong></div>
       `).join("")
-    : '<div><span>Tiada Potongan</span><strong>RM 0.00</strong></div>';
+    : '<div><span>Tiada Potongan / No Deduction</span><strong>RM 0.00</strong></div>';
+
+  return `
+    <header class="payslip-header">
+      <div class="payslip-company">${escapePayslipHtml(item["公司"] || "LOVER LEGEND")}</div>
+      <div class="payslip-title">SLIP GAJI / PAYSLIP</div>
+      <div class="payslip-month">Bulan / Month: ${escapePayslipHtml(month)}</div>
+    </header>
+
+    <div class="payslip-info-grid">
+      <div><span>No. Pekerja / Employee No.</span><strong>${escapePayslipHtml(item["工人编号"] || "-")}</strong></div>
+      <div><span>Nama Pekerja / Employee Name</span><strong>${escapePayslipHtml(item["工人名字"] || "-")}</strong></div>
+      <div><span>Syarikat / Company</span><strong>${escapePayslipHtml(item["公司"] || "-")}</strong></div>
+      <div><span>Jenis Gaji / Salary Type</span><strong>${escapePayslipHtml(translateSalaryType(item["薪水类型"]))}</strong></div>
+      <div><span>Tarikh Bayaran / Payment Date</span><strong>${escapePayslipHtml(formatPayslipDate(item["发薪日期"]))}</strong></div>
+    </div>
+
+    <div class="payslip-section-title">Pendapatan / Income</div>
+    <div class="payslip-lines">
+      <div><span>Gaji Bulan Ini / Current Month Salary</span><strong>${formatPayslipCurrency(basicSalary)}</strong></div>
+      ${allowance > 0 ? `<div><span>Elaun / Allowance</span><strong>${formatPayslipCurrency(allowance)}</strong></div>` : ""}
+      <div class="payslip-total-line"><span>Jumlah Pendapatan / Total Income</span><strong>${formatPayslipCurrency(basicSalary + allowance)}</strong></div>
+    </div>
+
+    <div class="payslip-section-title">Potongan / Deduction</div>
+    <div class="payslip-lines">${deductionHtml}</div>
+    <div class="payslip-lines">
+      <div class="payslip-total-line"><span>Jumlah Potongan / Total Deduction</span><strong>${formatPayslipCurrency(totalDeduction)}</strong></div>
+    </div>
+
+    <div class="payslip-result-row">
+      <div class="payslip-net-box"><span>Gaji Bersih / Net Salary</span><strong>${formatPayslipCurrency(netSalary)}</strong></div>
+      <div class="payslip-debt-box"><span>Baki Hutang / Outstanding Balance</span><strong>${formatPayslipCurrency(debtBalance)}</strong></div>
+    </div>
+
+    <div class="payslip-signatures">
+      <div><div class="signature-line"></div><span>Tandatangan Pekerja / Employee Signature</span></div>
+      <div><div class="signature-line"></div><span>Tandatangan Majikan / Employer Signature</span></div>
+    </div>
+  `;
 }
 
-function setPayslipText(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = value;
+function setPdfFileName(item) {
+  const workerName = sanitizeFileName(item["工人名字"] || item["工人编号"] || "Pekerja");
+  const month = sanitizeFileName(normalizePayslipMonth(item["月份"]) || "");
+  document.title = `Slip Gaji-${workerName}${month ? `-${month}` : ""}`;
+}
+
+function sanitizeFileName(value) {
+  return String(value || "").trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ");
 }
 
 function translateSalaryType(value) {
   const type = String(value || "");
-  if (type === "日薪") return "Gaji Harian";
-  if (type === "月薪") return "Gaji Bulanan";
+  if (type === "日薪") return "Gaji Harian / Daily Wage";
+  if (type === "月薪") return "Gaji Bulanan / Monthly Salary";
   return type || "-";
 }
 
@@ -94,14 +129,11 @@ function normalizePayslipMonth(value) {
   if (Object.prototype.toString.call(value) === "[object Date]") {
     return `${String(value.getMonth() + 1).padStart(2, "0")}-${value.getFullYear()}`;
   }
-
   const text = String(value).trim();
   let match = text.match(/^(\d{2})-(\d{4})$/);
   if (match) return `${match[1]}-${match[2]}`;
-
   match = text.match(/^(\d{4})-(\d{2})/);
   if (match) return `${match[2]}-${match[1]}`;
-
   const date = new Date(text);
   if (!Number.isNaN(date.getTime())) {
     return `${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
@@ -135,9 +167,6 @@ function formatPayslipCurrency(value) {
 
 function escapePayslipHtml(value) {
   return String(value ?? "").replace(/[&<>\"]/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '\"': "&quot;"
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;"
   }[char]));
 }
