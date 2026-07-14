@@ -2,6 +2,8 @@ let payrollWorkers = [];
 let payrollAdvances = [];
 let payrollRecords = [];
 let selectedPayrollWorker = null;
+const payrollRemarkTranslationCache = new Map();
+let payrollRemarkTranslationRun = 0;
 
 const DEBT_TYPES = ["支粮", "准证", "其他"];
 const COMPANY_ORDER = {
@@ -24,6 +26,24 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   form.addEventListener("input", event => {
+    if (event.target.classList.contains("debt-deduction-input")) {
+      const type = event.target.dataset.type;
+      const originalInput = getDebtNoteInput(type, "source");
+
+      if (
+        originalInput &&
+        !String(originalInput.value || "").trim() &&
+        parsePayrollMoney(event.target.value) > 0
+      ) {
+        originalInput.value = getDebtDeductionRemark(
+          type,
+          parsePayrollMoney(event.target.value)
+        );
+      }
+
+      fillMissingMalayDebtNotes();
+    }
+
     if (
       event.target.classList.contains("debt-deduction-input") ||
       event.target.name === "allowance" ||
@@ -32,6 +52,19 @@ document.addEventListener("DOMContentLoaded", () => {
       event.target.id === "liveCommission"
     ) {
       calculatePayroll();
+    }
+  });
+
+  form.addEventListener("change", event => {
+    if (
+      event.target.classList.contains("debt-note-input") &&
+      event.target.dataset.language === "source"
+    ) {
+      const type = event.target.dataset.type;
+      const malayInput = getDebtNoteInput(type, "ms");
+
+      if (malayInput) malayInput.value = "";
+      fillMissingMalayDebtNotes();
     }
   });
 
@@ -334,6 +367,110 @@ function getDebtDeductionRemark(type, deductionAmount) {
   return [...new Set(remarks)].join(" / ");
 }
 
+function getDebtOriginalNoteField(type) {
+  const current = getCurrentMonthPayrollRecord();
+  const savedFields = {
+    "支粮": "支粮扣款说明",
+    "准证": "准证扣款说明",
+    "其他": "其他扣款说明"
+  };
+
+  const saved = String(
+    current && current[savedFields[type]]
+      ? current[savedFields[type]]
+      : ""
+  ).trim();
+
+  if (saved) return saved;
+
+  const deductionInput = document.querySelector(
+    `.debt-deduction-input[data-type="${type}"]`
+  );
+  const deductionAmount = deductionInput
+    ? parsePayrollMoney(deductionInput.value)
+    : 0;
+
+  return getDebtDeductionRemark(type, deductionAmount);
+}
+
+function getDebtMalayNoteField(type) {
+  const current = getCurrentMonthPayrollRecord();
+  const savedFields = {
+    "支粮": "支粮马来文说明",
+    "准证": "准证马来文说明",
+    "其他": "其他马来文说明"
+  };
+
+  return String(
+    current && current[savedFields[type]]
+      ? current[savedFields[type]]
+      : ""
+  ).trim();
+}
+
+function getDebtNoteInput(type, language) {
+  return document.querySelector(
+    `.debt-note-input[data-type="${type}"][data-language="${language}"]`
+  );
+}
+
+async function fillMissingMalayDebtNotes() {
+  const runId = ++payrollRemarkTranslationRun;
+  const jobs = [];
+
+  DEBT_TYPES.forEach(type => {
+    const originalInput = getDebtNoteInput(type, "source");
+    const malayInput = getDebtNoteInput(type, "ms");
+
+    if (!originalInput || !malayInput) return;
+
+    const original = String(originalInput.value || "").trim();
+    const malay = String(malayInput.value || "").trim();
+
+    if (!original || malay) return;
+
+    if (payrollRemarkTranslationCache.has(original)) {
+      malayInput.value = payrollRemarkTranslationCache.get(original);
+      return;
+    }
+
+    jobs.push({ type, text: original });
+  });
+
+  if (!jobs.length) return;
+
+  try {
+    const result = await api("translatePayrollRemarks", {
+      remarks: jobs.map(job => job.text)
+    });
+
+    if (runId !== payrollRemarkTranslationRun) return;
+
+    const translations = Array.isArray(result) ? result : [];
+
+    jobs.forEach((job, index) => {
+      const translated = String(translations[index] || "").trim();
+      if (!translated) return;
+
+      payrollRemarkTranslationCache.set(job.text, translated);
+
+      const originalInput = getDebtNoteInput(job.type, "source");
+      const malayInput = getDebtNoteInput(job.type, "ms");
+
+      if (
+        originalInput &&
+        malayInput &&
+        String(originalInput.value || "").trim() === job.text &&
+        !String(malayInput.value || "").trim()
+      ) {
+        malayInput.value = translated;
+      }
+    });
+  } catch (_) {
+    // 翻译失败不影响 Payroll 计算或保存，管理员仍可手动填写马来文。
+  }
+}
+
 function renderDebtList() {
   const list = document.getElementById("debtList");
   if (!selectedPayrollWorker) return;
@@ -349,20 +486,49 @@ function renderDebtList() {
   list.innerHTML = DEBT_TYPES.map(type => {
     const balance = balances[type] || 0;
     const value = Math.min(saved[type] || 0, balance);
+    const originalNote = getDebtOriginalNoteField(type);
+    const malayNote = getDebtMalayNoteField(type);
+
     return `
-      <div class="debt-row">
+      <div class="debt-row debt-row-with-notes">
         <div class="debt-info">
           <div class="debt-type">${type}</div>
           <div class="debt-balance">余额 ${formatPayrollCurrency(balance)}</div>
-          ${getDebtDeductionRemark(type, value) ? `<div class="debt-note">${escapePayrollHtml(getDebtDeductionRemark(type, value))}</div>` : ""}
           <div class="debt-remaining" data-remaining-type="${type}">扣后剩余 ${formatPayrollCurrency(balance - value)}</div>
         </div>
+
         <input class="debt-deduction-input money-right" data-type="${type}" data-balance="${balance}"
           type="text" inputmode="decimal" placeholder="0.00" value="${value > 0 ? moneyInput(value) : ""}"
           ${balance <= 0 ? "readonly" : ""} />
+
+        <div class="debt-note-editor">
+          <label>扣款备注</label>
+          <input
+            class="debt-note-input"
+            data-type="${type}"
+            data-language="source"
+            type="text"
+            value="${escapePayrollHtml(originalNote)}"
+            placeholder="自动带入扣款管理备注，可修改"
+            ${balance <= 0 && value <= 0 ? "readonly" : ""}
+          />
+
+          <label>Payslip 马来文备注</label>
+          <input
+            class="debt-note-input"
+            data-type="${type}"
+            data-language="ms"
+            type="text"
+            value="${escapePayrollHtml(malayNote)}"
+            placeholder="自动翻译成马来文，可修改"
+            ${balance <= 0 && value <= 0 ? "readonly" : ""}
+          />
+        </div>
       </div>
     `;
   }).join("");
+
+  fillMissingMalayDebtNotes();
 
   if (current) {
     const form = document.getElementById("payrollForm");
@@ -514,12 +680,27 @@ async function handlePayrollSubmit(event) {
       absenceExpectedAmount: calculation.absence.expectedAmount,
       absenceDeduction: calculation.absenceDeduction,
       advanceDeduction: deductions["支粮"] || 0,
-      advanceDeductionRemark: getDebtDeductionRemark("支粮", deductions["支粮"] || 0),
+      advanceDeductionRemark: String(
+        getDebtNoteInput("支粮", "source")?.value || ""
+      ).trim(),
+      advanceDeductionMalayRemark: String(
+        getDebtNoteInput("支粮", "ms")?.value || ""
+      ).trim(),
       permitDeduction: deductions["准证"] || 0,
-      permitDeductionRemark: getDebtDeductionRemark("准证", deductions["准证"] || 0),
+      permitDeductionRemark: String(
+        getDebtNoteInput("准证", "source")?.value || ""
+      ).trim(),
+      permitDeductionMalayRemark: String(
+        getDebtNoteInput("准证", "ms")?.value || ""
+      ).trim(),
       medicalDeduction: 0,
       debtOtherDeduction: deductions["其他"] || 0,
-      debtOtherDeductionRemark: getDebtDeductionRemark("其他", deductions["其他"] || 0),
+      debtOtherDeductionRemark: String(
+        getDebtNoteInput("其他", "source")?.value || ""
+      ).trim(),
+      debtOtherDeductionMalayRemark: String(
+        getDebtNoteInput("其他", "ms")?.value || ""
+      ).trim(),
       otherPayrollDeduction: 0,
       totalDeduction: calculation.totalDeduction,
       netSalary: calculation.netSalary,
@@ -550,11 +731,14 @@ async function handlePayrollSubmit(event) {
       "缺席扣款": payroll.absenceDeduction,
       "支粮扣款": payroll.advanceDeduction,
       "支粮扣款说明": payroll.advanceDeductionRemark,
+      "支粮马来文说明": payroll.advanceDeductionMalayRemark,
       "准证扣款": payroll.permitDeduction,
       "准证扣款说明": payroll.permitDeductionRemark,
+      "准证马来文说明": payroll.permitDeductionMalayRemark,
       "医疗扣款": payroll.medicalDeduction,
       "欠款其他扣款": payroll.debtOtherDeduction,
       "其他扣款说明": payroll.debtOtherDeductionRemark,
+      "其他马来文说明": payroll.debtOtherDeductionMalayRemark,
       "其他工资扣款": payroll.otherPayrollDeduction,
       "总扣款": payroll.totalDeduction,
       "实发薪水": payroll.netSalary,

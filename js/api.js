@@ -11,7 +11,8 @@ const API_READ_ACTIONS = new Set([
   "getPayrolls",
   "getPayrollBootstrap",
   "getPayrollData",
-  "createYearlyBackup"
+  "createYearlyBackup",
+  "translatePayrollRemarks"
 ]);
 
 const API_WRITE_ACTIONS = new Set([
@@ -31,19 +32,19 @@ function clearApiReadCache() {
 
   try {
     Object.keys(localStorage)
-      .filter(key => key.startsWith("ll-api-cache-v182:"))
+      .filter(key => key.startsWith("ll-api-cache-v1831:"))
       .forEach(key => localStorage.removeItem(key));
   } catch (_) {}
 }
 
 function readPersistentApiCache(cacheKey) {
   try {
-    const raw = localStorage.getItem("ll-api-cache-v182:" + cacheKey);
+    const raw = localStorage.getItem("ll-api-cache-v1831:" + cacheKey);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw);
     if (!parsed || Date.now() - Number(parsed.time || 0) >= API_READ_CACHE_MS) {
-      localStorage.removeItem("ll-api-cache-v182:" + cacheKey);
+      localStorage.removeItem("ll-api-cache-v1831:" + cacheKey);
       return null;
     }
     return parsed;
@@ -55,7 +56,7 @@ function readPersistentApiCache(cacheKey) {
 function writePersistentApiCache(cacheKey, data) {
   try {
     localStorage.setItem(
-      "ll-api-cache-v182:" + cacheKey,
+      "ll-api-cache-v1831:" + cacheKey,
       JSON.stringify({ time: Date.now(), data })
     );
   } catch (_) {}

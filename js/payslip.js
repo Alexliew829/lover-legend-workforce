@@ -16,7 +16,7 @@ async function loadPayslipPage() {
 
     const data = await api("getPayrollBootstrap");
     const payrolls = data?.payrolls || [];
-    const advances = data?.advances || [];
+    const advances = [];
     const record = payrolls.find(item =>
       String(item["工人编号"] || "") === workerNo &&
       normalizePayslipMonth(item["月份"]) === month
@@ -59,18 +59,18 @@ function createPayslipCopyHtml(item, advances) {
     [
       "Potongan Pendahuluan / Advance Deduction",
       item["支粮扣款"],
-      getPayslipDeductionNote(item, advances, "支粮", item["支粮扣款说明"])
+      String(item["支粮马来文说明"] || "").trim()
     ],
     [
       "Potongan Permit / Permit Deduction",
       item["准证扣款"],
-      getPayslipDeductionNote(item, advances, "准证", item["准证扣款说明"])
+      String(item["准证马来文说明"] || "").trim()
     ],
     ["Potongan Perubatan / Medical Deduction", item["医疗扣款"]],
     [
       "Potongan Hutang Lain-lain / Other Debt Deduction",
       item["欠款其他扣款"],
-      getPayslipDeductionNote(item, advances, "其他", item["其他扣款说明"])
+      String(item["其他马来文说明"] || "").trim()
     ],
     ["Potongan Gaji Lain-lain / Other Payroll Deduction", item["其他工资扣款"]]
   ].filter(([, value]) => parsePayslipMoney(value) > 0);
@@ -122,31 +122,6 @@ function createPayslipCopyHtml(item, advances) {
   `;
 }
 
-
-function getPayslipDeductionNote(payroll, advances, type, savedNote) {
-  // Payslip 的扣款备注以 Payroll 页面保存的“备注”为最新版本，确保修改后同步更新。
-  const payrollRemark = String(payroll["备注"] || "").trim();
-  if (payrollRemark) return payrollRemark;
-
-  const direct = String(savedNote || "").trim();
-  if (direct) return direct;
-
-  const workerNo = String(payroll["工人编号"] || "");
-  const normalizedType = type === "医疗" ? "其他" : type;
-
-  const notes = (advances || [])
-    .filter(item => {
-      const itemType = String(item["项目"] || item["类型"] || "");
-      const normalizedItemType = itemType === "医疗" ? "其他" : itemType;
-      return String(item["工人编号"] || "") === workerNo &&
-        normalizedItemType === normalizedType &&
-        parsePayslipMoney(item["金额"]) > 0;
-    })
-    .map(item => String(item["备注"] || "").trim())
-    .filter(Boolean);
-
-  return [...new Set(notes)].join(" / ");
-}
 
 function setPdfFileName(item) {
   const workerName = sanitizeFileName(item["工人名字"] || item["工人编号"] || "Pekerja");

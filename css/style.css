@@ -785,3 +785,37 @@ input[readonly] {
   margin-top: 10px;
   margin-bottom: 0;
 }
+
+
+/* V1.83.1 Payroll deduction note editors */
+.debt-row-with-notes {
+  grid-template-columns: minmax(0, 1fr) 110px;
+}
+
+.debt-note-editor {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 5px;
+  padding-top: 8px;
+  border-top: 1px dashed #d8e8d4;
+}
+
+.debt-note-editor label {
+  margin: 2px 0 0;
+  color: #39483d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.debt-note-input {
+  width: 100%;
+  padding: 10px 11px;
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+}
+
+.debt-note-input[readonly] {
+  background: #f1f4f0;
+  color: #879087;
+}
