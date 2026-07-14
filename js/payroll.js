@@ -148,19 +148,22 @@ async function handlePayrollWorkerChange() {
 }
 
 async function handlePayrollPeriodChange() {
+  renderPayrollHistory();
+
   if (!selectedPayrollWorker) return;
 
-  // 月份改变后先即时重算工资，再读取最新扣款资料。
   renderSalarySection();
   renderAbsenceSection();
   renderDebtList();
   calculatePayroll();
+  renderPayrollHistory();
 
   try {
     await refreshPayrollSourceData();
     renderAbsenceSection();
     renderDebtList();
     calculatePayroll();
+    renderPayrollHistory();
   } catch (error) {
     showStatus("status", error.message, false);
   }
