@@ -413,3 +413,9 @@ input[readonly] {
  text-align: right;
   background: transparent;
 }
+.payroll-remaining-debt-line {
+  margin-top: 3px;
+  color: #c00000;
+  font-weight: 900;
+  font-size: 16px;
+}
