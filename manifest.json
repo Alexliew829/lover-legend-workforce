@@ -2,7 +2,7 @@
  "name": "Lover Legend Workforce ERP",
 "short_name": "Workforce ERP",
   "start_url": "/lover-legend-workforce/app/index.html",
-  "scope": "./",
+ "scope": "/lover-legend-workforce/",
   "display": "standalone",
   "background_color": "#fbfdf9",
   "theme_color": "#0f4d24",
