@@ -4,21 +4,49 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payroll System - Dashboard</title>
-  <link rel="manifest" href="../manifest.json" />
-  <link rel="icon" href="../assets/icons/payroll-system.ico" />
-  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="../css/style.css?v=1.76" />
+  <link rel="manifest" href="../manifest.json?v=1.77" />
+  <link rel="icon" href="../assets/icons/payroll-system.ico?v=1.77" />
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=1.77" />
+  <link rel="stylesheet" href="../css/style.css?v=1.77" />
 </head>
 <body>
   <div class="app">
     <div class="topbar">
       <a class="back" href="index.html">←</a>
-      <div class="page-title">dashboard</div>
+      <div class="page-title">Dashboard / 总览</div>
     </div>
+
+    <div id="status" class="status">正在读取 Dashboard...</div>
+
+    <section class="card dashboard-period-card">
+      <label>月份 / Month</label>
+      <div class="field-row month-year-row">
+        <div class="field-group">
+          <select id="dashboardMonth" aria-label="月份"></select>
+        </div>
+        <div class="field-group">
+          <select id="dashboardYear" aria-label="年份"></select>
+        </div>
+      </div>
+    </section>
+
+    <section id="dashboard" class="dashboard-grid">
+      <div class="dashboard-loading">正在载入资料...</div>
+    </section>
+
     <section class="card">
-      <p>Coming in next version.</p>
+      <div class="section-title dashboard-section-title">快捷功能 / Quick Access</div>
+      <div class="dashboard-actions">
+        <a class="dashboard-action" href="worker.html">👷<span>工人管理</span></a>
+        <a class="dashboard-action" href="advance.html">💰<span>扣款管理</span></a>
+        <a class="dashboard-action" href="payroll.html">🧮<span>Payroll</span></a>
+        <a class="dashboard-action" href="index.html">🏠<span>首页</span></a>
+      </div>
     </section>
   </div>
-  <script src="../js/app.js?v=1.76"></script>
+
+  <script src="../js/config.js?v=1.77"></script>
+  <script src="../js/api.js?v=1.77"></script>
+  <script src="../js/dashboard.js?v=1.77"></script>
 </body>
 </html>

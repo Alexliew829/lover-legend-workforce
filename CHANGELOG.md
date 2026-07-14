@@ -1,3 +1,10 @@
+# V1.77
+
+- Added Dashboard with month/year selection.
+- Shows worker count, paid/unpaid workers, monthly net payroll, company summaries, outstanding balances, payroll progress and absence summary.
+- Refreshed Windows, Android, iPhone and browser icons using the approved red-P Payroll icon.
+- Updated PWA cache to V1.77.
+
 # V1.74
 - 修正 Payroll 列表只显示所选月份。
 - 月底总数统计所选月份两间公司的全部实发工资。
