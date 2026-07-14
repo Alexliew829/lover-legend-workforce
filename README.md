@@ -1,4 +1,4 @@
-# Lover Legend Workforce ERP V1.71
+# Lover Legend Workforce ERP V1.73
 
 Mobile-first workforce and payroll system for Lover Legend.
 

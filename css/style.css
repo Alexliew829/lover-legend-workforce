@@ -413,9 +413,34 @@ input[readonly] {
  text-align: right;
   background: transparent;
 }
-.payroll-remaining-debt-line {
+
+
+/* V1.73 Payroll 欠款余额与本月实发工资总数 */
+.payroll-debt-balance-line {
   margin-top: 3px;
   color: #c00000;
   font-weight: 900;
   font-size: 16px;
+}
+
+.payroll-total-card {
+  margin-top: 12px;
+  padding: 16px;
+  border: 2px solid #16823a;
+  border-radius: 14px;
+  background: #f4fff5;
+  text-align: center;
+}
+
+.payroll-total-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #16823a;
+}
+
+.payroll-total-amount {
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 900;
+  color: #16823a;
 }

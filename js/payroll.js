@@ -421,26 +421,6 @@ async function handlePayrollSubmit(event) {
   }
 
   try {
-    const enteredDeductions = {};
-const enteredAllowance = form.allowance ? form.allowance.value : "";
-    document.querySelectorAll(".debt-deduction-input").forEach(input => {
-      enteredDeductions[input.dataset.type] = input.value;
-    });
-
-    btn.disabled = true;
-    btn.textContent = "检查中...";
-    await refreshPayrollSourceData();
-    renderAbsenceSection();
-    renderDebtList();
-
-    document.querySelectorAll(".debt-deduction-input").forEach(input => {
-      if (Object.prototype.hasOwnProperty.call(enteredDeductions, input.dataset.type)) {
-        input.value = enteredDeductions[input.dataset.type];
-      }
-    });
-if (form.allowance) {
-    form.allowance.value = enteredAllowance;
-}
     const calculation = calculatePayroll();
     if (calculation.grossSalary <= 0) throw new Error("本月工资必须大于 0");
     if (calculation.invalidDeduction) throw new Error("本月扣除不能超过欠款余额");
@@ -469,7 +449,7 @@ if (form.allowance) {
       absenceDays: calculation.absence.days,
       absenceAction: calculation.absenceAction,
       absenceExpectedAmount: calculation.absence.expectedAmount,
-      absenceDeduction: calculation.absenceDeduction, 
+      absenceDeduction: calculation.absenceDeduction,
       advanceDeduction: deductions["支粮"] || 0,
       permitDeduction: deductions["准证"] || 0,
       medicalDeduction: 0,
@@ -477,32 +457,51 @@ if (form.allowance) {
       otherPayrollDeduction: 0,
       totalDeduction: calculation.totalDeduction,
       netSalary: calculation.netSalary,
+      debtBalance: calculation.remainingDebt,
       remark: form.remark.value.trim()
     };
 
+    btn.disabled = true;
     btn.textContent = "保存中...";
+
     const result = await api("savePayroll", { payroll });
     showStatus("status", result && result.updated ? "Payroll 已更新" : "Payroll 已保存", true);
 
-    // 保存后重新读取最新资料，确保扣薪/免扣、津贴、实发和列表完全同步。
-    await refreshPayrollSourceData();
+    const savedRecord = result && result.record ? result.record : {
+      "发薪日期": payroll.payDate,
+      "月份": payroll.month,
+      "公司": payroll.company,
+      "工人编号": payroll.workerNo,
+      "工人名字": payroll.workerName,
+      "薪水类型": payroll.salaryType,
+      "日薪": payroll.salaryRate,
+      "月薪": payroll.monthlySalary,
+      "基本薪水": payroll.basicSalary,
+      "津贴": payroll.allowance,
+      "缺席天数": payroll.absenceDays,
+      "缺席处理": payroll.absenceAction,
+      "缺席应扣金额": payroll.absenceExpectedAmount,
+      "缺席扣款": payroll.absenceDeduction,
+      "支粮扣款": payroll.advanceDeduction,
+      "准证扣款": payroll.permitDeduction,
+      "医疗扣款": payroll.medicalDeduction,
+      "欠款其他扣款": payroll.debtOtherDeduction,
+      "其他工资扣款": payroll.otherPayrollDeduction,
+      "总扣款": payroll.totalDeduction,
+      "实发薪水": payroll.netSalary,
+      "欠款余额": payroll.debtBalance,
+      "备注": payroll.remark
+    };
 
-    const current = getCurrentMonthPayrollRecord();
-    if (current) {
-      const action = String(current["缺席处理"] || calculation.absenceAction || "扣薪");
-      const radio = form.querySelector(`input[name="absenceAction"][value="${action}"]`);
-      if (radio) radio.checked = true;
-
-      const allowanceInput = getAllowanceInput(form);
-if (allowanceInput) {
-    const savedAllowance = parsePayrollMoney(
-        current["津贴"] ?? calculation.allowance ?? 0
+    const keyMonth = normalizePayrollMonth(savedRecord["月份"]);
+    const keyWorker = String(savedRecord["工人编号"] || "");
+    const index = payrollRecords.findIndex(item =>
+      normalizePayrollMonth(item["月份"]) === keyMonth &&
+      String(item["工人编号"] || "") === keyWorker
     );
 
-    allowanceInput.value =
-        savedAllowance > 0 ? moneyInput(savedAllowance) : "";
-}
-    }
+    if (index >= 0) payrollRecords[index] = savedRecord;
+    else payrollRecords.push(savedRecord);
 
     renderPayrollHistory();
     renderDebtList();
@@ -523,11 +522,22 @@ function renderPayrollHistory() {
     return;
   }
 
+  const selectedMonth = normalizePayrollMonth(getSelectedPayrollMonthKey());
   const sorted = [...payrollRecords].sort(comparePayrollRecords);
-  list.innerHTML = sorted.map(item => {
+  const currentMonthRecords = sorted.filter(item =>
+    normalizePayrollMonth(item["月份"]) === selectedMonth
+  );
+
+  const totalNetSalary = currentMonthRecords.reduce(
+    (sum, item) => sum + parsePayrollMoney(item["实发薪水"]),
+    0
+  );
+
+  const recordsHtml = sorted.map(item => {
     const absenceDays = Number(item["缺席天数"]) || 0;
     const allowance = parsePayrollMoney(item["津贴"]);
-    const totalDeduction = Number(item["总扣款"]) || 0;
+    const totalDeduction = parsePayrollMoney(item["总扣款"]);
+    const debtBalance = parsePayrollMoney(item["欠款余额"]);
     const summaryParts = [];
 
     if (absenceDays > 0) {
@@ -545,16 +555,20 @@ function renderPayrollHistory() {
         <div class="muted">${escapePayrollHtml(normalizePayrollMonth(item["月份"]))} · 本月工资 : ${formatPayrollCurrency(item["基本薪水"])}</div>
         ${allowance > 0 ? `<div class="muted">津贴 : ${formatPayrollCurrency(allowance)}</div>` : ""}
         ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
-     <div class="payroll-net-line">
-  实发 : ${formatPayrollCurrency(item["实发薪水"])}
-</div>
-
-<div class="payroll-remaining-debt-line">
-  剩余欠款 : ${formatPayrollCurrency(item["剩余欠款"])}
-</div>
+        <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
+        <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
       </div>
     `;
   }).join("");
+
+  const totalHtml = `
+    <div class="payroll-total-card">
+      <div class="payroll-total-title">${escapePayrollHtml(selectedMonth)} · 本月实发工资总数</div>
+      <div class="payroll-total-amount">${formatPayrollCurrency(totalNetSalary)}</div>
+    </div>
+  `;
+
+  list.innerHTML = recordsHtml + totalHtml;
 }
 
 function comparePayrollRecords(a, b) {
