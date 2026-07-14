@@ -1,3 +1,9 @@
+# V1.74
+
+- Added printable Malay payslip (Slip Gaji).
+- Added a payslip button to each Payroll record.
+- Payslip includes salary, allowance, deductions, net salary, debt balance and signatures.
+
 # V1.73 Final
 - 修正 Payroll 列表只显示所选月份。
 - 月底总数统计所选月份两间公司的全部实发工资。
