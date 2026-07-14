@@ -720,7 +720,37 @@ async function handlePayrollSubmit(event) {
     btn.textContent = "保存中...";
 
     const result = await api("savePayroll", { payroll });
-    showStatus("status", result && result.updated ? "Payroll 已更新" : "Payroll 已保存", true);
+
+    const keyMonth = normalizePayrollMonth(payroll.month);
+    const keyCompany = String(payroll.company || "");
+    const keyWorker = String(payroll.workerNo || "");
+
+    if (result && result.deleted) {
+      payrollRecords = payrollRecords.filter(item =>
+        !(
+          String(item["公司"] || "") === keyCompany &&
+          normalizePayrollMonth(item["月份"]) === keyMonth &&
+          String(item["工人编号"] || "") === keyWorker
+        )
+      );
+
+      showStatus(
+        "status",
+        "Payroll 已恢复原状，记录已从 Google Sheet 删除",
+        true
+      );
+
+      renderPayrollHistory();
+      renderDebtList();
+      calculatePayroll();
+      return;
+    }
+
+    showStatus(
+      "status",
+      result && result.updated ? "Payroll 已更新" : "Payroll 已保存",
+      true
+    );
 
     const savedRecord = result && result.record ? result.record : {
       "发薪日期": payroll.payDate,
@@ -733,6 +763,7 @@ async function handlePayrollSubmit(event) {
       "月薪": payroll.monthlySalary,
       "基本薪水": payroll.basicSalary,
       "津贴": payroll.allowance,
+      "直播佣金": payroll.liveCommission,
       "缺席天数": payroll.absenceDays,
       "缺席处理": payroll.absenceAction,
       "缺席应扣金额": payroll.absenceExpectedAmount,
@@ -754,34 +785,16 @@ async function handlePayrollSubmit(event) {
       "备注": payroll.remark
     };
 
-    const keyMonth = normalizePayrollMonth(savedRecord["月份"]);
-    const keyWorker = String(savedRecord["工人编号"] || "");
     const index = payrollRecords.findIndex(item =>
       String(item["公司"] || "") === String(savedRecord["公司"] || "") &&
-      normalizePayrollMonth(item["月份"]) === keyMonth &&
-      String(item["工人编号"] || "") === keyWorker
+      normalizePayrollMonth(item["月份"]) ===
+        normalizePayrollMonth(savedRecord["月份"]) &&
+      String(item["工人编号"] || "") ===
+        String(savedRecord["工人编号"] || "")
     );
 
-    if (
-      (deductions["支粮"] || 0) === 0 &&
-      (deductions["准证"] || 0) === 0 &&
-      calculation.absenceDeduction === 0 &&
-      calculation.allowance === 0 &&
-      calculation.liveCommission === 0 &&
-      calculation.totalDeduction === 0 &&
-      calculation.netSalary === calculation.grossSalary
-    ) {
-      payrollRecords = payrollRecords.filter(item =>
-        !(
-          String(item["公司"]||"")===String(savedRecord["公司"]||"") &&
-          normalizePayrollMonth(item["月份"])===keyMonth &&
-          String(item["工人编号"]||"")===keyWorker
-        )
-      );
-    } else {
-      if (index >= 0) payrollRecords[index] = savedRecord;
-      else payrollRecords.push(savedRecord);
-    }
+    if (index >= 0) payrollRecords[index] = savedRecord;
+    else payrollRecords.push(savedRecord);
 
     renderPayrollHistory();
     renderDebtList();
