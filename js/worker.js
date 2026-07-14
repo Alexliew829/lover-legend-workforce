@@ -22,6 +22,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     form.salaryType.addEventListener("change", handleSalaryType);
 
+    form.existingWorkerNo.addEventListener("change", () => {
+      const workerNo = String(form.existingWorkerNo.value || "").trim();
+
+      if (!workerNo) {
+        form.name.value = "";
+        clearWorkerDetailsForNew();
+        showStatus("status", "新增工人模式", true);
+        return;
+      }
+
+      editWorker(workerNo);
+    });
+
     form.company.addEventListener("change", () => {
       const selectedCompany = form.company.value;
 
@@ -131,20 +144,41 @@ function renderWorkersFromCache() {
 }
 
 function renderWorkerNameList() {
-  const list = document.getElementById("workerNameList");
   const form = document.getElementById("workerForm");
-
-  if (!list || !form) return;
+  if (!form || !form.existingWorkerNo) return;
 
   const selectedCompany = String(form.company.value || "").trim();
+  const selectedWorkerNo = String(form.existingWorkerNo.value || "").trim();
 
-  const filteredWorkers = workersCache.filter(worker =>
-    String(worker["公司"] || "").trim() === selectedCompany
-  );
+  const filteredWorkers = workersCache
+    .filter(worker =>
+      String(worker["公司"] || "").trim() === selectedCompany
+    )
+    .sort((a, b) =>
+      String(a["工人编号"] || "").localeCompare(
+        String(b["工人编号"] || ""),
+        undefined,
+        { numeric: true }
+      )
+    );
 
-  list.innerHTML = filteredWorkers.map(worker => `
-    <option value="${escapeHtml(worker["工人名字"])}">
-  `).join("");
+  form.existingWorkerNo.innerHTML = selectedCompany
+    ? '<option value="">新增工人 / 选择现有工人</option>' +
+      filteredWorkers.map(worker => `
+        <option value="${escapeHtml(worker["工人编号"])}">
+          ${escapeHtml(worker["工人编号"])} · ${escapeHtml(worker["工人名字"])}
+        </option>
+      `).join("")
+    : '<option value="">先选择公司</option>';
+
+  if (
+    selectedWorkerNo &&
+    filteredWorkers.some(worker =>
+      String(worker["工人编号"]) === selectedWorkerNo
+    )
+  ) {
+    form.existingWorkerNo.value = selectedWorkerNo;
+  }
 }
 
 function handleWorkerNameSelect(name) {
@@ -185,6 +219,7 @@ function clearWorkerDetailsForNew() {
   editingWorkerNo = null;
 
   if (form.workerNo) form.workerNo.value = "";
+  if (form.existingWorkerNo) form.existingWorkerNo.value = "";
   form.phone.value = "";
   form.ic.value = "";
   form.salaryType.value = "";
@@ -232,6 +267,7 @@ function editWorker(workerNo) {
 
   form.company.value = worker["公司"] || "";
   renderWorkerNameList();
+  if (form.existingWorkerNo) form.existingWorkerNo.value = String(workerNo);
 
   form.name.value = worker["工人名字"] || "";
   form.phone.value = worker["电话"] || "";

@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payroll System - Worker</title>
   <link rel="manifest" href="../manifest.json" />
-  <link rel="icon" href="../assets/icons/payroll-system.ico?v=1.84" />
-  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=1.84" />
-  <link rel="stylesheet" href="../css/style.css?v=1.84" />
+  <link rel="icon" href="../assets/icons/payroll-system.ico?v=1.85" />
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=1.85" />
+  <link rel="stylesheet" href="../css/style.css?v=1.85" />
 </head>
 <body>
   <div class="app">
@@ -29,14 +29,17 @@
           <option>Lover Legend Gardening</option>
         </select>
 
+        <label>选择现有工人</label>
+        <select name="existingWorkerNo">
+          <option value="">先选择公司</option>
+        </select>
+
         <label>工人名字</label>
         <input
           name="name"
-          list="workerNameList"
           maxlength="20"
           required
-          placeholder="输入或选择工人名字" />
-        <datalist id="workerNameList"></datalist>
+          placeholder="新增时输入名字；编辑时可修改" />
 
         <label>电话</label>
         <input name="phone" placeholder="可以跳过" />
@@ -96,9 +99,9 @@
   </div>
 
   <script src="../js/config.js"></script>
-  <script src="../js/api.js?v=1.84"></script>
+  <script src="../js/api.js?v=1.85"></script>
   <script src="../js/format.js"></script>
-  <script src="../js/worker.js?v=1.84"></script>
-  <script src="../js/app.js?v=1.84"></script>
+  <script src="../js/worker.js?v=1.85"></script>
+  <script src="../js/app.js?v=1.85"></script>
 </body>
 </html>

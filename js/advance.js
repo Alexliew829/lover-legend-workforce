@@ -291,8 +291,8 @@ async function handleAdvanceSubmit(event) {
     showStatus(
       "status",
       result && (result.updated || result.duplicate)
-        ? "扣款记录已修改并保存到 Google Sheet"
-        : "扣款记录已保存到 Google Sheet",
+        ? "欠款记录已修改并保存到 Google Sheet"
+        : "欠款记录已保存到 Google Sheet",
       true
     );
 

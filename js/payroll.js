@@ -493,15 +493,18 @@ function renderDebtList() {
     const originalNote = isAdvance ? getDebtOriginalNoteField(type) : "";
     const malayNote = isAdvance ? getDebtMalayNoteField(type) : "";
 
+    const remaining = Math.max(0, balance - value);
+    const hasDebt = balance > 0;
+
     return `
-      <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""}">
+      <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""} ${hasDebt ? "has-debt" : ""}">
         <div class="debt-info">
           <div class="debt-type">${type}</div>
           <div class="debt-balance">余额 ${formatPayrollCurrency(balance)}</div>
-          <div class="debt-remaining" data-remaining-type="${type}">扣后剩余 ${formatPayrollCurrency(balance - value)}</div>
+          <div class="debt-remaining ${remaining > 0 ? "debt-alert" : ""}" data-remaining-type="${type}">扣后剩余 ${formatPayrollCurrency(remaining)}</div>
         </div>
 
-        <input class="debt-deduction-input money-right" data-type="${type}" data-balance="${balance}"
+        <input class="debt-deduction-input money-right ${hasDebt ? "debt-input-alert" : ""}" data-type="${type}" data-balance="${balance}"
           type="text" inputmode="decimal" placeholder="0.00" value="${value > 0 ? moneyInput(value) : ""}"
           ${balance <= 0 ? "readonly" : ""} />
 
@@ -609,7 +612,12 @@ function calculatePayroll() {
     if (deduction > balance) invalidDeduction = true;
 
     const remainingBox = document.querySelector(`[data-remaining-type="${input.dataset.type}"]`);
-    if (remainingBox) remainingBox.textContent = `扣后剩余 ${formatPayrollCurrency(remaining)}`;
+    if (remainingBox) {
+      remainingBox.textContent = `扣后剩余 ${formatPayrollCurrency(remaining)}`;
+      remainingBox.classList.toggle("debt-alert", remaining > 0);
+    }
+
+    input.classList.toggle("debt-input-alert", balance > 0);
   });
 
   document.getElementById("absenceAmountText").textContent = formatPayrollCurrency(absenceDeduction);
@@ -623,7 +631,9 @@ function calculatePayroll() {
 
   document.getElementById("totalDeductionText").textContent = formatPayrollCurrency(totalDeduction);
   document.getElementById("netSalaryText").textContent = formatPayrollCurrency(netSalary);
-  document.getElementById("remainingDebtText").textContent = formatPayrollCurrency(remainingDebt);
+  const remainingDebtText = document.getElementById("remainingDebtText");
+  remainingDebtText.textContent = formatPayrollCurrency(remainingDebt);
+  remainingDebtText.classList.toggle("debt-alert", remainingDebt > 0);
 
   return {
     grossSalary,

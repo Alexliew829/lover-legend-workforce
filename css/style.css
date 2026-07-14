@@ -819,3 +819,70 @@ input[readonly] {
   background: #f1f4f0;
   color: #879087;
 }
+
+
+/* V1.85 Mobile worker selector and aging-friendly debt display */
+select[name="existingWorkerNo"] {
+  min-height: 50px;
+  font-weight: 800;
+  color: #0d1b12;
+}
+
+.debt-row.has-debt {
+  border-color: #d98f98;
+  background: #fff8f8;
+}
+
+.debt-row.has-debt .debt-type,
+.debt-row.has-debt .debt-balance {
+  color: #b00020;
+  font-weight: 900;
+}
+
+.debt-deduction-input.debt-input-alert {
+  color: #b00020;
+  font-weight: 900;
+  border-color: #c85160;
+  background: #fff7f7;
+}
+
+.debt-deduction-input.debt-input-alert::placeholder {
+  color: #b00020;
+  opacity: 1;
+  font-weight: 900;
+}
+
+.debt-remaining.debt-alert {
+  color: #b00020;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+#remainingDebtText.debt-alert,
+.payroll-summary .debt-alert {
+  color: #b00020 !important;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.dashboard-debt-row strong,
+.dashboard-debt-money,
+.dashboard-debt-card .dashboard-big-money {
+  color: #b00020;
+  font-weight: 900;
+}
+
+@media (max-width: 390px) {
+  .debt-row.has-debt .debt-type {
+    font-size: 17px;
+  }
+
+  .debt-row.has-debt .debt-balance,
+  .debt-remaining.debt-alert {
+    font-size: 14px;
+  }
+
+  .debt-deduction-input.debt-input-alert {
+    font-size: 18px;
+  }
+}
