@@ -762,8 +762,26 @@ async function handlePayrollSubmit(event) {
       String(item["工人编号"] || "") === keyWorker
     );
 
-    if (index >= 0) payrollRecords[index] = savedRecord;
-    else payrollRecords.push(savedRecord);
+    if (
+      (deductions["支粮"] || 0) === 0 &&
+      (deductions["准证"] || 0) === 0 &&
+      calculation.absenceDeduction === 0 &&
+      calculation.allowance === 0 &&
+      calculation.liveCommission === 0 &&
+      calculation.totalDeduction === 0 &&
+      calculation.netSalary === calculation.grossSalary
+    ) {
+      payrollRecords = payrollRecords.filter(item =>
+        !(
+          String(item["公司"]||"")===String(savedRecord["公司"]||"") &&
+          normalizePayrollMonth(item["月份"])===keyMonth &&
+          String(item["工人编号"]||"")===keyWorker
+        )
+      );
+    } else {
+      if (index >= 0) payrollRecords[index] = savedRecord;
+      else payrollRecords.push(savedRecord);
+    }
 
     renderPayrollHistory();
     renderDebtList();
