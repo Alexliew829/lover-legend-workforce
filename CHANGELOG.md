@@ -1,9 +1,9 @@
-# V1.80 Stable
+# V1.81 Stable
 
 - Added Dashboard with month/year selection.
 - Shows worker count, paid/unpaid workers, monthly net payroll, company summaries, outstanding balances, payroll progress and absence summary.
 - Refreshed Windows, Android, iPhone and browser icons using the approved red-P Payroll icon.
-- Updated PWA cache to V1.80 Stable.
+- Updated PWA cache to V1.81 Stable.
 
 # V1.74
 - 修正 Payroll 列表只显示所选月份。
@@ -123,9 +123,16 @@
 - Removed the separate Payslip card from the home page.
 - Updated frontend cache version to V1.76.
 
-## V1.80 Stable
+## V1.81 Stable
 - Performance-only release based on V1.77.
 - Faster Dashboard summary loading through one backend endpoint.
 - Reduced repeated API calls during Advance and Worker workflows.
 - Local list updates after save to reduce full-sheet rereads.
 - Existing payroll, debt, payslip and sorting logic retained.
+
+
+## V1.81 Stable
+- Existing Advance records auto-load by worker, date and item.
+- Dates saved as dd-MM-yyyy text to avoid day/month reversal.
+- Payroll and Payslip show deduction purpose from Advance remarks.
+- Removed unnecessary Payroll refresh calls and Advance sheet sorting on every save.

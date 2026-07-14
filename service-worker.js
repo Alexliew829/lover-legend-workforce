@@ -2,10 +2,10 @@ const CACHE_NAME = "ll-workforce-v177";
 const ASSETS = [
   "./app/index.html",
   "./app/dashboard.html",
-  "./css/style.css?v=1.80",
-  "./js/dashboard.js?v=1.80",
-  "./assets/icons/icon-192.png?v=1.80",
-  "./assets/icons/icon-512.png?v=1.80"
+  "./css/style.css?v=1.81",
+  "./js/dashboard.js?v=1.81",
+  "./assets/icons/icon-192.png?v=1.81",
+  "./assets/icons/icon-512.png?v=1.81"
 ];
 
 self.addEventListener("install", event => {

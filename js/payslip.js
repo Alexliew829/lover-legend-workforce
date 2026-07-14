@@ -54,16 +54,16 @@ function createPayslipCopyHtml(item) {
 
   const deductionItems = [
     ["Potongan Tidak Hadir / Absence Deduction", item["缺席扣款"]],
-    ["Potongan Pendahuluan / Advance Deduction", item["支粮扣款"]],
-    ["Potongan Permit / Permit Deduction", item["准证扣款"]],
+    ["Potongan Pendahuluan / Advance Deduction", item["支粮扣款"], item["支粮扣款说明"]],
+    ["Potongan Permit / Permit Deduction", item["准证扣款"], item["准证扣款说明"]],
     ["Potongan Perubatan / Medical Deduction", item["医疗扣款"]],
-    ["Potongan Hutang Lain-lain / Other Debt Deduction", item["欠款其他扣款"]],
+    ["Potongan Hutang Lain-lain / Other Debt Deduction", item["欠款其他扣款"], item["其他扣款说明"]],
     ["Potongan Gaji Lain-lain / Other Payroll Deduction", item["其他工资扣款"]]
   ].filter(([, value]) => parsePayslipMoney(value) > 0);
 
   const deductionHtml = deductionItems.length
-    ? deductionItems.map(([label, value]) => `
-        <div><span>${escapePayslipHtml(label)}</span><strong>${formatPayslipCurrency(value)}</strong></div>
+    ? deductionItems.map(([label, value, note]) => `
+        <div><span>${escapePayslipHtml(label)}${note ? `<small class="payslip-deduction-note">${escapePayslipHtml(note)}</small>` : ""}</span><strong>${formatPayslipCurrency(value)}</strong></div>
       `).join("")
     : '<div><span>Tiada Potongan / No Deduction</span><strong>RM 0.00</strong></div>';
 

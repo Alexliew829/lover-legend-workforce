@@ -1,5 +1,6 @@
 let workersCache = [];
 let advanceLedgerCache = [];
+let editingAdvanceRow = null;
 
 const DEFAULT_ADVANCE_TYPE = "支粮";
 
@@ -14,9 +15,9 @@ document.addEventListener("DOMContentLoaded", () => {
     form.company.addEventListener("change", handleCompanyChange);
     form.workerNo.addEventListener("change", handleWorkerChange);
     form.type.addEventListener("change", handleProjectChange);
-    form.deductDay.addEventListener("change", updateAbsenceAmount);
-    form.deductMonth.addEventListener("change", updateAbsenceAmount);
-    form.deductYear.addEventListener("change", updateAbsenceAmount);
+    form.deductDay.addEventListener("change", handleAdvanceKeyChange);
+    form.deductMonth.addEventListener("change", handleAdvanceKeyChange);
+    form.deductYear.addEventListener("change", handleAdvanceKeyChange);
     form.amount.addEventListener("blur", () => {
       if (!form.amount.readOnly) formatInputMoney(form.amount);
     });
@@ -45,19 +46,22 @@ function handleCompanyChange() {
 }
 
 function handleWorkerChange() {
-  clearUnsavedAdvanceInputs();
+  clearUnsavedAdvanceInputs({ keepWorker: true });
+  loadExistingAdvanceRecord();
 }
 
-function clearUnsavedAdvanceInputs() {
+function clearUnsavedAdvanceInputs({ keepWorker = false } = {}) {
   const form = document.getElementById("advanceForm");
   if (!form) return;
 
+  if (!keepWorker) form.workerNo.value = "";
   form.type.value = DEFAULT_ADVANCE_TYPE;
   form.amount.value = "";
   form.amount.readOnly = false;
   form.amount.classList.remove("readonly-field");
   form.remark.value = "";
   delete form.amount.dataset.autoAbsence;
+  editingAdvanceRow = null;
 
   const hint = document.getElementById("absenceHint");
   if (hint) hint.style.display = "none";
@@ -87,6 +91,39 @@ function renderWorkerOptions() {
 function handleProjectChange() {
   setTodayDateDropdown(false);
   updateAbsenceAmount();
+  loadExistingAdvanceRecord();
+}
+
+function handleAdvanceKeyChange() {
+  updateAbsenceAmount();
+  loadExistingAdvanceRecord();
+}
+
+function loadExistingAdvanceRecord() {
+  const form = document.getElementById("advanceForm");
+  if (!form || !form.workerNo.value || !form.type.value) return;
+
+  let date = "";
+  try { date = getDeductDateValue(); } catch (_) { return; }
+
+  const existing = advanceLedgerCache.find(item =>
+    item["交易来源"] !== "Payroll" &&
+    String(item["工人编号"] || "") === String(form.workerNo.value) &&
+    String(item["项目"] || item["类型"] || "") === String(form.type.value) &&
+    formatAdvanceDate(item["扣款日期"] || item["日期"] || item["日期时间"]) === date
+  );
+
+  if (!existing) {
+    editingAdvanceRow = null;
+    if (form.type.value !== "缺席") form.amount.value = "";
+    form.remark.value = "";
+    return;
+  }
+
+  editingAdvanceRow = Number(existing.row) || null;
+  form.amount.value = formatMoneyInput(existing["金额"] || 0);
+  form.remark.value = String(existing["备注"] || "");
+  showStatus("status", `已载入 ${date} 的记录，可以直接修改`, true);
 }
 
 function updateAbsenceAmount() {
@@ -168,20 +205,9 @@ async function handleAdvanceSubmit(event) {
       remark: form.remark.value.trim()
     };
 
-    const result = await api("addAdvance", { item });
-    let savedRecord = result && result.record ? result.record : null;
-
-    if (result && result.duplicate) {
-      const confirmUpdate = confirm(
-        `${item.workerName} 在 ${item.deductDate} 已有 ${item.type} ${formatCurrency(result.oldAmount)}。\n\n是否修改为 ${formatCurrency(item.amount)}？`
-      );
-
-      if (!confirmUpdate) {
-        showStatus("status", "已取消修改", false);
-        return;
-      }
-
-      item.row = result.row;
+    let savedRecord = null;
+    if (editingAdvanceRow) {
+      item.row = editingAdvanceRow;
       const updateResult = await api("updateAdvance", { item });
       savedRecord = updateResult && updateResult.record ? updateResult.record : null;
       if (savedRecord) {
@@ -190,8 +216,21 @@ async function handleAdvanceSubmit(event) {
       }
       showStatus("status", "扣款记录已修改并保存到 Google Sheet", true);
     } else {
-      if (savedRecord) advanceLedgerCache.push(savedRecord);
-      showStatus("status", "扣款记录已保存到 Google Sheet", true);
+      const result = await api("addAdvance", { item });
+      if (result && result.duplicate) {
+        item.row = result.row;
+        const updateResult = await api("updateAdvance", { item });
+        savedRecord = updateResult && updateResult.record ? updateResult.record : null;
+        if (savedRecord) {
+          const index = advanceLedgerCache.findIndex(row => Number(row.row) === Number(savedRecord.row) && row["交易来源"] !== "Payroll");
+          if (index >= 0) advanceLedgerCache[index] = savedRecord;
+        }
+        showStatus("status", "扣款记录已修改并保存到 Google Sheet", true);
+      } else {
+        savedRecord = result && result.record ? result.record : null;
+        if (savedRecord) advanceLedgerCache.push(savedRecord);
+        showStatus("status", "扣款记录已保存到 Google Sheet", true);
+      }
     }
 
     form.reset();

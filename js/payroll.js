@@ -137,14 +137,6 @@ async function handlePayrollWorkerChange() {
   renderDebtList();
   calculatePayroll();
 
-  try {
-    await refreshPayrollSourceData();
-    renderAbsenceSection();
-    renderDebtList();
-    calculatePayroll();
-  } catch (error) {
-    showStatus("status", error.message, false);
-  }
 }
 
 async function handlePayrollPeriodChange() {
@@ -158,15 +150,6 @@ async function handlePayrollPeriodChange() {
   renderDebtList();
   calculatePayroll();
 
-  try {
-    await refreshPayrollSourceData();
-    renderAbsenceSection();
-    renderDebtList();
-    calculatePayroll();
-    renderPayrollHistory();
-  } catch (error) {
-    showStatus("status", error.message, false);
-  }
 }
 
 async function refreshPayrollSourceData() {
@@ -321,6 +304,20 @@ function getOutstandingByType(workerNo) {
   return totals;
 }
 
+function getDebtDeductionRemark(type, deductionAmount) {
+  if (!selectedPayrollWorker || deductionAmount <= 0) return "";
+  const normalizedType = normalizeDebtType(type);
+  const remarks = payrollAdvances
+    .filter(item =>
+      String(item["工人编号"] || "") === String(selectedPayrollWorker["工人编号"]) &&
+      normalizeDebtType(item["项目"] || item["类型"]) === normalizedType &&
+      parsePayrollMoney(item["金额"]) > 0
+    )
+    .map(item => String(item["备注"] || "").trim())
+    .filter(Boolean);
+  return [...new Set(remarks)].join(" / ");
+}
+
 function renderDebtList() {
   const list = document.getElementById("debtList");
   if (!selectedPayrollWorker) return;
@@ -341,6 +338,7 @@ function renderDebtList() {
         <div class="debt-info">
           <div class="debt-type">${type}</div>
           <div class="debt-balance">余额 ${formatPayrollCurrency(balance)}</div>
+          ${getDebtDeductionRemark(type, value) ? `<div class="debt-note">${escapePayrollHtml(getDebtDeductionRemark(type, value))}</div>` : ""}
           <div class="debt-remaining" data-remaining-type="${type}">扣后剩余 ${formatPayrollCurrency(balance - value)}</div>
         </div>
         <input class="debt-deduction-input money-right" data-type="${type}" data-balance="${balance}"
@@ -454,9 +452,12 @@ async function handlePayrollSubmit(event) {
       absenceExpectedAmount: calculation.absence.expectedAmount,
       absenceDeduction: calculation.absenceDeduction,
       advanceDeduction: deductions["支粮"] || 0,
+      advanceDeductionRemark: getDebtDeductionRemark("支粮", deductions["支粮"] || 0),
       permitDeduction: deductions["准证"] || 0,
+      permitDeductionRemark: getDebtDeductionRemark("准证", deductions["准证"] || 0),
       medicalDeduction: 0,
       debtOtherDeduction: deductions["其他"] || 0,
+      debtOtherDeductionRemark: getDebtDeductionRemark("其他", deductions["其他"] || 0),
       otherPayrollDeduction: 0,
       totalDeduction: calculation.totalDeduction,
       netSalary: calculation.netSalary,
@@ -486,9 +487,12 @@ async function handlePayrollSubmit(event) {
       "缺席应扣金额": payroll.absenceExpectedAmount,
       "缺席扣款": payroll.absenceDeduction,
       "支粮扣款": payroll.advanceDeduction,
+      "支粮扣款说明": payroll.advanceDeductionRemark,
       "准证扣款": payroll.permitDeduction,
+      "准证扣款说明": payroll.permitDeductionRemark,
       "医疗扣款": payroll.medicalDeduction,
       "欠款其他扣款": payroll.debtOtherDeduction,
+      "其他扣款说明": payroll.debtOtherDeductionRemark,
       "其他工资扣款": payroll.otherPayrollDeduction,
       "总扣款": payroll.totalDeduction,
       "实发薪水": payroll.netSalary,
