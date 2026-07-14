@@ -1,4 +1,5 @@
 let workersCache = [];
+let advanceLedgerCache = [];
 
 const DEFAULT_ADVANCE_TYPE = "支粮";
 
@@ -27,13 +28,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadAdvancePage() {
   try {
-    const [workers, ledger] = await Promise.all([
-      api("getWorkers"),
-      api("getAdvanceLedger")
-    ]);
-    workersCache = workers || [];
+    const data = await api("getAdvanceBootstrap");
+    workersCache = data?.workers || [];
+    advanceLedgerCache = data?.ledger || [];
     renderWorkerOptions();
-    await loadAdvances(ledger || []);
+    renderAdvanceLedger(advanceLedgerCache);
     showStatus("status", "系统已就绪，可以记录扣款", true);
   } catch (error) {
     showStatus("status", error.message, false);
@@ -170,7 +169,7 @@ async function handleAdvanceSubmit(event) {
     };
 
     const result = await api("addAdvance", { item });
-    let latestLedger = result && Array.isArray(result.ledger) ? result.ledger : null;
+    let savedRecord = result && result.record ? result.record : null;
 
     if (result && result.duplicate) {
       const confirmUpdate = confirm(
@@ -184,16 +183,21 @@ async function handleAdvanceSubmit(event) {
 
       item.row = result.row;
       const updateResult = await api("updateAdvance", { item });
-      latestLedger = updateResult && Array.isArray(updateResult.ledger) ? updateResult.ledger : null;
-      showStatus("status", "扣款记录已修改", true);
+      savedRecord = updateResult && updateResult.record ? updateResult.record : null;
+      if (savedRecord) {
+        const index = advanceLedgerCache.findIndex(row => Number(row.row) === Number(savedRecord.row) && row["交易来源"] !== "Payroll");
+        if (index >= 0) advanceLedgerCache[index] = savedRecord;
+      }
+      showStatus("status", "扣款记录已修改并保存到 Google Sheet", true);
     } else {
-      showStatus("status", "扣款记录已保存", true);
+      if (savedRecord) advanceLedgerCache.push(savedRecord);
+      showStatus("status", "扣款记录已保存到 Google Sheet", true);
     }
 
     form.reset();
     renderWorkerOptions();
     clearUnsavedAdvanceInputs();
-    await loadAdvances(latestLedger);
+    renderAdvanceLedger(advanceLedgerCache);
   } catch (error) {
     showStatus("status", error.message, false);
   } finally {
@@ -205,10 +209,14 @@ async function handleAdvanceSubmit(event) {
 }
 
 async function loadAdvances(prefetchedAdvances = null) {
+  if (prefetchedAdvances) advanceLedgerCache = prefetchedAdvances;
+  else advanceLedgerCache = await api("getAdvanceLedger") || [];
+  renderAdvanceLedger(advanceLedgerCache);
+}
+
+function renderAdvanceLedger(advances) {
   const list = document.getElementById("advanceList");
   if (!list) return;
-
-  const advances = prefetchedAdvances || await api("getAdvanceLedger");
   const companyOrder = {
     "Lover Legend Adenium": 1,
     "Lover Legend Gardening": 2

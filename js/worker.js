@@ -262,12 +262,16 @@ if (salaryAmount <= 0) {
 
     if (editingWorkerNo) {
       const result = await api("updateWorkerByNo", { worker });
-      if (result && Array.isArray(result.workers)) workersCache = result.workers;
-      showStatus("status", "工人资料已更新", true);
+      const record = result && result.record ? result.record : null;
+      if (record) {
+        const index = workersCache.findIndex(item => String(item["工人编号"]) === String(record["工人编号"]));
+        if (index >= 0) workersCache[index] = record;
+      }
+      showStatus("status", "工人资料已更新并保存到 Google Sheet", true);
     } else {
       const result = await api("addWorker", { worker });
-      if (result && Array.isArray(result.workers)) workersCache = result.workers;
-      showStatus("status", "工人资料已保存", true);
+      if (result && result.record) workersCache.push(result.record);
+      showStatus("status", "工人资料已保存到 Google Sheet", true);
     }
 
     resetWorkerForm();
@@ -300,8 +304,8 @@ async function handleResignWorker() {
       workerName: workerName
     });
 
-    if (result && Array.isArray(result.workers)) workersCache = result.workers;
-    showStatus("status", "工人已办理离职", true);
+    workersCache = workersCache.filter(item => String(item["工人编号"]) !== String(editingWorkerNo));
+    showStatus("status", "工人已办理离职并保存到 Google Sheet", true);
     resetWorkerForm();
     renderWorkersFromCache();
   } catch (error) {

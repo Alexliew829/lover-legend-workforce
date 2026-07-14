@@ -1,10 +1,12 @@
-const API_READ_CACHE_MS = 15000;
+const API_READ_CACHE_MS = 30000;
 const apiReadCache = new Map();
 const apiPendingRequests = new Map();
 
 const API_READ_ACTIONS = new Set([
   "getWorkers",
   "getAdvances",
+  "getAdvanceBootstrap",
+  "getDashboardSummary",
   "getAdvanceLedger",
   "getPayrolls",
   "getPayrollBootstrap",
