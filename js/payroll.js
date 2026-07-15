@@ -121,6 +121,7 @@ async function loadPayrollPage() {
 
     applyPayrollBootstrapData(data);
     showStatus("status", "系统已就绪，可以计算 Payroll", true);
+    restorePayrollSelection();
   } catch (error) {
     if (cached) {
       showStatus(
@@ -221,7 +222,33 @@ async function handlePayrollPeriodChange() {
   calculatePayroll();
 
 }
+async function restorePayrollSelection() {
 
+  const company = sessionStorage.getItem("payrollCompany");
+  const worker = sessionStorage.getItem("payrollWorker");
+  const month = sessionStorage.getItem("payrollMonth");
+  const year = sessionStorage.getItem("payrollYear");
+
+  if (!company || !worker) return;
+
+  const form = document.getElementById("payrollForm");
+
+  if (month) form.payMonth.value = month;
+  if (year) form.payYear.value = year;
+
+  form.company.value = company;
+
+  renderPayrollWorkers();
+
+  form.workerNo.value = worker;
+
+  await handlePayrollWorkerChange();
+
+  sessionStorage.removeItem("payrollCompany");
+  sessionStorage.removeItem("payrollWorker");
+  sessionStorage.removeItem("payrollMonth");
+  sessionStorage.removeItem("payrollYear");
+}
 async function refreshPayrollSourceData() {
   const data = await api("getPayrollData");
   payrollAdvances = data?.advances || [];
@@ -932,7 +959,18 @@ const summaryParts = [];
       ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
         <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
         <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
-        <a class="payslip-link" href="payslip.html?workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}">打印工资单 / Print Payslip</a>
+       <a
+  class="payslip-link"
+  href="payslip.html?workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
+  onclick="
+    sessionStorage.setItem('payrollCompany','${String(item["公司"] || "")}');
+    sessionStorage.setItem('payrollWorker','${String(item["工人编号"] || "")}');
+    sessionStorage.setItem('payrollMonth','${document.getElementById('payMonth').value}');
+    sessionStorage.setItem('payrollYear','${document.getElementById('payYear').value}');
+  "
+>
+打印工资单 / Print Payslip
+</a>
       </div>
     `;
   }).join("");
