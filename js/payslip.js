@@ -1,4 +1,23 @@
-document.addEventListener("DOMContentLoaded", loadPayslipPage);
+document.addEventListener("DOMContentLoaded", () => {
+  setupBackToPayrollButton();
+  loadPayslipPage();
+});
+
+function setupBackToPayrollButton() {
+  const backBtn = document.getElementById("backPayrollBtn");
+  if (!backBtn) return;
+
+  backBtn.addEventListener("click", event => {
+    event.preventDefault();
+
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    window.location.href = "payroll.html";
+  });
+}
 
 async function loadPayslipPage() {
   const status = document.getElementById("payslipStatus");
@@ -116,7 +135,6 @@ function createPayslipCopyHtml(item, advances) {
     </div>
   `;
 }
-
 
 function setPdfFileName(item) {
   const workerName = sanitizeFileName(item["工人名字"] || item["工人编号"] || "Pekerja");
