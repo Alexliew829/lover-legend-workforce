@@ -373,7 +373,7 @@ input[readonly] {
   .payroll-source { white-space: normal; }
 }
 
-/* V1.6.3 Payroll 紧凑列表 */
+/* V1.6.3 Payroll 绱у噾鍒楄〃 */
 .payroll-record-item .worker-name,
 .payroll-record-item .muted {
   margin: 0;
@@ -387,9 +387,9 @@ input[readonly] {
   line-height: 1.45;
 }
 
-/* V1.7 Payroll 实发独立一行 */
+/* V1.7 Payroll 瀹炲彂鐙珛涓?琛? */
 .payroll-net-line { margin-top: 3px; font-weight: 700; color: #111; }
-/* 津贴：空白时像扣款一样，从左边开始输入 */
+/* 娲ヨ创锛氱┖鐧芥椂鍍忔墸娆句竴鏍凤紝浠庡乏杈瑰紑濮嬭緭鍏? */
 .allowance-input-box {
   position: relative;
 }
@@ -417,7 +417,7 @@ input[readonly] {
 }
 
 
-/* V1.73 Payroll 欠款余额与本月实发工资总数 */
+/* V1.73 Payroll 娆犳浣欓涓庢湰鏈堝疄鍙戝伐璧勬?绘暟 */
 .payroll-debt-balance-line {
   margin-top: 3px;
   color: #c00000;
@@ -449,7 +449,7 @@ input[readonly] {
 
 
 
-/* V1.75 首页双 Logo */
+/* V1.75 棣栭〉鍙? Logo */
 .brand-header {
   display: grid;
   grid-template-columns: 78px minmax(0, 1fr) 70px;
@@ -891,7 +891,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.86 欠款管理：缺席记录显示，但不计入欠款 */
+/* V1.86 娆犳绠＄悊锛氱己甯褰曟樉绀猴紝浣嗕笉璁″叆娆犳 */
 .advance-ledger-section-title {
   margin-top: 12px;
   margin-bottom: 6px;
