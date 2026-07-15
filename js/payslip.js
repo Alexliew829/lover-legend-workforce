@@ -60,19 +60,21 @@ function createPayslipCopyHtml(item, advances) {
     parsePayslipMoney(item["医疗扣款"]) +
     parsePayslipMoney(item["其他工资扣款"]);
 
-  // Payslip 只显示需要解释的扣款项目。
-  // 支粮金额已经包含在“总扣款”，不再重复显示
-  // “Potongan Pendahuluan / Advance Deduction”。
   const deductionItems = [
     ["Potongan Tidak Hadir / Absence Deduction", item["缺席扣款"]],
+    [
+      "Potongan Pendahuluan / Advance Deduction",
+      advanceDeduction,
+      String(item["支粮马来文说明"] || "").trim()
+    ],
     ["Potongan Permit / Permit Deduction", item["准证扣款"]]
   ].filter(([, value]) => parsePayslipMoney(value) > 0);
 
   const deductionHtml = deductionItems.length
-    ? deductionItems.map(([label, value]) => `
-        <div><span>${escapePayslipHtml(label)}</span><strong>${formatPayslipCurrency(value)}</strong></div>
+    ? deductionItems.map(([label, value, note]) => `
+        <div><span>${escapePayslipHtml(label)}${note ? `<small class="payslip-deduction-note">${escapePayslipHtml(note)}</small>` : ""}</span><strong>${formatPayslipCurrency(value)}</strong></div>
       `).join("")
-    : "";
+    : '<div><span>Tiada Potongan / No Deduction</span><strong>RM 0.00</strong></div>';
 
   return `
     <header class="payslip-header">
@@ -94,12 +96,13 @@ function createPayslipCopyHtml(item, advances) {
       <div><span>Gaji Bulan Ini / Current Month Salary</span><strong>${formatPayslipCurrency(basicSalary)}</strong></div>
       ${allowance > 0 ? `<div><span>Elaun / Allowance</span><strong>${formatPayslipCurrency(allowance)}</strong></div>` : ""}
       ${liveCommission > 0 ? `<div><span>Komisen Jualan Live / Live Sales Commission</span><strong>${formatPayslipCurrency(liveCommission)}</strong></div>` : ""}
+      <div class="payslip-total-line"><span>Jumlah Pendapatan / Total Income</span><strong>${formatPayslipCurrency(basicSalary + allowance + liveCommission)}</strong></div>
     </div>
 
     <div class="payslip-section-title">Potongan / Deduction</div>
-    ${deductionHtml ? `<div class="payslip-lines">${deductionHtml}</div>` : ""}
+    <div class="payslip-lines">${deductionHtml}</div>
     <div class="payslip-lines">
-      <div class="payslip-total-line payslip-deduction-total"><span>Jumlah Potongan / Total Deduction</span><strong>${formatPayslipCurrency(totalDeduction)}</strong></div>
+      <div class="payslip-total-line"><span>Jumlah Potongan / Total Deduction</span><strong>${formatPayslipCurrency(totalDeduction)}</strong></div>
     </div>
 
     <div class="payslip-result-row">
