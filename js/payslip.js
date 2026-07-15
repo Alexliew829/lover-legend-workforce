@@ -26,10 +26,11 @@ async function loadPayslipPage() {
 
   try {
     const params = new URLSearchParams(window.location.search);
+    const company = params.get("company") || "";
     const workerNo = params.get("workerNo") || "";
     const month = normalizePayslipMonth(params.get("month") || "");
 
-    if (!workerNo || !month) {
+    if (!company || !workerNo || !month) {
       throw new Error("工资单资料不完整。 / Payslip information is incomplete.");
     }
 
@@ -37,6 +38,7 @@ async function loadPayslipPage() {
     const payrolls = await api("getPayrolls");
     const advances = [];
     const record = payrolls.find(item =>
+      String(item["公司"] || "") === company &&
       String(item["工人编号"] || "") === workerNo &&
       normalizePayslipMonth(item["月份"]) === month
     );

@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payroll System - Payroll & Print Payslip</title>
   <link rel="manifest" href="../manifest.json" />
-  <link rel="icon" href="../assets/icons/payroll-system.ico?v=1.87" />
-  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=1.87" />
-  <link rel="stylesheet" href="../css/style.css?v=1.87" />
+  <link rel="icon" href="../assets/icons/payroll-system.ico?v=1.88" />
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=1.88" />
+  <link rel="stylesheet" href="../css/style.css?v=1.88" />
 </head>
 <body>
   <div class="app">
@@ -16,7 +16,7 @@
       <div class="page-title payroll-combined-title">Payroll / 打印工资单 / Print Payslip</div>
     </div>
 
-    <div id="status" class="status">Payroll V1.87 Stable</div>
+    <div id="status" class="status">Payroll V1.88 Stable</div>
 
     <section class="card">
       <form id="payrollForm" class="form">
@@ -48,6 +48,10 @@
           <div class="field-group">
             <label>日薪 RM</label>
             <input name="salaryRateDisplay" class="readonly-field money-right" type="text" readonly placeholder="0.00" />
+          </div>
+          <div class="field-group">
+            <label>本月计薪天数</label>
+            <input id="workDays" name="workDays" type="number" inputmode="decimal" min="0.5" step="0.5" placeholder="0" />
           </div>
           <div class="field-group">
             <label>本月工资 RM</label>
@@ -136,8 +140,8 @@
   </div>
 
   <script src="../js/config.js"></script>
-  <script src="../js/api.js?v=1.87"></script>
-  <script src="../js/payroll.js?v=1.87"></script>
-  <script src="../js/app.js?v=1.87"></script>
+  <script src="../js/api.js?v=1.88"></script>
+  <script src="../js/payroll.js?v=1.88"></script>
+  <script src="../js/app.js?v=1.88"></script>
 </body>
 </html>

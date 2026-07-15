@@ -1,4 +1,4 @@
-# Lover Legend Workforce ERP V1.86 Stable
+# Lover Legend Workforce ERP V1.88 Stable
 
 Frontend for Worker, Advance, Payroll and bilingual Payslip printing.
 

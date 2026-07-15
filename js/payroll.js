@@ -25,6 +25,13 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("change", calculatePayroll);
   });
 
+  if (form.workDays) {
+    form.workDays.addEventListener("input", () => {
+      renderSalaryAmountOnly();
+      calculatePayroll();
+    });
+  }
+
   form.addEventListener("input", event => {
     if (event.target.classList.contains("debt-deduction-input")) {
       const type = event.target.dataset.type;
@@ -264,6 +271,7 @@ function resetPayrollEntryFields({ keepWorkerSelection = false } = {}) {
   form.salaryRateDisplay.value = "";
   form.grossSalary.value = "";
   form.monthlyGrossSalary.value = "";
+  if (form.workDays) form.workDays.value = "";
   const allowanceInput = getAllowanceInput(form);
   if (allowanceInput) allowanceInput.value = "";
 
@@ -297,28 +305,47 @@ function renderSalarySection() {
   if (!selectedPayrollWorker) return;
 
   const salaryType = String(selectedPayrollWorker["薪水类型"] || "");
-  const gross = getGrossSalary();
 
   if (salaryType === "日薪") {
+    const current = getCurrentMonthPayrollRecord();
+    const savedWorkDays = parsePayrollMoney(current && current["工作天数"]);
+
     dailyRow.style.display = "grid";
     monthlyRow.style.display = "none";
     form.salaryRateDisplay.value = moneyInput(selectedPayrollWorker["日薪"]);
-    form.grossSalary.value = moneyInput(gross);
+    form.workDays.value = savedWorkDays > 0 ? formatDayCount(savedWorkDays) : String(getSelectedMonthDays());
     form.monthlyGrossSalary.value = "";
+    renderSalaryAmountOnly();
   } else {
     dailyRow.style.display = "none";
     monthlyRow.style.display = "block";
     form.salaryRateDisplay.value = "";
     form.grossSalary.value = "";
-    form.monthlyGrossSalary.value = moneyInput(gross);
+    if (form.workDays) form.workDays.value = "";
+    form.monthlyGrossSalary.value = moneyInput(getGrossSalary());
   }
+}
+
+function renderSalaryAmountOnly() {
+  const form = document.getElementById("payrollForm");
+  if (!selectedPayrollWorker) return;
+
+  if (String(selectedPayrollWorker["薪水类型"] || "") === "日薪") {
+    form.grossSalary.value = moneyInput(getGrossSalary());
+  }
+}
+
+function getWorkDays() {
+  const form = document.getElementById("payrollForm");
+  if (!selectedPayrollWorker || String(selectedPayrollWorker["薪水类型"] || "") !== "日薪") return 0;
+  return parsePayrollMoney(form.workDays?.value);
 }
 
 function getGrossSalary() {
   if (!selectedPayrollWorker) return 0;
   const salaryType = String(selectedPayrollWorker["薪水类型"] || "");
   if (salaryType === "日薪") {
-    return parsePayrollMoney(selectedPayrollWorker["日薪"]) * getSelectedMonthDays();
+    return parsePayrollMoney(selectedPayrollWorker["日薪"]) * getWorkDays();
   }
   return parsePayrollMoney(selectedPayrollWorker["月薪"]);
 }
@@ -736,6 +763,9 @@ async function handlePayrollSubmit(event) {
 
   try {
     const calculation = calculatePayroll();
+    if (String(selectedPayrollWorker["薪水类型"] || "") === "日薪" && getWorkDays() <= 0) {
+      throw new Error("请输入本月计薪天数");
+    }
     if (calculation.grossSalary <= 0) throw new Error("本月工资必须大于 0");
     if (calculation.invalidDeduction) throw new Error("本月扣除不能超过欠款余额");
     if (
@@ -758,7 +788,7 @@ async function handlePayrollSubmit(event) {
       workerNo: selectedPayrollWorker["工人编号"],
       workerName: selectedPayrollWorker["工人名字"],
       salaryType,
-      workDays: 0,
+      workDays: salaryType === "日薪" ? getWorkDays() : 0,
       salaryRate: parsePayrollMoney(selectedPayrollWorker["日薪"]),
       monthlySalary: parsePayrollMoney(selectedPayrollWorker["月薪"]),
       basicSalary: calculation.grossSalary,
@@ -840,6 +870,7 @@ async function handlePayrollSubmit(event) {
       "工人编号": payroll.workerNo,
       "工人名字": payroll.workerName,
       "薪水类型": payroll.salaryType,
+      "工作天数": payroll.workDays,
       "日薪": payroll.salaryRate,
       "月薪": payroll.monthlySalary,
       "基本薪水": payroll.basicSalary,
@@ -961,7 +992,7 @@ const summaryParts = [];
         <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
        <a
   class="payslip-link"
-  href="payslip.html?workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
+  href="payslip.html?company=${encodeURIComponent(String(item["公司"] || ""))}&workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
   onclick="
     sessionStorage.setItem('payrollCompany','${String(item["公司"] || "")}');
     sessionStorage.setItem('payrollWorker','${String(item["工人编号"] || "")}');

@@ -1,3 +1,10 @@
+# V1.88 Stable
+
+- Added editable paid work days for daily-wage Payroll.
+- Added Apps Script write locks.
+- Payslip lookup now includes company.
+- Unified frontend, PWA cache and API version to V1.88.
+
 # V1.86 Stable
 
 - Added Dashboard with month/year selection.
