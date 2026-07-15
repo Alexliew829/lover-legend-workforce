@@ -121,7 +121,7 @@ async function loadPayrollPage() {
 
     applyPayrollBootstrapData(data);
     showStatus("status", "系统已就绪，可以计算 Payroll", true);
-    restorePayrollSelection();
+ await restorePayrollSelection();
   } catch (error) {
     if (cached) {
       showStatus(
