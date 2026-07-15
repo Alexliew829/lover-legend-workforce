@@ -993,14 +993,9 @@ const summaryParts = [];
        <a
   class="payslip-link"
   href="payslip.html?company=${encodeURIComponent(String(item["公司"] || ""))}&workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
-  onclick="
-    sessionStorage.setItem('payrollCompany','${String(item["公司"] || "")}');
-    sessionStorage.setItem('payrollWorker','${String(item["工人编号"] || "")}');
-    sessionStorage.setItem('payrollMonth','${document.getElementById('payMonth').value}');
-    sessionStorage.setItem('payrollYear','${document.getElementById('payYear').value}');
-  "
+  onclick="savePayrollSelection('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}')"
 >
-打印工资单 / Print Payslip
+  打印工资单 / Print Payslip
 </a>
       </div>
     `;
@@ -1014,6 +1009,23 @@ const summaryParts = [];
   `;
 
   list.innerHTML = recordsHtml + totalHtml;
+}
+
+
+function savePayrollSelection(company, workerNo) {
+  const form = document.getElementById("payrollForm");
+  if (!form) return;
+
+  sessionStorage.setItem("payrollCompany", String(company || ""));
+  sessionStorage.setItem("payrollWorker", String(workerNo || ""));
+  sessionStorage.setItem("payrollMonth", String(form.payMonth?.value || ""));
+  sessionStorage.setItem("payrollYear", String(form.payYear?.value || ""));
+}
+
+function escapePayrollJsString(value) {
+  return String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'");
 }
 
 function comparePayrollRecords(a, b) {
