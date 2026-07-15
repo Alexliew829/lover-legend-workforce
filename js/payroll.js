@@ -907,11 +907,12 @@ function renderPayrollHistory() {
   );
 
   const recordsHtml = currentMonthRecords.map(item => {
-    const absenceDays = Number(item["缺席天数"]) || 0;
-    const allowance = parsePayrollMoney(item["津贴"]);
-    const totalDeduction = parsePayrollMoney(item["总扣款"]);
-    const debtBalance = parsePayrollMoney(item["欠款余额"]);
-    const summaryParts = [];
+   const absenceDays = Number(item["缺席天数"]) || 0;
+const allowance = parsePayrollMoney(item["津贴"]);
+const liveCommission = parsePayrollMoney(item["直播佣金"]);
+const totalDeduction = parsePayrollMoney(item["总扣款"]);
+const debtBalance = parsePayrollMoney(item["欠款余额"]);
+const summaryParts = [];
 
     if (absenceDays > 0) {
       summaryParts.push(`缺席 ${formatDayCount(absenceDays)} 天`);
@@ -926,8 +927,9 @@ function renderPayrollHistory() {
       <div class="record-item payroll-record-item">
         <div class="worker-name">${escapePayrollHtml(item["工人编号"])} · ${escapePayrollHtml(item["工人名字"])} · ${escapePayrollHtml(item["公司"] || "")}</div>
         <div class="muted">${escapePayrollHtml(normalizePayrollMonth(item["月份"]))} · 本月工资 : ${formatPayrollCurrency(item["基本薪水"])}</div>
-        ${allowance > 0 ? `<div class="muted">津贴 : ${formatPayrollCurrency(allowance)}</div>` : ""}
-        ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
+       ${allowance > 0 ? `<div class="muted">津贴 : ${formatPayrollCurrency(allowance)}</div>` : ""}
+      ${liveCommission > 0 ? `<div class="muted">直播佣金 : ${formatPayrollCurrency(liveCommission)}</div>` : ""}
+      ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
         <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
         <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
         <a class="payslip-link" href="payslip.html?workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}">打印工资单 / Print Payslip</a>
