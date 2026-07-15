@@ -564,6 +564,23 @@ function renderDebtList() {
     showStatus("status", "正在编辑已保存的 Payroll", true);
   } else {
     const form = document.getElementById("payrollForm");
+
+    const allowanceInput = getAllowanceInput(form);
+    if (allowanceInput) {
+      const defaultAllowance = parsePayrollMoney(
+        selectedPayrollWorker?.["默认津贴"]
+      );
+
+      allowanceInput.value = defaultAllowance > 0
+        ? moneyInput(defaultAllowance)
+        : "";
+    }
+
+    const liveCommissionInput = getLiveCommissionInput(form);
+    if (liveCommissionInput) {
+      liveCommissionInput.value = "";
+    }
+
     form.remark.value = "";
   }
 }
@@ -784,6 +801,20 @@ async function handlePayrollSubmit(event) {
       "欠款余额": payroll.debtBalance,
       "备注": payroll.remark
     };
+
+    const savedAllowance = parsePayrollMoney(payroll.allowance);
+
+    if (selectedPayrollWorker) {
+      selectedPayrollWorker["默认津贴"] = savedAllowance;
+    }
+
+    const workerIndex = payrollWorkers.findIndex(worker =>
+      String(worker["工人编号"] || "") === String(payroll.workerNo || "")
+    );
+
+    if (workerIndex >= 0) {
+      payrollWorkers[workerIndex]["默认津贴"] = savedAllowance;
+    }
 
     const index = payrollRecords.findIndex(item =>
       String(item["公司"] || "") === String(savedRecord["公司"] || "") &&
