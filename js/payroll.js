@@ -375,23 +375,16 @@ function getDebtOriginalNoteField(type) {
     "准证": ""
   };
 
+  // 新月份还没有 Payroll 时，必须保持空白。
+  // 不读取旧月份画面中的扣款输入框，避免备注被带到新月份。
+  if (!current) return "";
+
   const field = savedFields[type];
-  const saved = String(
+  return String(
     field && current && current[field]
       ? current[field]
       : ""
   ).trim();
-
-  if (saved) return saved;
-
-  const deductionInput = document.querySelector(
-    `.debt-deduction-input[data-type="${type}"]`
-  );
-  const deductionAmount = deductionInput
-    ? parsePayrollMoney(deductionInput.value)
-    : 0;
-
-  return getDebtDeductionRemark(type, deductionAmount);
 }
 
 function getDebtMalayNoteField(type) {
@@ -565,6 +558,8 @@ function renderDebtList() {
   } else {
     const form = document.getElementById("payrollForm");
 
+    // 新月份没有已保存 Payroll：
+    // 只带入工人的默认津贴，其余每月资料全部重设。
     const allowanceInput = getAllowanceInput(form);
     if (allowanceInput) {
       const defaultAllowance = parsePayrollMoney(
@@ -579,6 +574,13 @@ function renderDebtList() {
     const liveCommissionInput = getLiveCommissionInput(form);
     if (liveCommissionInput) {
       liveCommissionInput.value = "";
+    }
+
+    const defaultAbsenceAction = form.querySelector(
+      'input[name="absenceAction"][value="扣薪"]'
+    );
+    if (defaultAbsenceAction) {
+      defaultAbsenceAction.checked = true;
     }
 
     form.remark.value = "";
