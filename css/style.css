@@ -886,3 +886,40 @@ select[name="existingWorkerNo"] {
     font-size: 18px;
   }
 }
+
+
+/* V1.86 欠款管理：缺席记录显示，但不计入欠款 */
+.advance-ledger-section-title {
+  margin-top: 12px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #153c20;
+}
+
+.absence-records {
+  background: #fffaf1;
+  border: 1px solid #e3c98e;
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.absence-ledger-line {
+  color: #7a4b00;
+  font-weight: 800;
+}
+
+.advance-ledger-note {
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4c584e;
+}
+
+.advance-ledger-hint {
+  margin-top: 6px;
+  color: #6d756f;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}

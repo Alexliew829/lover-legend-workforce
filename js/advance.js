@@ -319,12 +319,13 @@ async function loadAdvances(prefetchedAdvances = null) {
 function renderAdvanceLedger(advances) {
   const list = document.getElementById("advanceList");
   if (!list) return;
+
   const companyOrder = {
     "Lover Legend Adenium": 1,
     "Lover Legend Gardening": 2
   };
 
-  const sorted = (advances || []).sort((a, b) => {
+  const sorted = [...(advances || [])].sort((a, b) => {
     const companyA = companyOrder[String(a["公司"] || "")] || 99;
     const companyB = companyOrder[String(b["公司"] || "")] || 99;
     if (companyA !== companyB) return companyA - companyB;
@@ -335,9 +336,15 @@ function renderAdvanceLedger(advances) {
       return workerA.localeCompare(workerB, undefined, { numeric: true });
     }
 
-    const dateA = parseDDMMYYYY(a["扣款日期"] || a["日期"] || a["日期时间"]);
-    const dateB = parseDDMMYYYY(b["扣款日期"] || b["日期"] || b["日期时间"]);
-    return dateA - dateB;
+    const dateA = parseDDMMYYYY(
+      a["扣款日期"] || a["日期"] || a["日期时间"]
+    );
+    const dateB = parseDDMMYYYY(
+      b["扣款日期"] || b["日期"] || b["日期时间"]
+    );
+
+    // 同一位工人：日期最新排在最上面。
+    return dateB - dateA;
   });
 
   if (!sorted.length) {
@@ -349,9 +356,11 @@ function renderAdvanceLedger(advances) {
 
   sorted.forEach(item => {
     const type = String(item["项目"] || item["类型"] || "");
-    if (type === "缺席") return;
+    const key =
+      `${item["公司"] || ""}__` +
+      `${item["工人编号"] || ""}__` +
+      `${item["工人名字"] || ""}`;
 
-    const key = `${item["公司"] || ""}__${item["工人编号"] || ""}__${item["工人名字"] || ""}`;
     if (!groups[key]) {
       groups[key] = {
         company: item["公司"] || "",
@@ -360,11 +369,19 @@ function renderAdvanceLedger(advances) {
         borrowedTotal: 0,
         repaidTotal: 0,
         borrowRecords: [],
-        repaymentRecords: []
+        repaymentRecords: [],
+        absenceRecords: []
       };
     }
 
+    // 缺席只显示记录，不算进累计欠款。
+    if (type === "缺席") {
+      groups[key].absenceRecords.push(item);
+      return;
+    }
+
     const value = Number(item["显示金额"] ?? item["金额"]) || 0;
+
     if (value < 0 || item["交易来源"] === "Payroll") {
       groups[key].repaidTotal += Math.abs(value);
       groups[key].repaymentRecords.push(item);
@@ -375,37 +392,102 @@ function renderAdvanceLedger(advances) {
   });
 
   list.innerHTML = Object.values(groups).map(group => {
-    const remaining = Math.max(0, group.borrowedTotal - group.repaidTotal);
+    const remaining = Math.max(
+      0,
+      group.borrowedTotal - group.repaidTotal
+    );
+
+    const debtRecordsHtml = group.borrowRecords.map(item => `
+      <div class="advance-ledger-line">
+        <span>
+          ${escapeHtml(formatAdvanceDate(
+            item["扣款日期"] || item["日期"] || item["日期时间"]
+          ))}
+          · ${escapeHtml(item["项目"] || item["类型"])}
+          · ${formatCurrency(item["金额"])}
+        </span>
+        ${String(item["备注"] || "").trim()
+          ? `<div class="advance-ledger-note">备注：${escapeHtml(item["备注"])}</div>`
+          : ""}
+      </div>
+    `).join("");
+
+    const absenceRecordsHtml = group.absenceRecords.map(item => `
+      <div class="advance-ledger-line absence-ledger-line">
+        <span>
+          ${escapeHtml(formatAdvanceDate(
+            item["扣款日期"] || item["日期"] || item["日期时间"]
+          ))}
+          · 缺席
+          · ${formatCurrency(item["金额"])}
+        </span>
+        ${String(item["备注"] || "").trim()
+          ? `<div class="advance-ledger-note">备注：${escapeHtml(item["备注"])}</div>`
+          : ""}
+      </div>
+    `).join("");
+
+    const repaymentHtml = group.repaymentRecords.length ? `
+      <div class="advance-ledger-records repayment-records">
+        ${group.repaymentRecords.map(item => {
+          const source = String(
+            item["备注"] || "Payroll 扣回"
+          ).trim();
+          const project = String(
+            item["项目"] || item["类型"] || ""
+          ).trim();
+          const label = `${source}${project ? ` · ${project}` : ""}`;
+
+          return `
+            <div class="advance-ledger-line repayment-line">
+              <span>
+                ${escapeHtml(label)}
+                · ${formatSignedCurrency(
+                  item["显示金额"] ?? item["金额"]
+                )}
+              </span>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    ` : "";
+
     return `
       <div class="worker-item advance-ledger-card">
-        <div class="worker-name">${escapeHtml(group.workerNo)} · ${escapeHtml(group.workerName)} · ${escapeHtml(group.company)}</div>
-
-        <div class="advance-ledger-records">
-          ${group.borrowRecords.map(item => `
-            <div class="advance-ledger-line">
-              <span>${escapeHtml(formatAdvanceDate(item["扣款日期"] || item["日期"] || item["日期时间"]))} · ${escapeHtml(item["项目"] || item["类型"])} · ${formatCurrency(item["金额"])}</span>
-            </div>
-          `).join("")}
+        <div class="worker-name">
+          ${escapeHtml(group.workerNo)}
+          · ${escapeHtml(group.workerName)}
+          · ${escapeHtml(group.company)}
         </div>
 
-        <div class="advance-ledger-total">累计欠款：${formatCurrency(group.borrowedTotal)}</div>
-
-        ${group.repaymentRecords.length ? `
-          <div class="advance-ledger-records repayment-records">
-            ${group.repaymentRecords.map(item => {
-              const source = String(item["备注"] || "Payroll 扣回").trim();
-              const project = String(item["项目"] || item["类型"] || "").trim();
-              const label = `${source}${project ? project : ""}`;
-              return `
-                <div class="advance-ledger-line repayment-line">
-                  <span>${escapeHtml(label)} · ${formatSignedCurrency(item["显示金额"] ?? item["金额"])}</span>
-                </div>
-              `;
-            }).join("")}
+        ${absenceRecordsHtml ? `
+          <div class="advance-ledger-section-title">缺席记录</div>
+          <div class="advance-ledger-records absence-records">
+            ${absenceRecordsHtml}
+          </div>
+          <div class="advance-ledger-hint">
+            缺席只供 Payroll 扣薪计算，不计入累计欠款。
           </div>
         ` : ""}
 
-        <div class="advance-ledger-remaining">剩余欠款：${formatCurrency(remaining)}</div>
+        ${debtRecordsHtml ? `
+          <div class="advance-ledger-section-title">欠款记录</div>
+          <div class="advance-ledger-records">
+            ${debtRecordsHtml}
+          </div>
+        ` : ""}
+
+        ${group.borrowRecords.length || group.repaymentRecords.length ? `
+          <div class="advance-ledger-total">
+            累计欠款：${formatCurrency(group.borrowedTotal)}
+          </div>
+
+          ${repaymentHtml}
+
+          <div class="advance-ledger-remaining">
+            剩余欠款：${formatCurrency(remaining)}
+          </div>
+        ` : ""}
       </div>
     `;
   }).join("");

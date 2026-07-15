@@ -132,7 +132,7 @@ function getDashboardMonthKey() {
 
 function readDashboardBrowserCache(monthKey) {
   try {
-    const raw = sessionStorage.getItem(`ll-dashboard-v182-${monthKey}`);
+    const raw = sessionStorage.getItem(`ll-dashboard-v186-${monthKey}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed && parsed.data ? parsed.data : null;
@@ -143,7 +143,7 @@ function readDashboardBrowserCache(monthKey) {
 
 function writeDashboardBrowserCache(monthKey, data) {
   try {
-    sessionStorage.setItem(`ll-dashboard-v182-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
+    sessionStorage.setItem(`ll-dashboard-v186-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
   } catch (error) {}
 }
 

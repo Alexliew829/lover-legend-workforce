@@ -1,4 +1,4 @@
-const API_READ_CACHE_MS = 30000;
+const API_READ_CACHE_MS = 10000;
 const apiReadCache = new Map();
 const apiPendingRequests = new Map();
 
@@ -32,19 +32,19 @@ function clearApiReadCache() {
 
   try {
     Object.keys(localStorage)
-      .filter(key => key.startsWith("ll-api-cache-v1831:"))
+      .filter(key => key.startsWith("ll-api-cache-v186:"))
       .forEach(key => localStorage.removeItem(key));
   } catch (_) {}
 }
 
 function readPersistentApiCache(cacheKey) {
   try {
-    const raw = localStorage.getItem("ll-api-cache-v1831:" + cacheKey);
+    const raw = localStorage.getItem("ll-api-cache-v186:" + cacheKey);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw);
     if (!parsed || Date.now() - Number(parsed.time || 0) >= API_READ_CACHE_MS) {
-      localStorage.removeItem("ll-api-cache-v1831:" + cacheKey);
+      localStorage.removeItem("ll-api-cache-v186:" + cacheKey);
       return null;
     }
     return parsed;
@@ -56,7 +56,7 @@ function readPersistentApiCache(cacheKey) {
 function writePersistentApiCache(cacheKey, data) {
   try {
     localStorage.setItem(
-      "ll-api-cache-v1831:" + cacheKey,
+      "ll-api-cache-v186:" + cacheKey,
       JSON.stringify({ time: Date.now(), data })
     );
   } catch (_) {}
