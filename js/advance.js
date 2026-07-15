@@ -1,6 +1,7 @@
 let workersCache = [];
 let advanceLedgerCache = [];
 let editingAdvanceRow = null;
+let payrollRepaymentLoading = false;
 
 const DEFAULT_ADVANCE_TYPE = "支粮";
 
@@ -28,27 +29,73 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function loadAdvancePage() {
-  try {
-    const data = await api("getAdvanceBootstrap");
-    workersCache = data?.workers || [];
-    advanceLedgerCache = (data?.advances || []).map(item => ({
-      ...item,
-      "交易来源": "新增",
-      "显示金额": Number(item["金额"]) || 0
-    }));
+  const cached = typeof getApiCachedData === "function"
+    ? getApiCachedData("getAdvanceBootstrap", {})
+    : null;
 
-    renderWorkerOptions();
-    renderAdvanceLedger(advanceLedgerCache);
+  if (cached) {
+    applyAdvanceBootstrapData(cached);
+    showStatus("status", "系统已就绪，正在后台同步最新欠款资料", true);
+    loadPayrollRepaymentsInBackground();
+  }
+
+  try {
+    const data = await api(
+      "getAdvanceBootstrap",
+      {},
+      { forceRefresh: Boolean(cached) }
+    );
+
+    applyAdvanceBootstrapData(data);
     showStatus("status", "系统已就绪，可以记录欠款", true);
 
     // Payroll 扣回记录放到后台载入，不阻塞“系统已就绪”。
     loadPayrollRepaymentsInBackground();
   } catch (error) {
+    if (cached) {
+      showStatus("status", "暂时无法同步，正在使用上次载入的欠款资料", false);
+      return;
+    }
+
     showStatus("status", error.message, false);
   }
 }
 
+function applyAdvanceBootstrapData(data) {
+  workersCache = Array.isArray(data?.workers) ? data.workers : [];
+  advanceLedgerCache = (Array.isArray(data?.advances) ? data.advances : [])
+    .map(item => ({
+      ...item,
+      "交易来源": "新增",
+      "显示金额": Number(item["金额"]) || 0
+    }));
+
+  renderWorkerOptions();
+  renderAdvanceLedger(advanceLedgerCache);
+}
+
+function updateAdvanceBrowserCache() {
+  if (typeof setApiCachedData !== "function") return;
+
+  const advances = advanceLedgerCache
+    .filter(item => item["交易来源"] !== "Payroll")
+    .map(item => {
+      const record = { ...item };
+      delete record["交易来源"];
+      delete record["显示金额"];
+      return record;
+    });
+
+  setApiCachedData("getAdvanceBootstrap", {}, {
+    workers: workersCache,
+    advances
+  });
+}
+
 async function loadPayrollRepaymentsInBackground() {
+  if (payrollRepaymentLoading) return;
+  payrollRepaymentLoading = true;
+
   try {
     const payrolls = await api("getPayrolls");
     const repayments = [];
@@ -89,6 +136,8 @@ async function loadPayrollRepaymentsInBackground() {
     renderAdvanceLedger(advanceLedgerCache);
   } catch (_) {
     // Payroll 历史载入失败不影响扣款输入与保存。
+  } finally {
+    payrollRepaymentLoading = false;
   }
 }
 
@@ -296,6 +345,7 @@ async function handleAdvanceSubmit(event) {
       true
     );
 
+    updateAdvanceBrowserCache();
     form.reset();
     renderWorkerOptions();
     clearUnsavedAdvanceInputs();

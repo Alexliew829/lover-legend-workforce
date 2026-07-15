@@ -1,4 +1,7 @@
-const API_READ_CACHE_MS = 10000;
+const API_READ_CACHE_MS = 30000;
+const API_STALE_CACHE_MS = 24 * 60 * 60 * 1000;
+const API_CACHE_PREFIX = "ll-api-cache-v187:";
+
 const apiReadCache = new Map();
 const apiPendingRequests = new Map();
 
@@ -27,26 +30,99 @@ const API_WRITE_ACTIONS = new Set([
   "yearEndClose"
 ]);
 
-function clearApiReadCache() {
-  apiReadCache.clear();
+const API_INVALIDATION_MAP = {
+  addWorker: [
+    "getWorkers",
+    "getAdvanceBootstrap",
+    "getPayrollBootstrap",
+    "getDashboardSummary"
+  ],
+  updateWorkerByNo: [
+    "getWorkers",
+    "getAdvanceBootstrap",
+    "getPayrollBootstrap",
+    "getDashboardSummary"
+  ],
+  resignWorker: [
+    "getWorkers",
+    "getAdvanceBootstrap",
+    "getPayrollBootstrap",
+    "getDashboardSummary"
+  ],
+  addAdvance: [
+    "getAdvances",
+    "getAdvanceBootstrap",
+    "getAdvanceLedger",
+    "getPayrollData",
+    "getPayrollBootstrap",
+    "getDashboardSummary"
+  ],
+  updateAdvance: [
+    "getAdvances",
+    "getAdvanceBootstrap",
+    "getAdvanceLedger",
+    "getPayrollData",
+    "getPayrollBootstrap",
+    "getDashboardSummary"
+  ],
+  savePayroll: [
+    "getPayrolls",
+    "getPayrollData",
+    "getPayrollBootstrap",
+    "getAdvanceLedger",
+    "getDashboardSummary"
+  ],
+  restoreYearlyBackup: ["*"],
+  yearEndClose: ["*"],
+  clearCache: ["*"]
+};
+
+function makeApiCacheKey(action, payload = {}) {
+  return `${action}:${JSON.stringify(payload || {})}`;
+}
+
+function getPersistentApiStorageKey(cacheKey) {
+  return API_CACHE_PREFIX + cacheKey;
+}
+
+function clearApiReadCache(actions = ["*"]) {
+  const actionList = Array.isArray(actions) ? actions : [actions];
+  const clearAll = actionList.includes("*");
+
+  for (const cacheKey of [...apiReadCache.keys()]) {
+    const action = cacheKey.split(":", 1)[0];
+    if (clearAll || actionList.includes(action)) {
+      apiReadCache.delete(cacheKey);
+    }
+  }
 
   try {
     Object.keys(localStorage)
-      .filter(key => key.startsWith("ll-api-cache-v186:"))
-      .forEach(key => localStorage.removeItem(key));
+      .filter(key => key.startsWith(API_CACHE_PREFIX))
+      .forEach(key => {
+        const cacheKey = key.slice(API_CACHE_PREFIX.length);
+        const action = cacheKey.split(":", 1)[0];
+
+        if (clearAll || actionList.includes(action)) {
+          localStorage.removeItem(key);
+        }
+      });
   } catch (_) {}
 }
 
-function readPersistentApiCache(cacheKey) {
+function readPersistentApiCache(cacheKey, maxAge = API_STALE_CACHE_MS) {
   try {
-    const raw = localStorage.getItem("ll-api-cache-v186:" + cacheKey);
+    const raw = localStorage.getItem(getPersistentApiStorageKey(cacheKey));
     if (!raw) return null;
 
     const parsed = JSON.parse(raw);
-    if (!parsed || Date.now() - Number(parsed.time || 0) >= API_READ_CACHE_MS) {
-      localStorage.removeItem("ll-api-cache-v186:" + cacheKey);
+    const age = Date.now() - Number(parsed?.time || 0);
+
+    if (!parsed || !Object.prototype.hasOwnProperty.call(parsed, "data") || age >= maxAge) {
+      localStorage.removeItem(getPersistentApiStorageKey(cacheKey));
       return null;
     }
+
     return parsed;
   } catch (_) {
     return null;
@@ -56,13 +132,40 @@ function readPersistentApiCache(cacheKey) {
 function writePersistentApiCache(cacheKey, data) {
   try {
     localStorage.setItem(
-      "ll-api-cache-v186:" + cacheKey,
+      getPersistentApiStorageKey(cacheKey),
       JSON.stringify({ time: Date.now(), data })
     );
   } catch (_) {}
 }
 
-async function api(action, payload = {}) {
+function getApiCachedData(action, payload = {}, maxAge = API_STALE_CACHE_MS) {
+  const cacheKey = makeApiCacheKey(action, payload);
+  const memory = apiReadCache.get(cacheKey);
+
+  if (memory && Date.now() - Number(memory.time || 0) < maxAge) {
+    return memory.data;
+  }
+
+  const persistent = readPersistentApiCache(cacheKey, maxAge);
+  if (!persistent) return null;
+
+  apiReadCache.set(cacheKey, persistent);
+  return persistent.data;
+}
+
+function setApiCachedData(action, payload = {}, data) {
+  const cacheKey = makeApiCacheKey(action, payload);
+  const cachedValue = { time: Date.now(), data };
+
+  apiReadCache.set(cacheKey, cachedValue);
+  writePersistentApiCache(cacheKey, data);
+}
+
+function invalidateAfterWrite(action) {
+  clearApiReadCache(API_INVALIDATION_MAP[action] || ["*"]);
+}
+
+async function api(action, payload = {}, options = {}) {
   const config = window.LL_CONFIG || {};
   const url = config.API_URL;
 
@@ -71,11 +174,15 @@ async function api(action, payload = {}) {
   }
 
   const isRead = API_READ_ACTIONS.has(action);
-  const cacheKey = isRead ? `${action}:${JSON.stringify(payload)}` : "";
+  const forceRefresh = Boolean(options.forceRefresh);
+  const cacheKey = isRead ? makeApiCacheKey(action, payload) : "";
 
-  if (isRead) {
-    const cached = apiReadCache.get(cacheKey) || readPersistentApiCache(cacheKey);
-    if (cached && Date.now() - cached.time < API_READ_CACHE_MS) {
+  if (isRead && !forceRefresh) {
+    const cached =
+      apiReadCache.get(cacheKey) ||
+      readPersistentApiCache(cacheKey, API_READ_CACHE_MS);
+
+    if (cached && Date.now() - Number(cached.time || 0) < API_READ_CACHE_MS) {
       apiReadCache.set(cacheKey, cached);
       return cached.data;
     }
@@ -107,11 +214,9 @@ async function api(action, payload = {}) {
     const result = data.data || data;
 
     if (isRead) {
-      const cachedValue = { time: Date.now(), data: result };
-      apiReadCache.set(cacheKey, cachedValue);
-      writePersistentApiCache(cacheKey, result);
+      setApiCachedData(action, payload, result);
     } else if (API_WRITE_ACTIONS.has(action)) {
-      clearApiReadCache();
+      invalidateAfterWrite(action);
     }
 
     return result;

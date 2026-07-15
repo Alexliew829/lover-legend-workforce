@@ -528,16 +528,21 @@ input[readonly] {
   .payslip-paper { display: block !important; border: 0; border-radius: 0; padding: 0; }
   .payslip-copy { height: 129mm; padding: 3mm 5mm; overflow: hidden; page-break-inside: avoid; }
   .payslip-cut-line { height: 7mm; margin: 0; }
-  .payslip-company { font-size:17px; }
-  .payslip-title { font-size:21px; }
-  .payslip-month { font-size:15px; color:#000 !important; font-weight:900 !important; }
-  .payslip-info-grid span { font-size:10px; }
-  .payslip-info-grid strong { font-size:12px; }
-  .payslip-section-title { font-size:12px; }
-  .payslip-lines > div { font-size:11px; padding:4px 6px; }
-  .payslip-net-box, .payslip-debt-box { font-size:11px; }
-  .payslip-net-box strong, .payslip-debt-box strong { font-size:17px; }
-  .payslip-signatures { margin-top:16px; font-size:10px; }
+  .payslip-copy-label { font-size:11px; }
+  .payslip-acknowledgement {
+    font-size:10px;
+    line-height:1.25;
+  }
+  .payslip-company { font-size:18px; }
+  .payslip-title { font-size:22px; }
+  .payslip-month { font-size:16px; color:#000 !important; font-weight:900 !important; }
+  .payslip-info-grid span { font-size:10.5px; }
+  .payslip-info-grid strong { font-size:13px; }
+  .payslip-section-title { font-size:13px; }
+  .payslip-lines > div { font-size:12px; padding:4px 6px; }
+  .payslip-net-box, .payslip-debt-box { font-size:12px; }
+  .payslip-net-box strong, .payslip-debt-box strong { font-size:18px; }
+  .payslip-signatures { margin-top:15px; font-size:11px; }
   @page { size: A4 portrait; margin: 8mm; }
 }
 

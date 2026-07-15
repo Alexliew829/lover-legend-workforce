@@ -109,12 +109,39 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function loadWorkers() {
-  try {
-    workersCache = await api("getWorkers") || [];
+  const cached = typeof getApiCachedData === "function"
+    ? getApiCachedData("getWorkers", {})
+    : null;
+
+  if (Array.isArray(cached)) {
+    workersCache = cached;
     renderWorkersFromCache();
+    showStatus("status", "系统已就绪，正在后台同步最新工人资料", true);
+  }
+
+  try {
+    const workers = await api(
+      "getWorkers",
+      {},
+      { forceRefresh: Array.isArray(cached) }
+    );
+
+    workersCache = Array.isArray(workers) ? workers : [];
+    renderWorkersFromCache();
+    showStatus("status", "系统已就绪，可以正常使用", true);
   } catch (error) {
+    if (Array.isArray(cached)) {
+      showStatus("status", "暂时无法同步，正在使用上次载入的工人资料", false);
+      return;
+    }
+
     showStatus("status", error.message, false);
   }
+}
+
+function updateWorkersBrowserCache() {
+  if (typeof setApiCachedData !== "function") return;
+  setApiCachedData("getWorkers", {}, workersCache);
 }
 
 function renderWorkersFromCache() {
@@ -344,6 +371,7 @@ if (salaryAmount <= 0) {
       showStatus("status", "工人资料已保存到 Google Sheet", true);
     }
 
+    updateWorkersBrowserCache();
     resetWorkerForm();
     renderWorkersFromCache();
   } catch (error) {
@@ -374,7 +402,10 @@ async function handleResignWorker() {
       workerName: workerName
     });
 
-    workersCache = workersCache.filter(item => String(item["工人编号"]) !== String(editingWorkerNo));
+    workersCache = workersCache.filter(item =>
+      String(item["工人编号"]) !== String(editingWorkerNo)
+    );
+    updateWorkersBrowserCache();
     showStatus("status", "工人已办理离职并保存到 Google Sheet", true);
     resetWorkerForm();
     renderWorkersFromCache();

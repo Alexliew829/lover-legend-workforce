@@ -103,18 +103,45 @@ form.addEventListener("keydown", event => {
 });
 
 async function loadPayrollPage() {
-  try {
-    const data = await api("getPayrollBootstrap");
-    payrollWorkers = data?.workers || [];
-    payrollAdvances = data?.advances || [];
-    payrollRecords = data?.payrolls || [];
+  const cached = typeof getApiCachedData === "function"
+    ? getApiCachedData("getPayrollBootstrap", {})
+    : null;
 
-    renderPayrollWorkers();
-    renderPayrollHistory();
+  if (cached) {
+    applyPayrollBootstrapData(cached);
+    showStatus("status", "系统已就绪，正在后台同步最新资料", true);
+  }
+
+  try {
+    const data = await api(
+      "getPayrollBootstrap",
+      {},
+      { forceRefresh: Boolean(cached) }
+    );
+
+    applyPayrollBootstrapData(data);
     showStatus("status", "系统已就绪，可以计算 Payroll", true);
   } catch (error) {
+    if (cached) {
+      showStatus(
+        "status",
+        "暂时无法同步，正在使用上次成功载入的资料",
+        false
+      );
+      return;
+    }
+
     showStatus("status", error.message, false);
   }
+}
+
+function applyPayrollBootstrapData(data) {
+  payrollWorkers = Array.isArray(data?.workers) ? data.workers : [];
+  payrollAdvances = Array.isArray(data?.advances) ? data.advances : [];
+  payrollRecords = Array.isArray(data?.payrolls) ? data.payrolls : [];
+
+  renderPayrollWorkers();
+  renderPayrollHistory();
 }
 
 function setupPayrollMonthYear() {
@@ -759,6 +786,14 @@ async function handlePayrollSubmit(event) {
         true
       );
 
+      if (typeof setApiCachedData === "function") {
+        setApiCachedData("getPayrollBootstrap", {}, {
+          workers: payrollWorkers,
+          advances: payrollAdvances,
+          payrolls: payrollRecords
+        });
+      }
+
       renderPayrollHistory();
       renderDebtList();
       calculatePayroll();
@@ -828,6 +863,14 @@ async function handlePayrollSubmit(event) {
 
     if (index >= 0) payrollRecords[index] = savedRecord;
     else payrollRecords.push(savedRecord);
+
+    if (typeof setApiCachedData === "function") {
+      setApiCachedData("getPayrollBootstrap", {}, {
+        workers: payrollWorkers,
+        advances: payrollAdvances,
+        payrolls: payrollRecords
+      });
+    }
 
     renderPayrollHistory();
     renderDebtList();

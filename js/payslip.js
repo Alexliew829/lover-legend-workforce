@@ -14,8 +14,8 @@ async function loadPayslipPage() {
       throw new Error("工资单资料不完整。 / Payslip information is incomplete.");
     }
 
-    const data = await api("getPayrollBootstrap");
-    const payrolls = data?.payrolls || [];
+    // Payslip 只需要 Payroll 记录，不再载入工人及欠款全部资料。
+    const payrolls = await api("getPayrolls");
     const advances = [];
     const record = payrolls.find(item =>
       String(item["工人编号"] || "") === workerNo &&

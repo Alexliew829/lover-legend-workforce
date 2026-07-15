@@ -44,11 +44,16 @@ function setupDashboardPeriod() {
 async function loadDashboard() {
   const monthKey = getDashboardMonthKey();
   const token = ++dashboardRequestToken;
-  const cached = readDashboardBrowserCache(monthKey);
+
+  const sessionCached = readDashboardBrowserCache(monthKey);
+  const apiCached = typeof getApiCachedData === "function"
+    ? getApiCachedData("getDashboardSummary", { month: monthKey })
+    : null;
+  const cached = sessionCached || apiCached;
 
   if (cached) {
     renderDashboard(cached);
-    showStatus("status", "正在同步最新 Dashboard...", true);
+    showStatus("status", "Dashboard 已显示，正在后台同步最新资料", true);
   } else {
     document.getElementById("dashboard").innerHTML =
       '<div class="dashboard-loading">正在载入资料...</div>';
@@ -56,18 +61,32 @@ async function loadDashboard() {
   }
 
   try {
-    const summary = await api("getDashboardSummary", { month: monthKey });
+    const summary = await api(
+      "getDashboardSummary",
+      { month: monthKey },
+      { forceRefresh: Boolean(cached) }
+    );
+
     if (token !== dashboardRequestToken) return;
+
     writeDashboardBrowserCache(monthKey, summary);
     renderDashboard(summary);
     showStatus("status", "Dashboard 已更新", true);
   } catch (error) {
     if (token !== dashboardRequestToken) return;
-    showStatus("status", error.message, false);
-    if (!cached) {
-      document.getElementById("dashboard").innerHTML =
-        `<div class="dashboard-loading dashboard-error">${escapeDashboardHtml(error.message)}</div>`;
+
+    if (cached) {
+      showStatus(
+        "status",
+        "暂时无法同步，正在使用上次成功载入的 Dashboard",
+        false
+      );
+      return;
     }
+
+    showStatus("status", error.message, false);
+    document.getElementById("dashboard").innerHTML =
+      `<div class="dashboard-loading dashboard-error">${escapeDashboardHtml(error.message)}</div>`;
   }
 }
 
