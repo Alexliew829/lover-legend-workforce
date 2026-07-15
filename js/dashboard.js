@@ -121,6 +121,7 @@ function renderDashboard(data) {
       <div class="dashboard-absence-grid">
         <div><span>扣薪</span><strong>${formatDashboardDay(data?.absenceDeductDays)} 天</strong></div>
         <div><span>免扣</span><strong>${formatDashboardDay(data?.absenceWaivedDays)} 天</strong></div>
+        <div><span>待处理</span><strong>${formatDashboardDay(data?.absencePendingDays)} 天</strong></div>
       </div>
     </article>
   `;
@@ -132,7 +133,7 @@ function getDashboardMonthKey() {
 
 function readDashboardBrowserCache(monthKey) {
   try {
-    const raw = sessionStorage.getItem(`ll-dashboard-v186-${monthKey}`);
+    const raw = sessionStorage.getItem(`ll-dashboard-v1861-${monthKey}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed && parsed.data ? parsed.data : null;
@@ -143,7 +144,7 @@ function readDashboardBrowserCache(monthKey) {
 
 function writeDashboardBrowserCache(monthKey, data) {
   try {
-    sessionStorage.setItem(`ll-dashboard-v186-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
+    sessionStorage.setItem(`ll-dashboard-v1861-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
   } catch (error) {}
 }
 
