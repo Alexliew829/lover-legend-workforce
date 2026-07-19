@@ -273,10 +273,8 @@ function updateAbsenceAmount() {
   if (salaryType === "日薪") {
     amount = parseCurrency(worker["日薪"]);
   } else if (salaryType === "月薪") {
-    const daysInMonth = new Date(year, month, 0).getDate();
-    amount = daysInMonth > 0 ? parseCurrency(worker["月薪"]) / daysInMonth : 0;
-  }
-
+  amount = parseCurrency(worker["月薪"]) / 30;
+}
   form.amount.value = amount > 0 ? formatMoneyInput(amount) : "";
   form.amount.dataset.autoAbsence = "true";
 }
