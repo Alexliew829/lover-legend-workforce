@@ -933,7 +933,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.99 Payroll edit / delete actions */
+/* V2.0 Payroll edit / delete actions */
 .payroll-record-actions {
   display: flex;
   flex-wrap: wrap;
@@ -954,7 +954,7 @@ select[name="existingWorkerNo"] {
 .payroll-delete-btn { border: 1px solid #c00000; color: #c00000; background: #fff3f3; }
 
 
-/* V1.99 debt detail and compact A4 payslip */
+/* V2.0 debt detail and compact A4 payslip */
 .debt-record-details { grid-column: 1 / -1; margin-top: 8px; padding: 8px 10px; border-top: 1px dashed #d7c8c8; background: #fff; border-radius: 8px; }
 .debt-record-line { display:flex; justify-content:space-between; gap:12px; padding:2px 0; font-size:12px; }
 .debt-record-line strong { white-space:nowrap; }
@@ -990,7 +990,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.99 verified: payroll逐笔选择扣款 */
+/* V2.0 verified: payroll逐笔选择扣款 */
 .debt-record-select-line {
   align-items: center;
   gap: 10px;
@@ -1071,7 +1071,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.99 A4 两联放大及减少无效空白 */
+/* V2.0 A4 两联放大及减少无效空白 */
 @media print {
   .payslip-copy {
     height: 132mm;
@@ -1095,7 +1095,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.99 Payroll summary order and clearer A4 payslip */
+/* V2.0 Payroll summary order and clearer A4 payslip */
 .payroll-total-deduction-line,
 .payroll-debt-balance-line,
 .payroll-net-line {
@@ -1164,7 +1164,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.99 Payroll clarity and faster-reading A4 payslip */
+/* V2.0 Payroll clarity and faster-reading A4 payslip */
 .payroll-total-deduction-line,
 .payroll-debt-balance-line,
 .payroll-net-line {
@@ -1231,4 +1231,49 @@ select[name="existingWorkerNo"] {
   .payslip-debt-box { padding: 6px 8px; font-size: 10.5px; }
   .payslip-net-box strong,
   .payslip-debt-box strong { font-size: 14px; }
+}
+
+
+/* V2.0：本月扣除与累计欠款使用相同视觉层级 */
+.debt-type-deduction-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px dashed #ddd;
+  text-align: left;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+.debt-type-deduction-summary span {
+  color: #111;
+}
+.debt-type-deduction-summary strong {
+  color: #c00000;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+/* V2.0：A4 两联尽量利用页面空间，减少上下联之间的空白 */
+@media print {
+  @page { size: A4 portrait; margin: 4mm; }
+  .payslip-paper {
+    width: 202mm;
+    min-height: 289mm;
+  }
+  .payslip-copy {
+    height: 142mm;
+    max-height: 142mm;
+    padding: 3mm 4mm 1.5mm;
+  }
+  .payslip-copy-content {
+    margin-top: 0.5mm;
+  }
+  .payslip-cut-line {
+    height: 1mm;
+    margin: 0;
+  }
 }

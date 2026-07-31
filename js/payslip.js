@@ -1,4 +1,4 @@
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v199";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v200";
 let payslipPrintContext = null;
 let payslipPrintRequested = false;
 
@@ -72,36 +72,111 @@ async function loadPayslipPage() {
   }
 }
 
-window.addEventListener("afterprint", () => {
+window.addEventListener("afterprint", async () => {
   if (!payslipPrintRequested || !payslipPrintContext) return;
   payslipPrintRequested = false;
 
+  const status = document.getElementById("payslipStatus");
   const currentMonth = normalizePayslipMonth(payslipPrintContext.month);
-  const confirmed = window.confirm([
-    `是否确认 ${currentMonth} 已完成出粮？`,
-    "",
-    "确认后，Payroll 默认月份才会切换到下一个月。",
-    "如果只是预览、测试或取消打印，请选择取消。"
-  ].join("\n"));
-
-  if (!confirmed) return;
-
-  const next = getNextPayrollPeriod(currentMonth);
-  if (!next) return;
 
   try {
+    if (status) {
+      status.textContent = "正在记录打印状态… / Recording print status…";
+      status.className = "status no-print";
+    }
+
+    await api("markPayrollPrinted", {
+      key: {
+        company: payslipPrintContext.company,
+        workerNo: payslipPrintContext.workerNo,
+        month: currentMonth
+      }
+    });
+
+    const [workers, payrolls] = await Promise.all([
+      api("getWorkers", {}, { forceRefresh: true }),
+      api("getPayrolls", {}, { forceRefresh: true })
+    ]);
+
+    const activeWorkers = Array.isArray(workers) ? workers : [];
+    const monthPayrolls = (Array.isArray(payrolls) ? payrolls : []).filter(item =>
+      normalizePayslipMonth(item["月份"]) === currentMonth
+    );
+
+    const printedKeys = new Set(
+      monthPayrolls
+        .filter(item => String(item["已打印"] || "").trim() === "是")
+        .map(item => [
+          String(item["公司"] || "").trim(),
+          String(item["工人编号"] || "").trim()
+        ].join("__"))
+    );
+
+    const workerKey = worker => [
+      String(worker["公司"] || "").trim(),
+      String(worker["工人编号"] || "").trim()
+    ].join("__");
+
+    const printedCount = activeWorkers.filter(worker =>
+      printedKeys.has(workerKey(worker))
+    ).length;
+
+    const allWorkersPrinted =
+      activeWorkers.length > 0 &&
+      activeWorkers.every(worker => printedKeys.has(workerKey(worker)));
+
+    if (!allWorkersPrinted) {
+      if (status) {
+        status.textContent = `${currentMonth} 已记录打印（${printedCount}/${activeWorkers.length} 位在职工人）。全部打印后才会提示切换月份。`;
+        status.className = "status ok no-print";
+      }
+      return;
+    }
+
+    const confirmKey = `ll-workforce-payroll-period-confirmed-v200-${currentMonth}`;
+    if (localStorage.getItem(confirmKey) === "yes") {
+      if (status) {
+        status.textContent = `${currentMonth} 全部工资单已打印完成。`;
+        status.className = "status ok no-print";
+      }
+      return;
+    }
+
+    const confirmed = window.confirm([
+      `${currentMonth} 所有在职工人的工资单已经打印完成。`,
+      "",
+      "是否确认已经完成出粮，并把 Payroll 默认月份切换到下一个月？",
+      "如果还要检查或重印，请选择取消。"
+    ].join("\n"));
+
+    if (!confirmed) {
+      if (status) {
+        status.textContent = `${currentMonth} 全部工资单已打印，但月份尚未切换。`;
+        status.className = "status ok no-print";
+      }
+      return;
+    }
+
+    const next = getNextPayrollPeriod(currentMonth);
+    if (!next) return;
+
+    localStorage.setItem(confirmKey, "yes");
     localStorage.setItem(PAYROLL_DEFAULT_PERIOD_KEY, JSON.stringify(next));
-  } catch (_) {}
 
-  sessionStorage.setItem("payrollMonth", next.month);
-  sessionStorage.setItem("payrollYear", next.year);
-  sessionStorage.setItem("payrollCompany", String(payslipPrintContext.company || ""));
-  sessionStorage.setItem("payrollWorker", String(payslipPrintContext.workerNo || ""));
+    sessionStorage.setItem("payrollMonth", next.month);
+    sessionStorage.setItem("payrollYear", next.year);
+    sessionStorage.setItem("payrollCompany", String(payslipPrintContext.company || ""));
+    sessionStorage.setItem("payrollWorker", "");
 
-  const status = document.getElementById("payslipStatus");
-  if (status) {
-    status.textContent = `${currentMonth} 已确认出粮。Payroll 默认月份已切换到 ${next.month}-${next.year}。`;
-    status.className = "status ok no-print";
+    if (status) {
+      status.textContent = `${currentMonth} 已确认出粮。Payroll 默认月份已切换到 ${next.month}-${next.year}。`;
+      status.className = "status ok no-print";
+    }
+  } catch (error) {
+    if (status) {
+      status.textContent = error?.message || "打印状态保存失败，请稍后重试。";
+      status.className = "status err no-print";
+    }
   }
 });
 
@@ -227,7 +302,7 @@ function createPayslipCopyHtml(item, advances) {
       deductionItems.push({
         label: `${label} · ${date}`,
         value: parsePayslipMoney(entry.deducted),
-        note: String(entry.malayRemark || entry.remark || "").trim()
+        note: String(entry.remark || "").trim() ? String(entry.malayRemark || entry.remark || "").trim() : ""
       });
     });
   } else {

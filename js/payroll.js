@@ -6,7 +6,7 @@ let editingPayrollOriginalKey = null;
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v199";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v200";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -769,7 +769,7 @@ function renderDebtList() {
         ${renderDebtRecordDetails(type, balance, current, value)}
 
         <div class="debt-type-deduction-summary">
-          本月扣除：<strong data-deduction-type-total="${type}">${formatPayrollCurrency(value)}</strong>
+          <span>本月扣除：</span><strong data-deduction-type-total="${type}">${formatPayrollCurrency(value)}</strong>
         </div>
 
         ${isAdvance ? `
@@ -976,7 +976,6 @@ function calculatePayroll() {
 
 function prepareDebtAllocationRemarks(details) {
   const items = Array.isArray(details) ? details : [];
-  const manualMalay = String(getDebtNoteInput("支粮", "ms")?.value || "").trim();
   const fallbackMap = {
     "买手机": "Membeli telefon bimbit",
     "回家乡": "Pulang ke kampung halaman"
@@ -984,11 +983,12 @@ function prepareDebtAllocationRemarks(details) {
 
   return items.map(item => {
     const source = String(item.remark || "").trim();
+
     return {
       ...item,
-      // 保存 Payroll 时不再等待 Google 翻译服务，明显缩短保存时间。
-      // 没有现成马来文的备注，会在打开 Payslip 时才补翻译。
-      malayRemark: String(item.malayRemark || manualMalay || fallbackMap[source] || "").trim()
+      // 每一笔扣款只保存自己对应的备注。
+      // 没有备注的项目保持空白，不会套用其他日期的备注。
+      malayRemark: source ? String(fallbackMap[source] || "").trim() : ""
     };
   });
 }
