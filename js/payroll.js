@@ -272,7 +272,11 @@ async function restorePayrollSelection() {
 
   form.workerNo.value = worker;
 
-  await handlePayrollWorkerChange();
+  if (form.workerNo.value === worker) {
+    await handlePayrollWorkerChange();
+  } else {
+    clearPayrollWorkerDetails();
+  }
 
   sessionStorage.removeItem("payrollCompany");
   sessionStorage.removeItem("payrollWorker");
@@ -832,6 +836,28 @@ function getLiveCommissionAmount() {
 
 function calculatePayroll() {
   const form = document.getElementById("payrollForm");
+  if (!form || !selectedPayrollWorker) {
+    const zero = "RM 0.00";
+    const totalBox = document.getElementById("totalDeductionText");
+    const netBox = document.getElementById("netSalaryText");
+    const debtBox = document.getElementById("remainingDebtText");
+    if (totalBox) totalBox.textContent = zero;
+    if (netBox) netBox.textContent = zero;
+    if (debtBox) debtBox.textContent = zero;
+    return {
+      grossSalary: 0,
+      allowance: 0,
+      liveCommission: 0,
+      absence: { days: 0, expectedAmount: 0 },
+      absenceAction: "扣薪",
+      absenceDeduction: 0,
+      totalDeduction: 0,
+      netSalary: 0,
+      remainingDebt: 0,
+      invalidDeduction: false
+    };
+  }
+
   const grossSalary = getGrossSalary();
   const allowance = getAllowanceAmount();
   const liveCommission = getLiveCommissionAmount();
@@ -933,6 +959,17 @@ async function translateDebtAllocationRemarks(details) {
   }));
 }
 
+function getPayrollPaymentDate() {
+  const form = document.getElementById("payrollForm");
+  const month = Number(form?.payMonth?.value || 0);
+  const year = Number(form?.payYear?.value || 0);
+  if (!month || !year) return formatDateDDMMYYYY(new Date());
+
+  // 工资通常在次月 1 日发放，例如 07-2026 的工资日期为 01-08-2026。
+  const paymentDate = new Date(year, month, 1);
+  return formatDateDDMMYYYY(paymentDate);
+}
+
 async function handlePayrollSubmit(event) {
   event.preventDefault();
 
@@ -982,7 +1019,7 @@ async function handlePayrollSubmit(event) {
 
     const salaryType = String(selectedPayrollWorker["薪水类型"] || "");
     const payroll = {
-      payDate: formatDateDDMMYYYY(new Date()),
+      payDate: getPayrollPaymentDate(),
       month: getSelectedPayrollMonthKey(),
       company: form.company.value,
       workerNo: selectedPayrollWorker["工人编号"],
@@ -1203,25 +1240,26 @@ const summaryParts = [];
         <div class="muted">${escapePayrollHtml(normalizePayrollMonth(item["月份"]))} · 本月工资 : ${formatPayrollCurrency(item["基本薪水"])}</div>
        ${allowance > 0 ? `<div class="muted">津贴 : ${formatPayrollCurrency(allowance)}</div>` : ""}
       ${liveCommission > 0 ? `<div class="muted">直播佣金 : ${formatPayrollCurrency(liveCommission)}</div>` : ""}
-      ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
-        <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
-        <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
+      ${absenceDays > 0 ? `<div class="muted payroll-record-summary">缺席 ${formatDayCount(absenceDays)} 天 · ${escapePayrollHtml(item["缺席处理"] || "扣薪")}</div>` : ""}
+      <div class="payroll-total-deduction-line">总扣款 : ${formatPayrollCurrency(totalDeduction)}</div>
+      <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
+      <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
         <div class="payroll-record-actions">
           <button
             type="button"
             class="payroll-action-btn payroll-edit-btn"
             onclick="editPayrollRecord('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}')"
           >编辑 Payroll</button>
-          <a
-            class="payslip-link"
-            href="payslip.html?company=${encodeURIComponent(String(item["公司"] || ""))}&workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
-            onclick="savePayrollSelection('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}')"
-          >打印工资单 / Print Payslip</a>
           <button
             type="button"
             class="payroll-action-btn payroll-delete-btn"
             onclick="deletePayrollRecord('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}', '${escapePayrollJsString(item["工人名字"] || "")}')"
           >删除 Payroll</button>
+          <a
+            class="payslip-link"
+            href="payslip.html?company=${encodeURIComponent(String(item["公司"] || ""))}&workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
+            onclick="savePayrollSelection('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}')"
+          >打印工资单 / Print Payslip</a>
         </div>
       </div>
     `;

@@ -933,7 +933,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.96 Payroll edit / delete actions */
+/* V1.97 Payroll edit / delete actions */
 .payroll-record-actions {
   display: flex;
   flex-wrap: wrap;
@@ -954,7 +954,7 @@ select[name="existingWorkerNo"] {
 .payroll-delete-btn { border: 1px solid #c00000; color: #c00000; background: #fff3f3; }
 
 
-/* V1.96 debt detail and compact A4 payslip */
+/* V1.97 debt detail and compact A4 payslip */
 .debt-record-details { grid-column: 1 / -1; margin-top: 8px; padding: 8px 10px; border-top: 1px dashed #d7c8c8; background: #fff; border-radius: 8px; }
 .debt-record-line { display:flex; justify-content:space-between; gap:12px; padding:2px 0; font-size:12px; }
 .debt-record-line strong { white-space:nowrap; }
@@ -990,7 +990,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.96 verified: payroll逐笔选择扣款 */
+/* V1.97 verified: payroll逐笔选择扣款 */
 .debt-record-select-line {
   align-items: center;
   gap: 10px;
@@ -1071,7 +1071,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.96 A4 两联放大及减少无效空白 */
+/* V1.97 A4 两联放大及减少无效空白 */
 @media print {
   .payslip-copy {
     height: 132mm;
@@ -1092,4 +1092,73 @@ select[name="existingWorkerNo"] {
   .payslip-net-box, .payslip-debt-box { padding: 5px 7px; font-size: 9px; }
   .payslip-net-box strong, .payslip-debt-box strong { font-size: 12px; }
   .payslip-cut-line { height: 4mm; }
+}
+
+
+/* V1.97 Payroll summary order and clearer A4 payslip */
+.payroll-total-deduction-line,
+.payroll-debt-balance-line,
+.payroll-net-line {
+  margin-top: 5px;
+  font-weight: 900;
+}
+.payroll-total-deduction-line,
+.payroll-debt-balance-line {
+  color: #b00020;
+  font-size: 18px;
+}
+.payroll-net-line {
+  color: #111;
+  font-size: 18px;
+}
+.payroll-record-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.payroll-record-actions .payroll-action-btn,
+.payroll-record-actions .payslip-link {
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+@media print {
+  @page { size: A4 portrait; margin: 5mm; }
+  .payslip-paper { width: 200mm; min-height: 287mm; }
+  .payslip-copy {
+    height: 139mm;
+    max-height: 139mm;
+    padding: 2.5mm 4mm;
+    overflow: hidden;
+  }
+  .payslip-cut-line { height: 3mm; }
+  .payslip-copy-label { font-size: 9px; }
+  .payslip-company { font-size: 16px; }
+  .payslip-title { font-size: 18px; }
+  .payslip-month { font-size: 13px; }
+  .payslip-info-grid { margin-top: 5px; gap: 3px 14px; }
+  .payslip-info-grid span { font-size: 9px; }
+  .payslip-info-grid strong { font-size: 11px; }
+  .payslip-section-title {
+    margin-top: 5px;
+    padding: 3px 5px;
+    font-size: 12px;
+    line-height: 1.15;
+  }
+  .payslip-lines > div {
+    padding: 2.5px 5px;
+    font-size: 10.5px;
+    line-height: 1.2;
+  }
+  .payslip-deduction-note {
+    margin-top: 1px;
+    font-size: 9.5px;
+    line-height: 1.2;
+  }
+  .payslip-result-row { margin-top: 5px; gap: 5px; }
+  .payslip-net-box, .payslip-debt-box {
+    padding: 5px 7px;
+    font-size: 10px;
+  }
+  .payslip-net-box strong, .payslip-debt-box strong { font-size: 13px; }
 }

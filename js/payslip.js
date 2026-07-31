@@ -24,6 +24,11 @@ async function loadPayslipPage() {
   const paper = document.getElementById("payslipPaper");
   const printBtn = document.getElementById("printPayslipBtn");
 
+  status.textContent = "正在载入工资单… / Loading payslip…";
+  status.className = "status no-print";
+  paper.hidden = true;
+  printBtn.hidden = true;
+
   try {
     const params = new URLSearchParams(window.location.search);
     const company = params.get("company") || "";
@@ -53,25 +58,30 @@ async function loadPayslipPage() {
     printBtn.hidden = false;
     printBtn.addEventListener("click", () => window.print());
   } catch (error) {
-    status.textContent = error.message;
+    status.textContent = error?.message || "工资单载入失败，请稍后重试。 / Unable to load payslip.";
     status.className = "status err no-print";
   }
 }
 
 async function loadPayslipDataWithRetry() {
-  try {
-    return await Promise.all([api("getPayrolls"), api("getAdvances")]);
-  } catch (firstError) {
-    await new Promise(resolve => setTimeout(resolve, 700));
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      return await Promise.all([
-        api("getPayrolls", {}, { forceRefresh: true }),
-        api("getAdvances", {}, { forceRefresh: true })
+      const options = attempt === 0 ? {} : { forceRefresh: true };
+      const [payrolls, advances] = await Promise.all([
+        api("getPayrolls", {}, options),
+        api("getAdvances", {}, options)
       ]);
-    } catch (_) {
-      throw firstError;
+      return [
+        Array.isArray(payrolls) ? payrolls : [],
+        Array.isArray(advances) ? advances : []
+      ];
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 700 * (attempt + 1)));
     }
   }
+  throw lastError || new Error("工资单载入失败。 / Unable to load payslip.");
 }
 
 function renderPayslipCopies(item, advances) {
@@ -165,7 +175,7 @@ function createPayslipCopyHtml(item, advances) {
       <div><span>No. Pekerja / Employee No.</span><strong>${escapePayslipHtml(item["工人编号"] || "-")}</strong></div>
       <div><span>Nama Pekerja / Employee Name</span><strong>${escapePayslipHtml(item["工人名字"] || "-")}</strong></div>
       <div><span>Jenis Gaji / Salary Type</span><strong>${escapePayslipHtml(translateSalaryType(item["薪水类型"]))}</strong></div>
-      <div><span>Tarikh Bayaran / Payment Date</span><strong>${escapePayslipHtml(formatPayslipDate(item["发薪日期"]))}</strong></div>
+      <div><span>Tarikh Bayaran / Payment Date</span><strong>${escapePayslipHtml(getPayslipPaymentDate(month))}</strong></div>
     </div>
 
     <div class="payslip-section-title">Pendapatan / Income</div>
@@ -225,6 +235,17 @@ function normalizePayslipMonth(value) {
     return `${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
   }
   return text;
+}
+
+function getPayslipPaymentDate(monthValue) {
+  const month = normalizePayslipMonth(monthValue);
+  const match = month.match(/^(\d{2})-(\d{4})$/);
+  if (!match) return "-";
+
+  // Payroll for a month is paid on the first day of the following month.
+  // Example: 07-2026 -> 01-08-2026.
+  const date = new Date(Number(match[2]), Number(match[1]), 1);
+  return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
 }
 
 function formatPayslipDate(value) {
