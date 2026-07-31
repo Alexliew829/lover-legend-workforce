@@ -1,4 +1,26 @@
 const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v230";
+const PAYSLIP_IS_MOBILE_ = (() => {
+  const userAgent = String(navigator.userAgent || "");
+  const touchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || touchMac;
+})();
+
+function isPayslipMobileViewOnly() {
+  return PAYSLIP_IS_MOBILE_;
+}
+
+function applyPayslipMobileViewOnlyMode() {
+  if (!isPayslipMobileViewOnly()) return;
+
+  document.body.classList.add("payslip-mobile-view-only");
+  const printBtn = document.getElementById("printPayslipBtn");
+  if (printBtn) {
+    printBtn.hidden = true;
+    printBtn.disabled = true;
+    printBtn.remove();
+  }
+}
+
 let payslipPrintContext = null;
 let payslipPrintRequested = false;
 
@@ -58,14 +80,21 @@ async function loadPayslipPage() {
     renderPayslipCopies(record, advances);
     setPdfFileName(record);
     payslipPrintContext = { company, workerNo, month };
-    status.textContent = "工资单已准备，可以打印。 / Payslip is ready to print.";
+    status.textContent = isPayslipMobileViewOnly()
+      ? "工资单已载入。手机只可查看，不能打印。 / View only on mobile."
+      : "工资单已准备，可以打印。 / Payslip is ready to print.";
     status.className = "status ok no-print";
     paper.hidden = false;
-    printBtn.hidden = false;
-    printBtn.addEventListener("click", () => {
-      payslipPrintRequested = true;
-      window.print();
-    });
+
+    if (isPayslipMobileViewOnly()) {
+      applyPayslipMobileViewOnlyMode();
+    } else {
+      printBtn.hidden = false;
+      printBtn.addEventListener("click", () => {
+        payslipPrintRequested = true;
+        window.print();
+      });
+    }
   } catch (error) {
     status.textContent = error?.message || "工资单载入失败，请稍后重试。 / Unable to load payslip.";
     status.className = "status err no-print";
@@ -73,6 +102,7 @@ async function loadPayslipPage() {
 }
 
 window.addEventListener("afterprint", async () => {
+  if (isPayslipMobileViewOnly()) return;
   if (!payslipPrintRequested || !payslipPrintContext) return;
   payslipPrintRequested = false;
 
@@ -443,3 +473,8 @@ function escapePayslipHtml(value) {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;"
   }[char]));
 }
+
+window.addEventListener("beforeprint", () => {
+  if (!isPayslipMobileViewOnly()) return;
+  document.body.classList.add("payslip-mobile-print-blocked");
+});

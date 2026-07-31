@@ -1,10 +1,18 @@
-# V2.3 Stable
+# V2.4 Mobile Payroll View-Only
+
+- 手机 Payroll 输入区全部锁定。
+- 手机只显示 Payroll 列表，可打开 Payslip 查看。
+- 手机隐藏 Save、Edit、Delete 与 Print。
+- 手机 Payslip 禁止打印；电脑维持完整功能。
+- 不修改 V2.3 其他运算与资料逻辑。
+
+# V2.4 Stable
 
 - Worker names now support up to 30 characters across the frontend and backend.
 
 - Payroll records are permanently retained after saving, including normal salary records with no deductions.
 - Monthly-salary absence deduction is fixed at monthly salary ÷ 30.
-- Frontend, Service Worker, manifest, API response, backup metadata, and cache keys are aligned to V2.3.
+- Frontend, Service Worker, manifest, API response, backup metadata, and cache keys are aligned to V2.4.
 - Print Payslip and Payroll selection restoration fixes retained.
 
 # V1.88 Stable

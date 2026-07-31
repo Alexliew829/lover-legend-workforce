@@ -1319,7 +1319,27 @@ select[name="existingWorkerNo"] {
   opacity: 1;
 }
 
-.edit-payroll-btn:disabled,
-.delete-payroll-btn:disabled {
+.payroll-edit-btn:disabled,
+.payroll-delete-btn:disabled {
   display: none;
+}
+
+
+/* V2.4：手机 Payslip 只允许查看，禁止打印 */
+.payslip-mobile-view-only #printPayslipBtn {
+  display: none !important;
+}
+
+@media print {
+  body.payslip-mobile-print-blocked * {
+    display: none !important;
+  }
+
+  body.payslip-mobile-print-blocked::after {
+    content: "Mobile printing is disabled. Please print this payslip from a computer.";
+    display: block !important;
+    padding: 24px;
+    font-size: 18px;
+    font-weight: 700;
+  }
 }

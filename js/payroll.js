@@ -4,14 +4,18 @@ let payrollRecords = [];
 let selectedPayrollWorker = null;
 let editingPayrollOriginalKey = null;
 
-const PAYROLL_IS_MOBILE_ = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const PAYROLL_IS_MOBILE_ = (() => {
+  const userAgent = String(navigator.userAgent || "");
+  const touchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || touchMac;
+})();
 
 function isPayrollMobileReadonly() {
   return PAYROLL_IS_MOBILE_;
 }
 
 function showPayrollDesktopOnlyMessage() {
-  window.alert("手机只能查看及打印 Payroll 资料。新增、修改、删除及保存只能在电脑进行。");
+  window.alert("手机只能查看 Payroll 列表及打开 Payslip。保存、编辑、删除和打印只能在电脑进行。");
 }
 
 function applyPayrollMobileReadonlyMode() {
@@ -30,10 +34,16 @@ function applyPayrollMobileReadonlyMode() {
     });
   }
 
-  document.querySelectorAll(".edit-payroll-btn, .delete-payroll-btn").forEach(button => {
+  document.querySelectorAll(".payroll-edit-btn, .payroll-delete-btn").forEach(button => {
+    button.hidden = true;
     button.disabled = true;
     button.setAttribute("aria-disabled", "true");
-    button.title = "手机只能查看及打印 Payroll";
+    button.title = "手机不能编辑或删除 Payroll";
+  });
+
+  document.querySelectorAll(".payslip-link").forEach(link => {
+    link.textContent = "查看工资单 / View Payslip";
+    link.title = "手机只可查看 Payslip，不能打印";
   });
 }
 const payrollRemarkTranslationCache = new Map();
@@ -1301,6 +1311,7 @@ const summaryParts = [];
       <div class="payroll-debt-balance-line"><span>累计欠款：</span><strong>${formatPayrollCurrency(debtBalance)}</strong></div>
       <div class="payroll-net-line"><span>实发：</span><strong>${formatPayrollCurrency(item["实发薪水"])}</strong></div>
         <div class="payroll-record-actions">
+          ${isPayrollMobileReadonly() ? "" : `
           <button
             type="button"
             class="payroll-action-btn payroll-edit-btn"
@@ -1310,12 +1321,12 @@ const summaryParts = [];
             type="button"
             class="payroll-action-btn payroll-delete-btn"
             onclick="deletePayrollRecord('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}', '${escapePayrollJsString(item["工人名字"] || "")}')"
-          >删除 Payroll</button>
+          >删除 Payroll</button>`}
           <a
             class="payslip-link"
             href="payslip.html?company=${encodeURIComponent(String(item["公司"] || ""))}&workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
             onclick="savePayrollSelection('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}')"
-          >打印工资单 / Print Payslip</a>
+          >${isPayrollMobileReadonly() ? "查看工资单 / View Payslip" : "打印工资单 / Print Payslip"}</a>
         </div>
       </div>
     `;
