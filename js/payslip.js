@@ -1,9 +1,5 @@
 const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v230";
-const PAYSLIP_IS_MOBILE_ = (() => {
-  const userAgent = String(navigator.userAgent || "");
-  const touchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || touchMac;
-})();
+const PAYSLIP_IS_MOBILE_ = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
 function isPayslipMobileViewOnly() {
   return PAYSLIP_IS_MOBILE_;
@@ -12,12 +8,16 @@ function isPayslipMobileViewOnly() {
 function applyPayslipMobileViewOnlyMode() {
   if (!isPayslipMobileViewOnly()) return;
 
-  document.body.classList.add("payslip-mobile-view-only");
+  document.documentElement.classList.add("payslip-mobile-view-only");
+
+  const notice = document.getElementById("payslipMobileNotice");
   const printBtn = document.getElementById("printPayslipBtn");
+
+  if (notice) notice.hidden = false;
   if (printBtn) {
     printBtn.hidden = true;
     printBtn.disabled = true;
-    printBtn.remove();
+    printBtn.setAttribute("aria-disabled", "true");
   }
 }
 
@@ -26,6 +26,7 @@ let payslipPrintRequested = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   setupBackToPayrollButton();
+  applyPayslipMobileViewOnlyMode();
   loadPayslipPage();
 });
 
@@ -81,7 +82,7 @@ async function loadPayslipPage() {
     setPdfFileName(record);
     payslipPrintContext = { company, workerNo, month };
     status.textContent = isPayslipMobileViewOnly()
-      ? "工资单已载入。手机只可查看，不能打印。 / View only on mobile."
+      ? "工资单已载入。手机只可查看，打印请到电脑处理。"
       : "工资单已准备，可以打印。 / Payslip is ready to print.";
     status.className = "status ok no-print";
     paper.hidden = false;
@@ -473,8 +474,3 @@ function escapePayslipHtml(value) {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;"
   }[char]));
 }
-
-window.addEventListener("beforeprint", () => {
-  if (!isPayslipMobileViewOnly()) return;
-  document.body.classList.add("payslip-mobile-print-blocked");
-});

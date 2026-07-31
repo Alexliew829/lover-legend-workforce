@@ -1324,22 +1324,22 @@ select[name="existingWorkerNo"] {
   display: none;
 }
 
-
-/* V2.4：手机 Payslip 只允许查看，禁止打印 */
-.payslip-mobile-view-only #printPayslipBtn {
-  display: none !important;
+.payslip-mobile-notice {
+  margin-bottom: 10px;
+  font-weight: 800;
 }
 
+/* 手机即使从浏览器菜单启动打印，也不输出工资单内容。 */
 @media print {
-  body.payslip-mobile-print-blocked * {
+  html.payslip-mobile-view-only body * {
     display: none !important;
   }
 
-  body.payslip-mobile-print-blocked::after {
-    content: "Mobile printing is disabled. Please print this payslip from a computer.";
+  html.payslip-mobile-view-only body::before {
+    content: "手机不能打印工资单，请到电脑处理。";
     display: block !important;
     padding: 24px;
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 800;
   }
 }
