@@ -6,7 +6,7 @@ let editingPayrollOriginalKey = null;
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v200";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v210";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -771,37 +771,10 @@ function renderDebtList() {
         <div class="debt-type-deduction-summary">
           <span>本月扣除：</span><strong data-deduction-type-total="${type}">${formatPayrollCurrency(value)}</strong>
         </div>
-
-        ${isAdvance ? `
-          <div class="debt-note-editor">
-            <label>扣款备注</label>
-            <input
-              class="debt-note-input"
-              data-type="支粮"
-              data-language="source"
-              type="text"
-              value="${escapePayrollHtml(originalNote)}"
-              placeholder="自动带入扣款管理备注，可修改"
-              ${balance <= 0 && value <= 0 ? "readonly" : ""}
-            />
-
-            <label>Payslip 马来文备注</label>
-            <input
-              class="debt-note-input"
-              data-type="支粮"
-              data-language="ms"
-              type="text"
-              value="${escapePayrollHtml(malayNote)}"
-              placeholder="自动翻译成马来文，可修改"
-              ${balance <= 0 && value <= 0 ? "readonly" : ""}
-            />
-          </div>
-        ` : ""}
       </div>
     `;
   }).join("");
 
-  fillMissingMalayDebtNotes();
 
   if (current) {
     const form = document.getElementById("payrollForm");
@@ -1016,6 +989,17 @@ async function handlePayrollSubmit(event) {
   }
 
   try {
+    if (editingPayrollOriginalKey) {
+      const currentMonth = getSelectedPayrollMonthKey();
+      if (
+        String(form.company.value || "") !== String(editingPayrollOriginalKey.company || "") ||
+        String(selectedPayrollWorker?.["工人编号"] || "") !== String(editingPayrollOriginalKey.workerNo || "") ||
+        normalizePayrollMonth(currentMonth) !== normalizePayrollMonth(editingPayrollOriginalKey.month)
+      ) {
+        throw new Error("编辑 Payroll 时不能修改公司、工人或月份。请删除后重新建立。");
+      }
+    }
+
     const calculation = calculatePayroll();
     if (String(selectedPayrollWorker["薪水类型"] || "") === "日薪" && getWorkDays() <= 0) {
       throw new Error("请输入本月计薪天数");
@@ -1071,12 +1055,8 @@ async function handlePayrollSubmit(event) {
       absenceExpectedAmount: calculation.absence.expectedAmount,
       absenceDeduction: calculation.absenceDeduction,
       advanceDeduction: deductions["支粮"] || 0,
-      advanceDeductionRemark: String(
-        getDebtNoteInput("支粮", "source")?.value || ""
-      ).trim(),
-      advanceDeductionMalayRemark: String(
-        getDebtNoteInput("支粮", "ms")?.value || ""
-      ).trim(),
+      advanceDeductionRemark: "",
+      advanceDeductionMalayRemark: "",
       permitDeduction: deductions["准证"] || 0,
       permitDeductionRemark: "",
       permitDeductionMalayRemark: "",
@@ -1311,6 +1291,27 @@ const summaryParts = [];
 }
 
 
+
+function setPayrollIdentityLocked(locked) {
+  const form = document.getElementById("payrollForm");
+  if (!form) return;
+
+  ["payMonth", "payYear", "company", "workerNo"].forEach(name => {
+    const field = form.elements[name];
+    if (field) field.disabled = Boolean(locked);
+  });
+
+  form.dataset.identityLocked = locked ? "true" : "false";
+}
+
+function resetPayrollEditMode() {
+  editingPayrollOriginalKey = null;
+  setPayrollIdentityLocked(false);
+
+  const button = document.getElementById("savePayrollBtn");
+  if (button) button.textContent = "保存 Payroll";
+}
+
 async function editPayrollRecord(company, workerNo, month) {
   const record = payrollRecords.find(item =>
     String(item["公司"] || "") === String(company || "") &&
@@ -1363,6 +1364,10 @@ async function editPayrollRecord(company, workerNo, month) {
   selectedPayrollWorker = worker;
   form.workerNo.value = String(workerNo || "");
   form.salaryType.value = String(record["薪水类型"] || worker["薪水类型"] || "");
+
+  // V2.1：编辑 Payroll 时锁定公司、工人和月份。
+  // 若身份资料错误，应删除该笔 Payroll 后重新建立，避免影响其他工人或月份。
+  setPayrollIdentityLocked(true);
 
   renderSalarySection();
   renderAbsenceSection();

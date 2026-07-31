@@ -1,4 +1,4 @@
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v200";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v210";
 let payslipPrintContext = null;
 let payslipPrintRequested = false;
 
@@ -133,7 +133,7 @@ window.addEventListener("afterprint", async () => {
       return;
     }
 
-    const confirmKey = `ll-workforce-payroll-period-confirmed-v200-${currentMonth}`;
+    const confirmKey = `ll-workforce-payroll-period-confirmed-v210-${currentMonth}`;
     if (localStorage.getItem(confirmKey) === "yes") {
       if (status) {
         status.textContent = `${currentMonth} 全部工资单已打印完成。`;
