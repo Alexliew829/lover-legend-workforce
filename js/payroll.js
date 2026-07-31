@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   form.addEventListener("input", event => {
-    if (event.target.classList.contains("debt-deduction-input")) {
+    if (event.target.classList.contains("debt-record-deduction-input")) {
       const type = event.target.dataset.type;
       const originalInput = getDebtNoteInput(type, "source");
 
@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (
-      event.target.classList.contains("debt-deduction-input") ||
+      event.target.classList.contains("debt-record-deduction-input") ||
       event.target.name === "allowance" ||
       event.target.id === "allowance" ||
       event.target.name === "liveCommission" ||
@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   form.addEventListener("focusout", event => {
-    if (event.target.classList.contains("debt-deduction-input")) {
+    if (event.target.classList.contains("debt-record-deduction-input")) {
       if (event.target.value.trim()) event.target.value = moneyInput(event.target.value);
       calculatePayroll();
     }
@@ -548,6 +548,123 @@ async function fillMissingMalayDebtNotes() {
   }
 }
 
+
+function getWorkerDebtRecords(type) {
+  if (!selectedPayrollWorker) return [];
+  const workerNo = String(selectedPayrollWorker["工人编号"] || "");
+  const normalizedType = normalizeDebtType(type);
+  return payrollAdvances
+    .filter(item =>
+      String(item["工人编号"] || "") === workerNo &&
+      normalizeDebtType(item["项目"] || item["类型"]) === normalizedType &&
+      parsePayrollMoney(item["金额"]) > 0
+    )
+    .sort((a, b) => debtDateNumber(b["日期时间"] || b["日期"]) - debtDateNumber(a["日期时间"] || a["日期"]));
+}
+
+function debtDateNumber(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  return match ? Number(match[3] + match[2] + match[1]) : 0;
+}
+
+function payrollDebtRecordKey(item, index) {
+  const date = String(item["日期时间"] || item["日期"] || "").trim();
+  const type = normalizeDebtType(item["项目"] || item["类型"]);
+  const amount = parsePayrollMoney(item["金额"]);
+  const row = Number(item.row) || 0;
+  return [date, type, amount.toFixed(2), row || index + 1].join("|");
+}
+
+function parseSavedDebtAllocations(record) {
+  if (!record) return [];
+  try {
+    const parsed = JSON.parse(String(record["扣款明细JSON"] || "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function getSavedAllocationMap(type, current, records, legacyTotal) {
+  const map = {};
+  const saved = parseSavedDebtAllocations(current)
+    .filter(item => normalizeDebtType(item.type) === normalizeDebtType(type));
+
+  saved.forEach(item => {
+    const key = String(item.key || "");
+    const deducted = parsePayrollMoney(item.deducted);
+    if (key && deducted > 0) map[key] = deducted;
+  });
+
+  // 兼容旧 Payroll：旧记录只有项目总扣款，没有逐笔明细。
+  // 第一次打开时按日期由新到旧自动分配，管理员仍可逐笔修改。
+  if (!saved.length && legacyTotal > 0) {
+    let remaining = legacyTotal;
+    records.forEach((item, index) => {
+      if (remaining <= 0) return;
+      const balance = parsePayrollMoney(item["金额"]);
+      const deducted = Math.min(balance, remaining);
+      if (deducted > 0) {
+        map[payrollDebtRecordKey(item, index)] = deducted;
+        remaining -= deducted;
+      }
+    });
+  }
+
+  return map;
+}
+
+function renderDebtRecordDetails(type, totalBalance, current, legacyTotal) {
+  const records = getWorkerDebtRecords(type);
+  if (!records.length) {
+    return '<div class="debt-record-details"><div class="muted">没有欠款记录</div></div>';
+  }
+
+  const savedMap = getSavedAllocationMap(type, current, records, legacyTotal);
+  let previousMonth = "";
+
+  const rows = records.map((item, index) => {
+    const date = String(item["日期时间"] || item["日期"] || "").trim();
+    const month = date.length >= 10 ? date.substring(3, 10) : "";
+    const spacer = previousMonth && month && month !== previousMonth
+      ? '<div class="debt-record-month-gap"></div>'
+      : "";
+    previousMonth = month;
+
+    const itemType = normalizeDebtType(item["项目"] || item["类型"]);
+    const balance = parsePayrollMoney(item["金额"]);
+    const key = payrollDebtRecordKey(item, index);
+    const savedValue = Math.min(parsePayrollMoney(savedMap[key]), balance);
+
+    return `${spacer}
+      <div class="debt-record-line debt-record-select-line">
+        <div class="debt-record-text">
+          <span>${escapePayrollHtml(date)} · ${escapePayrollHtml(itemType)} · ${formatPayrollCurrency(balance)}</span>
+          ${item["备注"] ? `<small>${escapePayrollHtml(item["备注"])}</small>` : ""}
+        </div>
+        <input
+          class="debt-record-deduction-input money-right"
+          data-type="${escapePayrollHtml(itemType)}"
+          data-record-key="${escapePayrollHtml(key)}"
+          data-date="${escapePayrollHtml(date)}"
+          data-item-balance="${balance}"
+          data-remark="${escapePayrollHtml(item["备注"] || "")}"
+          type="text"
+          inputmode="decimal"
+          placeholder="0.00"
+          value="${savedValue > 0 ? moneyInput(savedValue) : ""}"
+        />
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="debt-record-details">
+      ${rows}
+      <div class="debt-record-total">累计欠款：${formatPayrollCurrency(totalBalance)}</div>
+    </div>`;
+}
+
 function renderDebtList() {
   const list = document.getElementById("debtList");
   if (!selectedPayrollWorker) return;
@@ -580,9 +697,11 @@ function renderDebtList() {
           <div class="debt-remaining ${remaining > 0 ? "debt-alert" : ""}" data-remaining-type="${type}">扣后剩余 ${formatPayrollCurrency(remaining)}</div>
         </div>
 
-        <input class="debt-deduction-input money-right ${hasDebt ? "debt-input-alert" : ""}" data-type="${type}" data-balance="${balance}"
-          type="text" inputmode="decimal" placeholder="0.00" value="${value > 0 ? moneyInput(value) : ""}"
-          ${balance <= 0 ? "readonly" : ""} />
+        ${renderDebtRecordDetails(type, balance, current, value)}
+
+        <div class="debt-type-deduction-summary">
+          本月扣除：<strong data-deduction-type-total="${type}">${formatPayrollCurrency(value)}</strong>
+        </div>
 
         ${isAdvance ? `
           <div class="debt-note-editor">
@@ -703,23 +822,34 @@ function calculatePayroll() {
   let totalOutstanding = 0;
   let invalidDeduction = false;
 
-  document.querySelectorAll(".debt-deduction-input").forEach(input => {
-    const balance = Number(input.dataset.balance) || 0;
+  const balancesByType = getOutstandingByType(selectedPayrollWorker["工人编号"]);
+  const deductionsByType = Object.fromEntries(DEBT_TYPES.map(type => [type, 0]));
+
+  document.querySelectorAll(".debt-record-deduction-input").forEach(input => {
+    const itemBalance = Number(input.dataset.itemBalance) || 0;
     const deduction = parsePayrollMoney(input.value);
-    const remaining = Math.max(0, balance - deduction);
+    const type = normalizeDebtType(input.dataset.type);
 
-    totalOutstanding += balance;
     debtDeduction += deduction;
-    input.classList.toggle("input-error", deduction > balance);
-    if (deduction > balance) invalidDeduction = true;
+    deductionsByType[type] = (deductionsByType[type] || 0) + deduction;
+    input.classList.toggle("input-error", deduction > itemBalance);
+    if (deduction > itemBalance) invalidDeduction = true;
+  });
 
-    const remainingBox = document.querySelector(`[data-remaining-type="${input.dataset.type}"]`);
+  DEBT_TYPES.forEach(type => {
+    const balance = Number(balancesByType[type]) || 0;
+    const deduction = Number(deductionsByType[type]) || 0;
+    const remaining = Math.max(0, balance - deduction);
+    totalOutstanding += balance;
+
+    const remainingBox = document.querySelector(`[data-remaining-type="${type}"]`);
     if (remainingBox) {
       remainingBox.textContent = `扣后剩余 ${formatPayrollCurrency(remaining)}`;
       remainingBox.classList.toggle("debt-alert", remaining > 0);
     }
 
-    input.classList.toggle("debt-input-alert", balance > 0);
+    const totalBox = document.querySelector(`[data-deduction-type-total="${type}"]`);
+    if (totalBox) totalBox.textContent = formatPayrollCurrency(deduction);
   });
 
   document.getElementById("absenceAmountText").textContent = formatPayrollCurrency(absenceDeduction);
@@ -778,8 +908,23 @@ async function handlePayrollSubmit(event) {
     }
 
     const deductions = Object.fromEntries(DEBT_TYPES.map(type => [type, 0]));
-    document.querySelectorAll(".debt-deduction-input").forEach(input => {
-      deductions[input.dataset.type] = parsePayrollMoney(input.value);
+    const debtAllocationDetails = [];
+
+    document.querySelectorAll(".debt-record-deduction-input").forEach(input => {
+      const deducted = parsePayrollMoney(input.value);
+      const type = normalizeDebtType(input.dataset.type);
+      deductions[type] = (deductions[type] || 0) + deducted;
+
+      if (deducted > 0) {
+        debtAllocationDetails.push({
+          key: String(input.dataset.recordKey || ""),
+          date: String(input.dataset.date || ""),
+          type,
+          originalAmount: Number(input.dataset.itemBalance) || 0,
+          deducted,
+          remark: String(input.dataset.remark || "")
+        });
+      }
     });
 
     const salaryType = String(selectedPayrollWorker["薪水类型"] || "");
@@ -818,6 +963,7 @@ async function handlePayrollSubmit(event) {
       totalDeduction: calculation.totalDeduction,
       netSalary: calculation.netSalary,
       debtBalance: calculation.remainingDebt,
+      debtAllocationJson: JSON.stringify(debtAllocationDetails),
       remark: form.remark.value.trim(),
       originalCompany: editingPayrollOriginalKey?.company || "",
       originalWorkerNo: editingPayrollOriginalKey?.workerNo || "",
@@ -899,6 +1045,7 @@ async function handlePayrollSubmit(event) {
       "总扣款": payroll.totalDeduction,
       "实发薪水": payroll.netSalary,
       "欠款余额": payroll.debtBalance,
+      "扣款明细JSON": payroll.debtAllocationJson,
       "备注": payroll.remark
     };
 

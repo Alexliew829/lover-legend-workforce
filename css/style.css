@@ -389,7 +389,7 @@ input[readonly] {
 
 /* V1.7 Payroll 瀹炲彂鐙珛涓?琛? */
 .payroll-net-line { margin-top: 3px; font-weight: 700; color: #111; }
-/* 娲ヨ创锛氱┖鐧芥椂鍍忔墸娆句竴鏍凤紝浠庡乏杈瑰紑濮嬭緭鍏? */
+/* 津贴：空白时与扣款输入一致，从左侧开始输入。 */
 .allowance-input-box {
   position: relative;
 }
@@ -417,7 +417,7 @@ input[readonly] {
 }
 
 
-/* V1.73 Payroll 娆犳浣欓涓庢湰鏈堝疄鍙戝伐璧勬?绘暟 */
+/* V1.73 Payroll 欠款余额与本月实发工资总数。 */
 .payroll-debt-balance-line {
   margin-top: 3px;
   color: #c00000;
@@ -896,7 +896,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.86 娆犳绠＄悊锛氱己甯褰曟樉绀猴紝浣嗕笉璁″叆娆犳 */
+/* V1.86 欠款管理：缺席记录显示，但不计入欠款。 */
 .advance-ledger-section-title {
   margin-top: 12px;
   margin-bottom: 6px;
@@ -933,7 +933,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.93 Payroll edit / delete actions */
+/* V1.94 Payroll edit / delete actions */
 .payroll-record-actions {
   display: flex;
   flex-wrap: wrap;
@@ -952,3 +952,120 @@ select[name="existingWorkerNo"] {
 }
 .payroll-edit-btn { border: 1px solid #8a6d00; color: #7a5d00; background: #fffbea; }
 .payroll-delete-btn { border: 1px solid #c00000; color: #c00000; background: #fff3f3; }
+
+
+/* V1.94 debt detail and compact A4 payslip */
+.debt-record-details { grid-column: 1 / -1; margin-top: 8px; padding: 8px 10px; border-top: 1px dashed #d7c8c8; background: #fff; border-radius: 8px; }
+.debt-record-line { display:flex; justify-content:space-between; gap:12px; padding:2px 0; font-size:12px; }
+.debt-record-line strong { white-space:nowrap; }
+.debt-record-month-gap { height:8px; }
+.debt-record-total { margin-top:6px; padding-top:6px; border-top:1px solid #ddd; font-weight:900; }
+.payslip-title-row { display:flex; justify-content:center; align-items:baseline; gap:18px; margin-top:2px; }
+.payslip-title-row .payslip-title, .payslip-title-row .payslip-month { margin-top:0; }
+.payslip-debt-history { margin-top:5px; border:1px solid #ddd; border-radius:5px; padding:4px 6px; }
+.payslip-debt-history-title { font-size:10.5px; font-weight:900; margin-bottom:2px; }
+.payslip-debt-history > div:not(.payslip-debt-history-title) { display:flex; justify-content:space-between; gap:10px; font-size:9.5px; line-height:1.25; padding:1px 0; }
+.payslip-debt-history-total { margin-top:2px; padding-top:2px !important; border-top:1px solid #aaa; font-weight:900; }
+.payslip-net-box strong, .payslip-debt-box strong { font-size:15px; }
+@media print {
+  .payslip-copy { height:129mm; padding:2.2mm 4mm; overflow:hidden; }
+  .payslip-copy-label { font-size:8.5px; line-height:1.1; }
+  .payslip-header { padding-bottom:3px; }
+  .payslip-company { font-size:13px; line-height:1.1; }
+  .payslip-title-row { gap:12px; margin-top:1px; }
+  .payslip-title { font-size:15px; line-height:1.1; }
+  .payslip-month { font-size:11px; line-height:1.1; }
+  .payslip-info-grid { margin-top:4px; gap:2px 10px; }
+  .payslip-info-grid span { font-size:7.5px; line-height:1.05; }
+  .payslip-info-grid strong { font-size:9px; line-height:1.1; }
+  .payslip-section-title { margin-top:4px; padding:2px 4px; font-size:9px; }
+  .payslip-lines > div { font-size:8.5px; padding:2px 4px; line-height:1.15; }
+  .payslip-deduction-note { font-size:7.5px; line-height:1.1; margin-top:1px; }
+  .payslip-debt-history { margin-top:3px; padding:2px 4px; }
+  .payslip-debt-history-title { font-size:8px; }
+  .payslip-debt-history > div:not(.payslip-debt-history-title) { font-size:7.4px; line-height:1.1; padding:0; }
+  .payslip-result-row { margin-top:3px; gap:4px; }
+  .payslip-net-box, .payslip-debt-box { padding:4px 6px; font-size:8px; border-radius:4px; }
+  .payslip-net-box strong, .payslip-debt-box strong { font-size:11px; }
+}
+
+
+/* V1.94 verified: payroll逐笔选择扣款 */
+.debt-record-select-line {
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+}
+.debt-record-text {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+.debt-record-text span {
+  font-weight: 800;
+}
+.debt-record-text small {
+  font-size: 11px;
+  color: #666;
+  overflow-wrap: anywhere;
+}
+.debt-record-deduction-input {
+  width: 112px;
+  min-width: 112px;
+  padding: 9px 8px;
+  border: 1px solid #d89aa0;
+  border-radius: 10px;
+  font-weight: 900;
+}
+.debt-type-deduction-summary {
+  text-align: right;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.debt-type-deduction-summary strong {
+  color: #b00020;
+}
+@media (max-width: 520px) {
+  .debt-record-select-line {
+    display: grid;
+    grid-template-columns: 1fr 104px;
+  }
+  .debt-record-deduction-input {
+    width: 104px;
+    min-width: 104px;
+  }
+}
+
+/* A4 两联：每联内容完整显示，不裁切 */
+@media print {
+  .payslip-copy {
+    height: 132mm;
+    max-height: 132mm;
+    overflow: visible;
+    padding: 2mm 4mm;
+  }
+  .payslip-cut-line {
+    height: 5mm;
+  }
+  .payslip-header {
+    padding-bottom: 2px;
+  }
+  .payslip-title-row {
+    gap: 10px;
+  }
+  .payslip-section-title {
+    margin-top: 3px;
+  }
+  .payslip-lines > div {
+    padding: 1.5px 4px;
+    line-height: 1.08;
+  }
+  .payslip-result-row {
+    margin-top: 2px;
+  }
+  .payslip-net-box strong,
+  .payslip-debt-box strong {
+    font-size: 10px;
+  }
+}

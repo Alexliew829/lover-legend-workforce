@@ -34,9 +34,10 @@ async function loadPayslipPage() {
       throw new Error("工资单资料不完整。 / Payslip information is incomplete.");
     }
 
-    // Payslip 只需要 Payroll 记录，不再载入工人及欠款全部资料。
-    const payrolls = await api("getPayrolls");
-    const advances = [];
+    const [payrolls, advances] = await Promise.all([
+      api("getPayrolls"),
+      api("getAdvances")
+    ]);
     const record = payrolls.find(item =>
       String(item["公司"] || "") === company &&
       String(item["工人编号"] || "") === workerNo &&
@@ -66,6 +67,15 @@ function renderPayslipCopies(item, advances) {
   });
 }
 
+function parsePayslipDebtAllocations(item) {
+  try {
+    const parsed = JSON.parse(String(item["扣款明细JSON"] || "[]"));
+    return Array.isArray(parsed) ? parsed.filter(entry => parsePayslipMoney(entry.deducted) > 0) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 function createPayslipCopyHtml(item, advances) {
   const basicSalary = parsePayslipMoney(item["基本薪水"]);
   const allowance = parsePayslipMoney(item["津贴"]);
@@ -74,6 +84,7 @@ function createPayslipCopyHtml(item, advances) {
   const netSalary = parsePayslipMoney(item["实发薪水"]);
   const debtBalance = parsePayslipMoney(item["欠款余额"]);
   const month = normalizePayslipMonth(item["月份"]);
+  const workerNo = String(item["工人编号"] || "");
 
   const advanceDeduction =
     parsePayslipMoney(item["支粮扣款"]) +
@@ -81,33 +92,65 @@ function createPayslipCopyHtml(item, advances) {
     parsePayslipMoney(item["医疗扣款"]) +
     parsePayslipMoney(item["其他工资扣款"]);
 
-  const deductionItems = [
-    ["Potongan Tidak Hadir / Absence Deduction", item["缺席扣款"]],
-    [
-      "Potongan Pendahuluan / Advance Deduction",
-      advanceDeduction,
-      String(item["支粮马来文说明"] || "").trim()
-    ],
-    ["Potongan Permit / Permit Deduction", item["准证扣款"]]
-  ].filter(([, value]) => parsePayslipMoney(value) > 0);
+  const debtAllocations = parsePayslipDebtAllocations(item);
+
+  const deductionItems = [];
+  if (parsePayslipMoney(item["缺席扣款"]) > 0) {
+    deductionItems.push({
+      label: "Potongan Tidak Hadir / Absence Deduction",
+      value: parsePayslipMoney(item["缺席扣款"]),
+      note: ""
+    });
+  }
+
+  if (debtAllocations.length) {
+    debtAllocations.forEach(entry => {
+      const date = formatPayslipDate(entry.date);
+      const type = String(entry.type || "支粮");
+      const label = type === "准证"
+        ? "Potongan Permit / Permit Deduction"
+        : "Potongan Pendahuluan / Advance Deduction";
+      deductionItems.push({
+        label: `${label} · ${date}`,
+        value: parsePayslipMoney(entry.deducted),
+        note: String(entry.remark || "").trim()
+      });
+    });
+  } else {
+    if (advanceDeduction > 0) {
+      deductionItems.push({
+        label: "Potongan Pendahuluan / Advance Deduction",
+        value: advanceDeduction,
+        note: String(item["支粮马来文说明"] || item["支粮扣款说明"] || "").trim()
+      });
+    }
+    if (parsePayslipMoney(item["准证扣款"]) > 0) {
+      deductionItems.push({
+        label: "Potongan Permit / Permit Deduction",
+        value: parsePayslipMoney(item["准证扣款"]),
+        note: ""
+      });
+    }
+  }
 
   const deductionHtml = deductionItems.length
-    ? deductionItems.map(([label, value, note]) => `
-        <div><span>${escapePayslipHtml(label)}${note ? `<small class="payslip-deduction-note">${escapePayslipHtml(note)}</small>` : ""}</span><strong>${formatPayslipCurrency(value)}</strong></div>
+    ? deductionItems.map(entry => `
+        <div>
+          <span>${escapePayslipHtml(entry.label)}${entry.note ? `<small class="payslip-deduction-note">${escapePayslipHtml(entry.note)}</small>` : ""}</span>
+          <strong>${formatPayslipCurrency(entry.value)}</strong>
+        </div>
       `).join("")
     : '<div><span>Tiada Potongan / No Deduction</span><strong>RM 0.00</strong></div>';
 
   return `
     <header class="payslip-header">
       <div class="payslip-company">${escapePayslipHtml(item["公司"] || "LOVER LEGEND")}</div>
-      <div class="payslip-title">SLIP GAJI / PAYSLIP</div>
-      <div class="payslip-month">Bulan / Month: ${escapePayslipHtml(month)}</div>
+      <div class="payslip-title-row"><div class="payslip-title">SLIP GAJI / PAYSLIP</div><div class="payslip-month">Bulan / Month: ${escapePayslipHtml(month)}</div></div>
     </header>
 
     <div class="payslip-info-grid">
       <div><span>No. Pekerja / Employee No.</span><strong>${escapePayslipHtml(item["工人编号"] || "-")}</strong></div>
       <div><span>Nama Pekerja / Employee Name</span><strong>${escapePayslipHtml(item["工人名字"] || "-")}</strong></div>
-      <div><span>Syarikat / Company</span><strong>${escapePayslipHtml(item["公司"] || "-")}</strong></div>
       <div><span>Jenis Gaji / Salary Type</span><strong>${escapePayslipHtml(translateSalaryType(item["薪水类型"]))}</strong></div>
       <div><span>Tarikh Bayaran / Payment Date</span><strong>${escapePayslipHtml(formatPayslipDate(item["发薪日期"]))}</strong></div>
     </div>
@@ -122,20 +165,19 @@ function createPayslipCopyHtml(item, advances) {
 
     <div class="payslip-section-title">Potongan / Deduction</div>
     <div class="payslip-lines">${deductionHtml}</div>
-    <div class="payslip-lines">
-      <div class="payslip-total-line"><span>Jumlah Potongan / Total Deduction</span><strong>${formatPayslipCurrency(totalDeduction)}</strong></div>
-    </div>
+    <div class="payslip-lines"><div class="payslip-total-line"><span>Jumlah Potongan / Total Deduction</span><strong>${formatPayslipCurrency(totalDeduction)}</strong></div></div>
 
     <div class="payslip-result-row">
       <div class="payslip-net-box"><span>Gaji Bersih / Net Salary</span><strong>${formatPayslipCurrency(netSalary)}</strong></div>
       <div class="payslip-debt-box"><span>Baki Hutang / Outstanding Balance</span><strong>${formatPayslipCurrency(debtBalance)}</strong></div>
     </div>
-
-    <div class="payslip-signatures">
-      <div><div class="signature-line"></div><span>Tandatangan Pekerja / Employee Signature</span></div>
-      <div><div class="signature-line"></div><span>Tandatangan Majikan / Employer Signature</span></div>
-    </div>
   `;
+}
+
+function payslipDebtDateNumber(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  return match ? Number(match[3] + match[2] + match[1]) : 0;
 }
 
 function setPdfFileName(item) {
