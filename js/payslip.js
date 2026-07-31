@@ -50,6 +50,7 @@ async function loadPayslipPage() {
       throw new Error("找不到 Payroll 记录。 / Payroll record was not found.");
     }
 
+    await ensurePayslipMalayRemarks(record);
     renderPayslipCopies(record, advances);
     setPdfFileName(record);
     status.textContent = "工资单已准备，可以打印。 / Payslip is ready to print.";
@@ -82,6 +83,43 @@ async function loadPayslipDataWithRetry() {
     }
   }
   throw lastError || new Error("工资单载入失败。 / Unable to load payslip.");
+}
+
+async function ensurePayslipMalayRemarks(item) {
+  const allocations = parsePayslipDebtAllocations(item);
+  const missing = [...new Set(allocations
+    .filter(entry => !String(entry.malayRemark || "").trim())
+    .map(entry => String(entry.remark || "").trim())
+    .filter(Boolean))];
+
+  if (!missing.length) return;
+
+  const fallbackMap = {
+    "买手机": "Membeli telefon bimbit",
+    "回家乡": "Pulang ke kampung halaman"
+  };
+
+  let translated = [];
+  try {
+    translated = await api("translatePayrollRemarks", { remarks: missing });
+  } catch (_) {
+    translated = [];
+  }
+
+  const map = new Map();
+  missing.forEach((text, index) => {
+    const result = String(translated[index] || "").trim();
+    map.set(text, result || fallbackMap[text] || text);
+  });
+
+  allocations.forEach(entry => {
+    const source = String(entry.remark || "").trim();
+    if (!String(entry.malayRemark || "").trim() && source) {
+      entry.malayRemark = map.get(source) || source;
+    }
+  });
+
+  item["扣款明细JSON"] = JSON.stringify(allocations);
 }
 
 function renderPayslipCopies(item, advances) {

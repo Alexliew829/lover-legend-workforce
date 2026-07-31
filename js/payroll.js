@@ -930,33 +930,23 @@ function calculatePayroll() {
 }
 
 
-async function translateDebtAllocationRemarks(details) {
+function prepareDebtAllocationRemarks(details) {
   const items = Array.isArray(details) ? details : [];
-  const unique = [...new Set(items.map(item => String(item.remark || "").trim()).filter(Boolean))];
-  if (!unique.length) return items;
+  const manualMalay = String(getDebtNoteInput("支粮", "ms")?.value || "").trim();
+  const fallbackMap = {
+    "买手机": "Membeli telefon bimbit",
+    "回家乡": "Pulang ke kampung halaman"
+  };
 
-  let translations = [];
-  try {
-    translations = await api("translatePayrollRemarks", { remarks: unique });
-  } catch (_) {
-    translations = [];
-  }
-
-  const map = new Map();
-  unique.forEach((text, index) => {
-    const translated = String(translations[index] || "").trim();
-    // 常用备注提供稳定后备，避免翻译服务暂时失败时打印空白。
-    const fallback = {
-      "买手机": "Membeli telefon bimbit",
-      "回家乡": "Pulang ke kampung halaman"
-    }[text] || text;
-    map.set(text, translated || fallback);
+  return items.map(item => {
+    const source = String(item.remark || "").trim();
+    return {
+      ...item,
+      // 保存 Payroll 时不再等待 Google 翻译服务，明显缩短保存时间。
+      // 没有现成马来文的备注，会在打开 Payslip 时才补翻译。
+      malayRemark: String(item.malayRemark || manualMalay || fallbackMap[source] || "").trim()
+    };
   });
-
-  return items.map(item => ({
-    ...item,
-    malayRemark: map.get(String(item.remark || "").trim()) || ""
-  }));
 }
 
 function getPayrollPaymentDate() {
@@ -1015,7 +1005,7 @@ async function handlePayrollSubmit(event) {
       }
     });
 
-    const translatedDebtAllocationDetails = await translateDebtAllocationRemarks(debtAllocationDetails);
+    const translatedDebtAllocationDetails = prepareDebtAllocationRemarks(debtAllocationDetails);
 
     const salaryType = String(selectedPayrollWorker["薪水类型"] || "");
     const payroll = {
@@ -1030,6 +1020,7 @@ async function handlePayrollSubmit(event) {
       monthlySalary: parsePayrollMoney(selectedPayrollWorker["月薪"]),
       basicSalary: calculation.grossSalary,
       allowance: calculation.allowance,
+      updateDefaultAllowance: parsePayrollMoney(selectedPayrollWorker?.["默认津贴"]) !== calculation.allowance,
       liveCommission: calculation.liveCommission,
       absenceDays: calculation.absence.days,
       absenceAction: calculation.absenceAction,
@@ -1240,10 +1231,10 @@ const summaryParts = [];
         <div class="muted">${escapePayrollHtml(normalizePayrollMonth(item["月份"]))} · 本月工资 : ${formatPayrollCurrency(item["基本薪水"])}</div>
        ${allowance > 0 ? `<div class="muted">津贴 : ${formatPayrollCurrency(allowance)}</div>` : ""}
       ${liveCommission > 0 ? `<div class="muted">直播佣金 : ${formatPayrollCurrency(liveCommission)}</div>` : ""}
-      ${absenceDays > 0 ? `<div class="muted payroll-record-summary">缺席 ${formatDayCount(absenceDays)} 天 · ${escapePayrollHtml(item["缺席处理"] || "扣薪")}</div>` : ""}
-      <div class="payroll-total-deduction-line">总扣款 : ${formatPayrollCurrency(totalDeduction)}</div>
-      <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
-      <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
+      ${absenceDays > 0 ? `<div class="muted payroll-record-summary">缺席 ${formatDayCount(absenceDays)} 天 · ${escapePayrollHtml(parsePayrollMoney(item["缺席扣款"]) > 0 ? "扣薪" : "免扣")}</div>` : ""}
+      <div class="payroll-total-deduction-line"><span>本月扣款：</span><strong>${formatPayrollCurrency(totalDeduction)}</strong></div>
+      <div class="payroll-debt-balance-line"><span>累计欠款：</span><strong>${formatPayrollCurrency(debtBalance)}</strong></div>
+      <div class="payroll-net-line"><span>实发：</span><strong>${formatPayrollCurrency(item["实发薪水"])}</strong></div>
         <div class="payroll-record-actions">
           <button
             type="button"
