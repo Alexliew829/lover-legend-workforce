@@ -160,3 +160,10 @@
 - Dates saved as dd-MM-yyyy text to avoid day/month reversal.
 - Payroll and Payslip show deduction purpose from Advance remarks.
 - Removed unnecessary Payroll refresh calls and Advance sheet sorting on every save.
+
+
+## V2.4.2 Mobile Full View
+- 手机可查询月份、年份、公司及工人。
+- 手机完整显示逐笔扣款明细、余额、本月扣除及累计欠款。
+- 金额与备注仅可查看，不能编辑。
+- 保存、编辑、删除及打印仍限制在电脑端。

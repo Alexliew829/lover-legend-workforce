@@ -25,16 +25,28 @@ function applyPayrollMobileReadonlyMode() {
 
   if (form) {
     form.classList.add("payroll-mobile-readonly");
-    form.querySelectorAll("input, select, textarea, button").forEach(field => {
-      const isQueryField = field.tagName === "SELECT" && mobileQueryFields.has(field.name || field.id);
 
+    // 手机保留月份、年份、公司及工人查询；其他资料仅供完整查看。
+    form.querySelectorAll("select").forEach(field => {
+      const isQueryField = mobileQueryFields.has(field.name || field.id);
       field.disabled = !isQueryField;
-      if (isQueryField) {
-        field.removeAttribute("aria-disabled");
-        field.title = "手机可用于查询 Payroll";
-      } else {
-        field.setAttribute("aria-disabled", "true");
-      }
+      field.toggleAttribute("aria-disabled", !isQueryField);
+      field.title = isQueryField
+        ? "手机可用于查询 Payroll"
+        : "手机只可查看，请到电脑处理";
+    });
+
+    form.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]), textarea').forEach(field => {
+      field.disabled = false;
+      field.readOnly = true;
+      field.setAttribute("aria-readonly", "true");
+      field.title = "手机只可查看，请到电脑处理";
+    });
+
+    form.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(field => {
+      field.disabled = true;
+      field.setAttribute("aria-disabled", "true");
+      field.title = "手机只可查看，请到电脑处理";
     });
   }
 
@@ -831,6 +843,8 @@ function renderDebtList() {
     `;
   }).join("");
 
+  // 扣款明细为动态生成，手机端生成后再次套用只读查看模式。
+  applyPayrollMobileReadonlyMode();
 
   if (current) {
     const form = document.getElementById("payrollForm");
@@ -1361,7 +1375,9 @@ function setPayrollIdentityLocked(locked) {
 
   ["payMonth", "payYear", "company", "workerNo"].forEach(name => {
     const field = form.elements[name];
-    if (field) field.disabled = Boolean(locked);
+    if (!field) return;
+    // 电脑编辑旧 Payroll 时维持原有身份锁定；手机始终保留查询能力。
+    field.disabled = isPayrollMobileReadonly() ? false : Boolean(locked);
   });
 
   form.dataset.identityLocked = locked ? "true" : "false";
