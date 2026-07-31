@@ -298,7 +298,12 @@ async function handleAdvanceSubmit(event) {
     const amount = parseCurrency(form.amount.value);
 
     if (!form.amount.value.trim()) throw new Error("请输入金额");
-    if (amount <= 0) throw new Error("金额必须大于 0");
+    if (amount < 0) throw new Error("金额不能小于 0");
+
+    if (amount === 0) {
+      const confirmed = window.confirm("金额为 0，将删除这笔欠款记录。是否继续？");
+      if (!confirmed) return;
+    }
 
     if (btn) {
       btn.disabled = true;
@@ -324,6 +329,13 @@ async function handleAdvanceSubmit(event) {
       result = await api("addAdvance", { item });
     }
 
+    if (result && result.deleted) {
+      const deletedRow = Number(result.row || editingAdvanceRow || 0);
+      advanceLedgerCache = advanceLedgerCache.filter(row =>
+        row["交易来源"] === "Payroll" || Number(row.row) !== deletedRow
+      );
+    }
+
     const savedRecord = result && result.record ? result.record : null;
     if (savedRecord) {
       const index = advanceLedgerCache.findIndex(row =>
@@ -337,9 +349,11 @@ async function handleAdvanceSubmit(event) {
 
     showStatus(
       "status",
-      result && (result.updated || result.duplicate)
-        ? "欠款记录已修改并保存到 Google Sheet"
-        : "欠款记录已保存到 Google Sheet",
+      result && result.deleted
+        ? "欠款记录已删除"
+        : result && (result.updated || result.duplicate)
+          ? "欠款记录已修改并保存到 Google Sheet"
+          : "欠款记录已保存到 Google Sheet",
       true
     );
 
