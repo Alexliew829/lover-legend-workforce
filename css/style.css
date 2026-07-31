@@ -933,7 +933,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.98 Payroll edit / delete actions */
+/* V1.99 Payroll edit / delete actions */
 .payroll-record-actions {
   display: flex;
   flex-wrap: wrap;
@@ -954,7 +954,7 @@ select[name="existingWorkerNo"] {
 .payroll-delete-btn { border: 1px solid #c00000; color: #c00000; background: #fff3f3; }
 
 
-/* V1.98 debt detail and compact A4 payslip */
+/* V1.99 debt detail and compact A4 payslip */
 .debt-record-details { grid-column: 1 / -1; margin-top: 8px; padding: 8px 10px; border-top: 1px dashed #d7c8c8; background: #fff; border-radius: 8px; }
 .debt-record-line { display:flex; justify-content:space-between; gap:12px; padding:2px 0; font-size:12px; }
 .debt-record-line strong { white-space:nowrap; }
@@ -990,7 +990,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.98 verified: payroll逐笔选择扣款 */
+/* V1.99 verified: payroll逐笔选择扣款 */
 .debt-record-select-line {
   align-items: center;
   gap: 10px;
@@ -1071,7 +1071,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.98 A4 两联放大及减少无效空白 */
+/* V1.99 A4 两联放大及减少无效空白 */
 @media print {
   .payslip-copy {
     height: 132mm;
@@ -1095,7 +1095,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.98 Payroll summary order and clearer A4 payslip */
+/* V1.99 Payroll summary order and clearer A4 payslip */
 .payroll-total-deduction-line,
 .payroll-debt-balance-line,
 .payroll-net-line {
@@ -1164,7 +1164,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V1.98 Payroll clarity and faster-reading A4 payslip */
+/* V1.99 Payroll clarity and faster-reading A4 payslip */
 .payroll-total-deduction-line,
 .payroll-debt-balance-line,
 .payroll-net-line {

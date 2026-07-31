@@ -6,6 +6,8 @@ let editingPayrollOriginalKey = null;
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v199";
+
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
   "Lover Legend Adenium": 1,
@@ -171,8 +173,47 @@ function setupPayrollMonthYear() {
   fillPayrollSelect(form.payMonth, 1, 12, "月");
   fillPayrollSelect(form.payYear, 2025, now.getFullYear() + 5, "年");
 
-  form.payMonth.value = String(now.getMonth() + 1).padStart(2, "0");
-  form.payYear.value = String(now.getFullYear());
+  const savedPeriod = getSavedPayrollDefaultPeriod();
+  form.payMonth.value = savedPeriod.month;
+  form.payYear.value = savedPeriod.year;
+}
+
+function getSavedPayrollDefaultPeriod() {
+  const now = new Date();
+  const fallback = {
+    month: String(now.getMonth() + 1).padStart(2, "0"),
+    year: String(now.getFullYear())
+  };
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(PAYROLL_DEFAULT_PERIOD_KEY) || "null");
+    if (
+      saved &&
+      /^\d{2}$/.test(String(saved.month || "")) &&
+      /^\d{4}$/.test(String(saved.year || ""))
+    ) {
+      return {
+        month: String(saved.month),
+        year: String(saved.year)
+      };
+    }
+  } catch (_) {}
+
+  savePayrollDefaultPeriod(fallback.month, fallback.year);
+  return fallback;
+}
+
+function savePayrollDefaultPeriod(month, year) {
+  const normalizedMonth = String(month || "").padStart(2, "0");
+  const normalizedYear = String(year || "");
+  if (!/^\d{2}$/.test(normalizedMonth) || !/^\d{4}$/.test(normalizedYear)) return;
+
+  try {
+    localStorage.setItem(PAYROLL_DEFAULT_PERIOD_KEY, JSON.stringify({
+      month: normalizedMonth,
+      year: normalizedYear
+    }));
+  } catch (_) {}
 }
 
 function fillPayrollSelect(select, start, end, label) {
@@ -232,6 +273,9 @@ async function handlePayrollWorkerChange() {
 }
 
 async function handlePayrollPeriodChange() {
+  const form = document.getElementById("payrollForm");
+  savePayrollDefaultPeriod(form?.payMonth?.value, form?.payYear?.value);
+
   // 无论有没有选工人，月份切换后都立即刷新 Payroll 列表。
   renderPayrollHistory();
 

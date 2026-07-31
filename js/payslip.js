@@ -1,3 +1,7 @@
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v199";
+let payslipPrintContext = null;
+let payslipPrintRequested = false;
+
 document.addEventListener("DOMContentLoaded", () => {
   setupBackToPayrollButton();
   loadPayslipPage();
@@ -53,15 +57,64 @@ async function loadPayslipPage() {
     await ensurePayslipMalayRemarks(record);
     renderPayslipCopies(record, advances);
     setPdfFileName(record);
+    payslipPrintContext = { company, workerNo, month };
     status.textContent = "工资单已准备，可以打印。 / Payslip is ready to print.";
     status.className = "status ok no-print";
     paper.hidden = false;
     printBtn.hidden = false;
-    printBtn.addEventListener("click", () => window.print());
+    printBtn.addEventListener("click", () => {
+      payslipPrintRequested = true;
+      window.print();
+    });
   } catch (error) {
     status.textContent = error?.message || "工资单载入失败，请稍后重试。 / Unable to load payslip.";
     status.className = "status err no-print";
   }
+}
+
+window.addEventListener("afterprint", () => {
+  if (!payslipPrintRequested || !payslipPrintContext) return;
+  payslipPrintRequested = false;
+
+  const currentMonth = normalizePayslipMonth(payslipPrintContext.month);
+  const confirmed = window.confirm([
+    `是否确认 ${currentMonth} 已完成出粮？`,
+    "",
+    "确认后，Payroll 默认月份才会切换到下一个月。",
+    "如果只是预览、测试或取消打印，请选择取消。"
+  ].join("\n"));
+
+  if (!confirmed) return;
+
+  const next = getNextPayrollPeriod(currentMonth);
+  if (!next) return;
+
+  try {
+    localStorage.setItem(PAYROLL_DEFAULT_PERIOD_KEY, JSON.stringify(next));
+  } catch (_) {}
+
+  sessionStorage.setItem("payrollMonth", next.month);
+  sessionStorage.setItem("payrollYear", next.year);
+  sessionStorage.setItem("payrollCompany", String(payslipPrintContext.company || ""));
+  sessionStorage.setItem("payrollWorker", String(payslipPrintContext.workerNo || ""));
+
+  const status = document.getElementById("payslipStatus");
+  if (status) {
+    status.textContent = `${currentMonth} 已确认出粮。Payroll 默认月份已切换到 ${next.month}-${next.year}。`;
+    status.className = "status ok no-print";
+  }
+});
+
+function getNextPayrollPeriod(monthValue) {
+  const month = normalizePayslipMonth(monthValue);
+  const match = month.match(/^(\d{2})-(\d{4})$/);
+  if (!match) return null;
+
+  const date = new Date(Number(match[2]), Number(match[1]), 1);
+  return {
+    month: String(date.getMonth() + 1).padStart(2, "0"),
+    year: String(date.getFullYear())
+  };
 }
 
 async function loadPayslipDataWithRetry() {
