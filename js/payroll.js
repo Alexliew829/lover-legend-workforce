@@ -11,7 +11,7 @@ function isPayrollMobileReadonly() {
 }
 
 function showPayrollDesktopOnlyMessage() {
-  window.alert("手机只能查看 Payroll 列表及打开工资单。打印、新增、修改、删除及保存请到电脑处理。");
+  window.alert("手机可以查询及查看 Payroll 和工资单，但保存、修改、删除及打印请到电脑处理。");
 }
 
 function applyPayrollMobileReadonlyMode() {
@@ -19,14 +19,22 @@ function applyPayrollMobileReadonlyMode() {
 
   const form = document.getElementById("payrollForm");
   const notice = document.getElementById("payrollMobileNotice");
+  const mobileQueryFields = new Set(["payMonth", "payYear", "company", "workerNo"]);
 
   if (notice) notice.hidden = false;
 
   if (form) {
     form.classList.add("payroll-mobile-readonly");
     form.querySelectorAll("input, select, textarea, button").forEach(field => {
-      field.disabled = true;
-      field.setAttribute("aria-disabled", "true");
+      const isQueryField = field.tagName === "SELECT" && mobileQueryFields.has(field.name || field.id);
+
+      field.disabled = !isQueryField;
+      if (isQueryField) {
+        field.removeAttribute("aria-disabled");
+        field.title = "手机可用于查询 Payroll";
+      } else {
+        field.setAttribute("aria-disabled", "true");
+      }
     });
   }
 
@@ -34,7 +42,7 @@ function applyPayrollMobileReadonlyMode() {
     button.disabled = true;
     button.hidden = true;
     button.setAttribute("aria-disabled", "true");
-    button.title = "手机只能查看 Payroll，修改及删除请到电脑处理";
+    button.title = "手机可查询及查看 Payroll，修改及删除请到电脑处理";
   });
 
   const saveButton = document.getElementById("savePayrollBtn");

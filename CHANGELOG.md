@@ -1,3 +1,11 @@
+# V2.4 Mobile Query Fix
+
+- 手机 Payroll 恢复月份、年份、公司及工人查询。
+- 手机仍禁止保存、编辑、删除和打印。
+- 手机可打开 Payslip 查看，打印按钮继续隐藏。
+- 更新 PWA 缓存为 v241，避免继续载入旧版锁定逻辑。
+- Apps Script 与 Google Sheet 逻辑没有修改。
+
 # V2.4 Stable
 
 - Worker names now support up to 30 characters across the frontend and backend.
