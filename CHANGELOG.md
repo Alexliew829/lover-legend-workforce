@@ -1,10 +1,10 @@
-# V1.94 Stable
+# V1.96 Stable
 
 - Worker names now support up to 30 characters across the frontend and backend.
 
 - Payroll records are permanently retained after saving, including normal salary records with no deductions.
 - Monthly-salary absence deduction is fixed at monthly salary ÷ 30.
-- Frontend, Service Worker, manifest, API response, backup metadata, and cache keys are aligned to V1.94.
+- Frontend, Service Worker, manifest, API response, backup metadata, and cache keys are aligned to V1.96.
 - Print Payslip and Payroll selection restoration fixes retained.
 
 # V1.88 Stable

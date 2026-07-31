@@ -34,10 +34,7 @@ async function loadPayslipPage() {
       throw new Error("工资单资料不完整。 / Payslip information is incomplete.");
     }
 
-    const [payrolls, advances] = await Promise.all([
-      api("getPayrolls"),
-      api("getAdvances")
-    ]);
+    const [payrolls, advances] = await loadPayslipDataWithRetry();
     const record = payrolls.find(item =>
       String(item["公司"] || "") === company &&
       String(item["工人编号"] || "") === workerNo &&
@@ -58,6 +55,22 @@ async function loadPayslipPage() {
   } catch (error) {
     status.textContent = error.message;
     status.className = "status err no-print";
+  }
+}
+
+async function loadPayslipDataWithRetry() {
+  try {
+    return await Promise.all([api("getPayrolls"), api("getAdvances")]);
+  } catch (firstError) {
+    await new Promise(resolve => setTimeout(resolve, 700));
+    try {
+      return await Promise.all([
+        api("getPayrolls", {}, { forceRefresh: true }),
+        api("getAdvances", {}, { forceRefresh: true })
+      ]);
+    } catch (_) {
+      throw firstError;
+    }
   }
 }
 
@@ -113,7 +126,7 @@ function createPayslipCopyHtml(item, advances) {
       deductionItems.push({
         label: `${label} · ${date}`,
         value: parsePayslipMoney(entry.deducted),
-        note: String(entry.remark || "").trim()
+        note: String(entry.malayRemark || entry.remark || "").trim()
       });
     });
   } else {

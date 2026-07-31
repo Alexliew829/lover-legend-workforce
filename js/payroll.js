@@ -121,11 +121,7 @@ async function loadPayrollPage() {
   }
 
   try {
-    const data = await api(
-      "getPayrollBootstrap",
-      {},
-      { forceRefresh: Boolean(cached) }
-    );
+    const data = await loadPayrollBootstrapWithRetry(Boolean(cached));
 
     applyPayrollBootstrapData(data);
     showStatus("status", "系统已就绪，可以计算 Payroll", true);
@@ -141,6 +137,21 @@ async function loadPayrollPage() {
     }
 
     showStatus("status", error.message, false);
+  }
+}
+
+
+async function loadPayrollBootstrapWithRetry(forceRefresh) {
+  try {
+    return await api("getPayrollBootstrap", {}, { forceRefresh });
+  } catch (firstError) {
+    // Apps Script偶尔冷启动失败，短暂等待后自动重试一次，避免用户看到一闪而过的红色错误。
+    await new Promise(resolve => setTimeout(resolve, 700));
+    try {
+      return await api("getPayrollBootstrap", {}, { forceRefresh: true });
+    } catch (_) {
+      throw firstError;
+    }
   }
 }
 
@@ -216,6 +227,7 @@ async function handlePayrollWorkerChange() {
   renderAbsenceSection();
   renderDebtList();
   calculatePayroll();
+  showSavedPayrollState();
 
 }
 
@@ -229,8 +241,17 @@ async function handlePayrollPeriodChange() {
   renderAbsenceSection();
   renderDebtList();
   calculatePayroll();
+  showSavedPayrollState();
 
 }
+
+function showSavedPayrollState() {
+  const current = getCurrentMonthPayrollRecord();
+  if (current) {
+    showStatus("status", "已载入已保存的 Payroll，可直接修改", true);
+  }
+}
+
 async function restorePayrollSelection() {
 
   const company = sessionStorage.getItem("payrollCompany");
@@ -882,6 +903,36 @@ function calculatePayroll() {
   };
 }
 
+
+async function translateDebtAllocationRemarks(details) {
+  const items = Array.isArray(details) ? details : [];
+  const unique = [...new Set(items.map(item => String(item.remark || "").trim()).filter(Boolean))];
+  if (!unique.length) return items;
+
+  let translations = [];
+  try {
+    translations = await api("translatePayrollRemarks", { remarks: unique });
+  } catch (_) {
+    translations = [];
+  }
+
+  const map = new Map();
+  unique.forEach((text, index) => {
+    const translated = String(translations[index] || "").trim();
+    // 常用备注提供稳定后备，避免翻译服务暂时失败时打印空白。
+    const fallback = {
+      "买手机": "Membeli telefon bimbit",
+      "回家乡": "Pulang ke kampung halaman"
+    }[text] || text;
+    map.set(text, translated || fallback);
+  });
+
+  return items.map(item => ({
+    ...item,
+    malayRemark: map.get(String(item.remark || "").trim()) || ""
+  }));
+}
+
 async function handlePayrollSubmit(event) {
   event.preventDefault();
 
@@ -927,6 +978,8 @@ async function handlePayrollSubmit(event) {
       }
     });
 
+    const translatedDebtAllocationDetails = await translateDebtAllocationRemarks(debtAllocationDetails);
+
     const salaryType = String(selectedPayrollWorker["薪水类型"] || "");
     const payroll = {
       payDate: formatDateDDMMYYYY(new Date()),
@@ -963,7 +1016,7 @@ async function handlePayrollSubmit(event) {
       totalDeduction: calculation.totalDeduction,
       netSalary: calculation.netSalary,
       debtBalance: calculation.remainingDebt,
-      debtAllocationJson: JSON.stringify(debtAllocationDetails),
+      debtAllocationJson: JSON.stringify(translatedDebtAllocationDetails),
       remark: form.remark.value.trim(),
       originalCompany: editingPayrollOriginalKey?.company || "",
       originalWorkerNo: editingPayrollOriginalKey?.workerNo || "",
