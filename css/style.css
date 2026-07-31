@@ -933,7 +933,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.1 Payroll edit / delete actions */
+/* V2.3 Payroll edit / delete actions */
 .payroll-record-actions {
   display: flex;
   flex-wrap: wrap;
@@ -954,7 +954,7 @@ select[name="existingWorkerNo"] {
 .payroll-delete-btn { border: 1px solid #c00000; color: #c00000; background: #fff3f3; }
 
 
-/* V2.1 debt detail and compact A4 payslip */
+/* V2.3 debt detail and compact A4 payslip */
 .debt-record-details { grid-column: 1 / -1; margin-top: 8px; padding: 8px 10px; border-top: 1px dashed #d7c8c8; background: #fff; border-radius: 8px; }
 .debt-record-line { display:flex; justify-content:space-between; gap:12px; padding:2px 0; font-size:12px; }
 .debt-record-line strong { white-space:nowrap; }
@@ -990,7 +990,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.1 verified: payroll逐笔选择扣款 */
+/* V2.3 verified: payroll逐笔选择扣款 */
 .debt-record-select-line {
   align-items: center;
   gap: 10px;
@@ -1071,7 +1071,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.1 A4 两联放大及减少无效空白 */
+/* V2.3 A4 两联放大及减少无效空白 */
 @media print {
   .payslip-copy {
     height: 132mm;
@@ -1095,7 +1095,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.1 Payroll summary order and clearer A4 payslip */
+/* V2.3 Payroll summary order and clearer A4 payslip */
 .payroll-total-deduction-line,
 .payroll-debt-balance-line,
 .payroll-net-line {
@@ -1164,7 +1164,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.1 Payroll clarity and faster-reading A4 payslip */
+/* V2.3 Payroll clarity and faster-reading A4 payslip */
 .payroll-total-deduction-line,
 .payroll-debt-balance-line,
 .payroll-net-line {
@@ -1234,7 +1234,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.1：本月扣除与累计欠款使用相同视觉层级 */
+/* V2.3：本月扣除与累计欠款使用相同视觉层级 */
 .debt-type-deduction-summary {
   display: flex;
   align-items: baseline;
@@ -1257,7 +1257,7 @@ select[name="existingWorkerNo"] {
   font-weight: 900;
 }
 
-/* V2.1：A4 两联尽量利用页面空间，减少上下联之间的空白 */
+/* V2.3：A4 两联尽量利用页面空间，减少上下联之间的空白 */
 @media print {
   @page { size: A4 portrait; margin: 4mm; }
   .payslip-paper {
@@ -1279,7 +1279,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.1：扣款备注与扣款日期/项目使用相同字号 */
+/* V2.3：扣款备注与扣款日期/项目使用相同字号 */
 .payslip-deduction-note {
   display: block;
   margin-top: 1px;
@@ -1297,4 +1297,29 @@ select[name="existingWorkerNo"] {
     line-height: inherit !important;
     margin-top: 1px !important;
   }
+}
+
+
+/* V2.3：手机 Payroll 只读模式 */
+.payroll-mobile-notice {
+  margin-bottom: 10px;
+  font-weight: 800;
+}
+
+.payroll-mobile-readonly {
+  opacity: 0.96;
+}
+
+.payroll-mobile-readonly input:disabled,
+.payroll-mobile-readonly select:disabled,
+.payroll-mobile-readonly textarea:disabled {
+  color: #333;
+  background: #f3f5f2;
+  -webkit-text-fill-color: #333;
+  opacity: 1;
+}
+
+.edit-payroll-btn:disabled,
+.delete-payroll-btn:disabled {
+  display: none;
 }

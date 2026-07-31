@@ -194,14 +194,14 @@ async function handleYearlyBackup() {
 
     showStatus(
       "maintenanceStatus",
-      `${year} 年度备份已经下载。请妥善保存 JSON 文件。`,
+      `手动备份已经下载。请妥善保存 JSON 文件。`,
       true
     );
   } catch (error) {
     showStatus("maintenanceStatus", error.message, false);
   } finally {
     button.disabled = false;
-    button.textContent = "💾 年度备份 / Backup";
+    button.textContent = "💾 手动备份 / Backup Now";
   }
 }
 
@@ -290,9 +290,18 @@ async function handleYearEndClose() {
 }
 
 function downloadBackupJson(backup) {
-  const year = Number(backup && backup.backupYear) || new Date().getFullYear();
-  const dateText = new Date().toISOString().slice(0, 10).split("-").reverse().join("-");
-  const filename = `Lover Legend Workforce Backup ${year} ${dateText}.json`;
+  const now = new Date();
+  const stamp = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0")
+  ].join("-") + "_" + [
+    String(now.getHours()).padStart(2, "0"),
+    String(now.getMinutes()).padStart(2, "0"),
+    String(now.getSeconds()).padStart(2, "0")
+  ].join("-");
+
+  const filename = `Lover Legend Workforce Backup_${stamp}.json`;
 
   const blob = new Blob(
     [JSON.stringify(backup, null, 2)],

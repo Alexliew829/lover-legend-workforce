@@ -3,10 +3,43 @@ let payrollAdvances = [];
 let payrollRecords = [];
 let selectedPayrollWorker = null;
 let editingPayrollOriginalKey = null;
+
+const PAYROLL_IS_MOBILE_ = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+function isPayrollMobileReadonly() {
+  return PAYROLL_IS_MOBILE_;
+}
+
+function showPayrollDesktopOnlyMessage() {
+  window.alert("手机只能查看及打印 Payroll 资料。新增、修改、删除及保存只能在电脑进行。");
+}
+
+function applyPayrollMobileReadonlyMode() {
+  if (!isPayrollMobileReadonly()) return;
+
+  const form = document.getElementById("payrollForm");
+  const notice = document.getElementById("payrollMobileNotice");
+
+  if (notice) notice.hidden = false;
+
+  if (form) {
+    form.classList.add("payroll-mobile-readonly");
+    form.querySelectorAll("input, select, textarea, button").forEach(field => {
+      field.disabled = true;
+      field.setAttribute("aria-disabled", "true");
+    });
+  }
+
+  document.querySelectorAll(".edit-payroll-btn, .delete-payroll-btn").forEach(button => {
+    button.disabled = true;
+    button.setAttribute("aria-disabled", "true");
+    button.title = "手机只能查看及打印 Payroll";
+  });
+}
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v210";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v230";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -120,6 +153,7 @@ async function loadPayrollPage() {
   if (cached) {
     applyPayrollBootstrapData(cached);
     showStatus("status", "系统已就绪，正在后台同步最新资料", true);
+    applyPayrollMobileReadonlyMode();
   }
 
   try {
@@ -127,7 +161,8 @@ async function loadPayrollPage() {
 
     applyPayrollBootstrapData(data);
     showStatus("status", "系统已就绪，可以计算 Payroll", true);
- await restorePayrollSelection();
+    await restorePayrollSelection();
+    applyPayrollMobileReadonlyMode();
   } catch (error) {
     if (cached) {
       showStatus(
@@ -980,6 +1015,11 @@ function getPayrollPaymentDate() {
 async function handlePayrollSubmit(event) {
   event.preventDefault();
 
+  if (isPayrollMobileReadonly()) {
+    showPayrollDesktopOnlyMessage();
+    return;
+  }
+
   const form = event.target;
   const btn = document.getElementById("savePayrollBtn");
 
@@ -1072,7 +1112,8 @@ async function handlePayrollSubmit(event) {
       remark: form.remark.value.trim(),
       originalCompany: editingPayrollOriginalKey?.company || "",
       originalWorkerNo: editingPayrollOriginalKey?.workerNo || "",
-      originalMonth: editingPayrollOriginalKey?.month || ""
+      originalMonth: editingPayrollOriginalKey?.month || "",
+      clientDevice: isPayrollMobileReadonly() ? "mobile" : "desktop"
     };
 
     btn.disabled = true;
@@ -1288,6 +1329,7 @@ const summaryParts = [];
   `;
 
   list.innerHTML = recordsHtml + totalHtml;
+  applyPayrollMobileReadonlyMode();
 }
 
 
@@ -1313,6 +1355,11 @@ function resetPayrollEditMode() {
 }
 
 async function editPayrollRecord(company, workerNo, month) {
+  if (isPayrollMobileReadonly()) {
+    showPayrollDesktopOnlyMessage();
+    return;
+  }
+
   const record = payrollRecords.find(item =>
     String(item["公司"] || "") === String(company || "") &&
     String(item["工人编号"] || "") === String(workerNo || "") &&
@@ -1365,7 +1412,7 @@ async function editPayrollRecord(company, workerNo, month) {
   form.workerNo.value = String(workerNo || "");
   form.salaryType.value = String(record["薪水类型"] || worker["薪水类型"] || "");
 
-  // V2.1：编辑 Payroll 时锁定公司、工人和月份。
+  // V2.3：编辑 Payroll 时锁定公司、工人和月份。
   // 若身份资料错误，应删除该笔 Payroll 后重新建立，避免影响其他工人或月份。
   setPayrollIdentityLocked(true);
 
@@ -1381,6 +1428,11 @@ async function editPayrollRecord(company, workerNo, month) {
 }
 
 async function deletePayrollRecord(company, workerNo, month, workerName) {
+  if (isPayrollMobileReadonly()) {
+    showPayrollDesktopOnlyMessage();
+    return;
+  }
+
   const message = [
     "确定删除这笔 Payroll？",
     "",
@@ -1550,3 +1602,5 @@ function escapePayrollHtml(value) {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"
   }[char]));
 }
+
+
