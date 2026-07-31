@@ -273,8 +273,8 @@ function updateAbsenceAmount() {
   if (salaryType === "日薪") {
     amount = parseCurrency(worker["日薪"]);
   } else if (salaryType === "月薪") {
-  amount = parseCurrency(worker["月薪"]) / 30;
-}
+    amount = parseCurrency(worker["月薪"]) / 30;
+  }
   form.amount.value = amount > 0 ? formatMoneyInput(amount) : "";
   form.amount.dataset.autoAbsence = "true";
 }
