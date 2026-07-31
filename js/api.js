@@ -1,6 +1,6 @@
 const API_READ_CACHE_MS = 30000;
 const API_STALE_CACHE_MS = 24 * 60 * 60 * 1000;
-const API_CACHE_PREFIX = "ll-api-cache-v187:";
+const API_CACHE_PREFIX = "ll-api-cache-v193:";
 
 const apiReadCache = new Map();
 const apiPendingRequests = new Map();
@@ -25,6 +25,7 @@ const API_WRITE_ACTIONS = new Set([
   "addAdvance",
   "updateAdvance",
   "savePayroll",
+  "deletePayroll",
   "clearCache",
   "restoreYearlyBackup",
   "yearEndClose"
@@ -66,6 +67,13 @@ const API_INVALIDATION_MAP = {
     "getDashboardSummary"
   ],
   savePayroll: [
+    "getPayrolls",
+    "getPayrollData",
+    "getPayrollBootstrap",
+    "getAdvanceLedger",
+    "getDashboardSummary"
+  ],
+  deletePayroll: [
     "getPayrolls",
     "getPayrollData",
     "getPayrollBootstrap",

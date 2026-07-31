@@ -931,3 +931,24 @@ select[name="existingWorkerNo"] {
   font-weight: 700;
   line-height: 1.4;
 }
+
+
+/* V1.93 Payroll edit / delete actions */
+.payroll-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+.payroll-record-actions .payslip-link { margin-top: 0; }
+.payroll-action-btn {
+  appearance: none;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.payroll-edit-btn { border: 1px solid #8a6d00; color: #7a5d00; background: #fffbea; }
+.payroll-delete-btn { border: 1px solid #c00000; color: #c00000; background: #fff3f3; }

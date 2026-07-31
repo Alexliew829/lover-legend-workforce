@@ -2,6 +2,7 @@ let payrollWorkers = [];
 let payrollAdvances = [];
 let payrollRecords = [];
 let selectedPayrollWorker = null;
+let editingPayrollOriginalKey = null;
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
@@ -173,6 +174,7 @@ function fillPayrollSelect(select, start, end, label) {
 
 
 function handlePayrollCompanyChange() {
+  editingPayrollOriginalKey = null;
   resetPayrollEntryFields();
   renderPayrollWorkers();
 }
@@ -816,7 +818,10 @@ async function handlePayrollSubmit(event) {
       totalDeduction: calculation.totalDeduction,
       netSalary: calculation.netSalary,
       debtBalance: calculation.remainingDebt,
-      remark: form.remark.value.trim()
+      remark: form.remark.value.trim(),
+      originalCompany: editingPayrollOriginalKey?.company || "",
+      originalWorkerNo: editingPayrollOriginalKey?.workerNo || "",
+      originalMonth: editingPayrollOriginalKey?.month || ""
     };
 
     btn.disabled = true;
@@ -911,6 +916,17 @@ async function handlePayrollSubmit(event) {
       payrollWorkers[workerIndex]["默认津贴"] = savedAllowance;
     }
 
+    if (editingPayrollOriginalKey) {
+      const original = editingPayrollOriginalKey;
+      payrollRecords = payrollRecords.filter(item => !(
+        String(item["公司"] || "") === String(original.company || "") &&
+        normalizePayrollMonth(item["月份"]) === normalizePayrollMonth(original.month) &&
+        String(item["工人编号"] || "") === String(original.workerNo || "")
+      ));
+      editingPayrollOriginalKey = null;
+      btn.textContent = "保存 Payroll";
+    }
+
     const index = payrollRecords.findIndex(item =>
       String(item["公司"] || "") === String(savedRecord["公司"] || "") &&
       normalizePayrollMonth(item["月份"]) ===
@@ -990,13 +1006,23 @@ const summaryParts = [];
       ${summaryParts.length ? `<div class="muted payroll-record-summary">${summaryParts.join(" · ")}</div>` : ""}
         <div class="payroll-net-line">实发 : ${formatPayrollCurrency(item["实发薪水"])}</div>
         <div class="payroll-debt-balance-line">欠款余额 : ${formatPayrollCurrency(debtBalance)}</div>
-       <a
-  class="payslip-link"
-  href="payslip.html?company=${encodeURIComponent(String(item["公司"] || ""))}&workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
-  onclick="savePayrollSelection('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}')"
->
-  打印工资单 / Print Payslip
-</a>
+        <div class="payroll-record-actions">
+          <button
+            type="button"
+            class="payroll-action-btn payroll-edit-btn"
+            onclick="editPayrollRecord('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}')"
+          >编辑 Payroll</button>
+          <a
+            class="payslip-link"
+            href="payslip.html?company=${encodeURIComponent(String(item["公司"] || ""))}&workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
+            onclick="savePayrollSelection('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}')"
+          >打印工资单 / Print Payslip</a>
+          <button
+            type="button"
+            class="payroll-action-btn payroll-delete-btn"
+            onclick="deletePayrollRecord('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}', '${escapePayrollJsString(item["工人名字"] || "")}')"
+          >删除 Payroll</button>
+        </div>
       </div>
     `;
   }).join("");
@@ -1011,6 +1037,122 @@ const summaryParts = [];
   list.innerHTML = recordsHtml + totalHtml;
 }
 
+
+async function editPayrollRecord(company, workerNo, month) {
+  const record = payrollRecords.find(item =>
+    String(item["公司"] || "") === String(company || "") &&
+    String(item["工人编号"] || "") === String(workerNo || "") &&
+    normalizePayrollMonth(item["月份"]) === normalizePayrollMonth(month)
+  );
+
+  if (!record) {
+    showStatus("status", "找不到这笔 Payroll", false);
+    return;
+  }
+
+  const form = document.getElementById("payrollForm");
+  const match = normalizePayrollMonth(month).match(/^(\d{2})-(\d{4})$/);
+  if (!form || !match) return;
+
+  editingPayrollOriginalKey = {
+    company: String(company || ""),
+    workerNo: String(workerNo || ""),
+    month: normalizePayrollMonth(month)
+  };
+
+  form.payMonth.value = match[1];
+  form.payYear.value = match[2];
+  form.company.value = String(company || "");
+  renderPayrollWorkers();
+
+  let worker = payrollWorkers.find(item =>
+    String(item["公司"] || "") === String(company || "") &&
+    String(item["工人编号"] || "") === String(workerNo || "")
+  );
+
+  // 已离职工人不会出现在在职名单，编辑历史记录时临时建立选项。
+  if (!worker) {
+    worker = {
+      "公司": record["公司"],
+      "工人编号": record["工人编号"],
+      "工人名字": record["工人名字"],
+      "薪水类型": record["薪水类型"],
+      "日薪": record["日薪"],
+      "月薪": record["月薪"],
+      "默认津贴": record["津贴"]
+    };
+    const option = document.createElement("option");
+    option.value = String(workerNo || "");
+    option.textContent = `${workerNo} · ${record["工人名字"]}（已离职）`;
+    form.workerNo.appendChild(option);
+  }
+
+  selectedPayrollWorker = worker;
+  form.workerNo.value = String(workerNo || "");
+  form.salaryType.value = String(record["薪水类型"] || worker["薪水类型"] || "");
+
+  renderSalarySection();
+  renderAbsenceSection();
+  renderDebtList();
+  calculatePayroll();
+
+  const button = document.getElementById("savePayrollBtn");
+  if (button) button.textContent = "更新 Payroll";
+  showStatus("status", `正在编辑 ${month} · ${workerNo} 的 Payroll`, true);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function deletePayrollRecord(company, workerNo, month, workerName) {
+  const message = [
+    "确定删除这笔 Payroll？",
+    "",
+    `工人：${workerNo} · ${workerName}`,
+    `月份：${month}`,
+    "",
+    "此操作无法还原。"
+  ].join("\n");
+
+  if (!window.confirm(message)) return;
+
+  try {
+    showStatus("status", "正在删除 Payroll...", true);
+    await api("deletePayroll", {
+      key: { company, workerNo, month }
+    });
+
+    payrollRecords = payrollRecords.filter(item => !(
+      String(item["公司"] || "") === String(company || "") &&
+      String(item["工人编号"] || "") === String(workerNo || "") &&
+      normalizePayrollMonth(item["月份"]) === normalizePayrollMonth(month)
+    ));
+
+    if (
+      editingPayrollOriginalKey &&
+      editingPayrollOriginalKey.company === company &&
+      editingPayrollOriginalKey.workerNo === workerNo &&
+      normalizePayrollMonth(editingPayrollOriginalKey.month) === normalizePayrollMonth(month)
+    ) {
+      editingPayrollOriginalKey = null;
+      resetPayrollEntryFields();
+      renderPayrollWorkers();
+      const button = document.getElementById("savePayrollBtn");
+      if (button) button.textContent = "保存 Payroll";
+    }
+
+    if (typeof setApiCachedData === "function") {
+      setApiCachedData("getPayrollBootstrap", {}, {
+        workers: payrollWorkers,
+        advances: payrollAdvances,
+        payrolls: payrollRecords
+      });
+    }
+
+    renderPayrollHistory();
+    showStatus("status", "Payroll 已删除", true);
+  } catch (error) {
+    showStatus("status", error.message, false);
+  }
+}
 
 function savePayrollSelection(company, workerNo) {
   const form = document.getElementById("payrollForm");
