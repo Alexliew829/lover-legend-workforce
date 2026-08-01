@@ -1343,3 +1343,14 @@ select[name="existingWorkerNo"] {
     font-weight: 800;
   }
 }
+
+
+/* V2.6 Advance absence Payroll status */
+.absence-payroll-status {
+  display: inline-block;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.absence-status-deducted { color: #b42318; }
+.absence-status-waived { color: #087443; }
+.absence-status-pending { color: #9a6700; }

@@ -1,3 +1,21 @@
+# V2.6 Enterprise Stable
+
+- Advance Bootstrap 由 Apps Script 直接回传 Payroll 缺席处理状态。
+- 已出粮并扣薪显示“已扣薪”；已出粮但免扣显示“免扣”；未出粮显示“待处理”。
+- 同一工人同一月份的全部缺席采用统一状态。
+- 缺席不计入累计欠款。
+- 保留 V2.4.2 手机完整查看模式及桌面全部功能。
+- 统一页面、manifest、Apps Script API、Service Worker 与 API Cache 版本为 V2.6。
+
+# V2.5 Absence Payroll Status
+
+- Advance 缺席记录按工人、公司和月份对应已保存的 Payroll。
+- Payroll 选择扣薪后，整个月缺席显示“已扣薪”。
+- Payroll 选择免扣后，整个月缺席显示“免扣”。
+- 尚未保存 Payroll 的月份显示“待处理”。
+- 缺席仍不计入累计欠款，V2.4.2 其他逻辑保持不变。
+- Apps Script 接口不需新增；继续使用现有 getPayrolls 资料。
+
 # V2.4 Mobile Query Fix
 
 - 手机 Payroll 恢复月份、年份、公司及工人查询。
@@ -6,7 +24,7 @@
 - 更新 PWA 缓存为 v241，避免继续载入旧版锁定逻辑。
 - Apps Script 与 Google Sheet 逻辑没有修改。
 
-# V2.4 Stable
+# V2.5 Stable
 
 - Worker names now support up to 30 characters across the frontend and backend.
 

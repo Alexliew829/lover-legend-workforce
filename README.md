@@ -1,17 +1,7 @@
-# Lover Legend Workforce ERP V2.4 Stable
+# Lover Legend Workforce ERP V2.6 Enterprise Stable
 
-Frontend for Worker, Advance, Payroll and bilingual Payslip printing.
+V2.6 在 Advance 缺席记录中显示对应 Payroll 的最终处理状态：已扣薪、免扣或待处理。
 
-V2.4 Stable includes monthly Payroll filtering, Malay-English two-copy A4 payslips, automatic PDF names, dual-logo home header, and desktop/mobile PWA icons.
+部署时必须同时更新 Frontend 与 Apps Script，并为 Apps Script 建立新部署版本。
 
-
-## V2.4 Stable
-- Replaced Windows, Android and iPhone icons with the approved Payroll icon featuring a red P.
-- Combined Payroll and Print Payslip into one home-menu module.
-- Payroll page title is now “Payroll / 打印工资单 / Print Payslip”.
-- Payslip remains a print-only page opened from saved Payroll records.
-
-
-## V2.4 Stable
-- Added monthly Dashboard summary.
-- Refreshed desktop and mobile Payroll icons and cache version.
+手机 Payroll 支持月份、年份、公司和工人查询，可查看扣款明细及 Payslip；手机不可保存、编辑、删除或打印。电脑保留全部功能。

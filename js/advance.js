@@ -2,6 +2,7 @@ let workersCache = [];
 let advanceLedgerCache = [];
 let editingAdvanceRow = null;
 let payrollRepaymentLoading = false;
+let payrollAbsenceStatusMap = new Map();
 
 const DEFAULT_ADVANCE_TYPE = "支粮";
 
@@ -61,6 +62,21 @@ async function loadAdvancePage() {
   }
 }
 
+function applyPayrollAbsenceStatuses(statuses) {
+  payrollAbsenceStatusMap = new Map();
+  (Array.isArray(statuses) ? statuses : []).forEach(item => {
+    const key = buildAbsencePayrollKey(
+      item["公司"],
+      item["工人编号"],
+      item["月份"]
+    );
+    const status = String(item["状态"] || "").trim();
+    if (key && (status === "已扣薪" || status === "免扣")) {
+      payrollAbsenceStatusMap.set(key, status);
+    }
+  });
+}
+
 function applyAdvanceBootstrapData(data) {
   workersCache = Array.isArray(data?.workers) ? data.workers : [];
   advanceLedgerCache = (Array.isArray(data?.advances) ? data.advances : [])
@@ -69,6 +85,8 @@ function applyAdvanceBootstrapData(data) {
       "交易来源": "新增",
       "显示金额": Number(item["金额"]) || 0
     }));
+
+  applyPayrollAbsenceStatuses(data?.payrollAbsenceStatuses);
 
   renderWorkerOptions();
   renderAdvanceLedger(advanceLedgerCache);
@@ -99,8 +117,27 @@ async function loadPayrollRepaymentsInBackground() {
   try {
     const payrolls = await api("getPayrolls");
     const repayments = [];
+    const refreshedAbsenceStatusMap = new Map();
 
     (payrolls || []).forEach(payroll => {
+      const payrollMonth = normalizeAdvanceMonthKey(payroll["月份"]);
+      const payrollKey = buildAbsencePayrollKey(
+        payroll["公司"],
+        payroll["工人编号"],
+        payrollMonth
+      );
+      const absenceAction = String(payroll["缺席处理"] || "").trim();
+      const absenceDeduction = Number(payroll["缺席扣款"] || 0);
+
+      // Payroll 已保存后，整个月的缺席统一标记为已扣薪或免扣。
+      // 尚未保存 Payroll 的月份不会进入此 Map，前端显示“待处理”。
+      refreshedAbsenceStatusMap.set(
+        payrollKey,
+        absenceAction === "免扣"
+          ? "免扣"
+          : (absenceAction === "扣薪" || absenceDeduction > 0 ? "已扣薪" : "免扣")
+      );
+
       const date = payroll["发薪日期"] || payrollMonthEndDate(payroll["月份"]);
       [
         [
@@ -129,6 +166,7 @@ async function loadPayrollRepaymentsInBackground() {
       });
     });
 
+    payrollAbsenceStatusMap = refreshedAbsenceStatusMap;
     advanceLedgerCache = [
       ...advanceLedgerCache.filter(item => item["交易来源"] !== "Payroll"),
       ...repayments
@@ -139,6 +177,50 @@ async function loadPayrollRepaymentsInBackground() {
   } finally {
     payrollRepaymentLoading = false;
   }
+}
+
+function normalizeAdvanceMonthKey(value) {
+  const text = String(value || "").trim();
+  if (/^\d{2}-\d{4}$/.test(text)) return text;
+  if (/^\d{4}-\d{2}$/.test(text)) {
+    const [year, month] = text.split("-");
+    return `${month}-${year}`;
+  }
+  return text;
+}
+
+function monthKeyFromAdvanceDate(value) {
+  const date = formatAdvanceDate(value);
+  const match = String(date || "").match(/^\d{2}-(\d{2})-(\d{4})$/);
+  return match ? `${match[1]}-${match[2]}` : "";
+}
+
+function buildAbsencePayrollKey(company, workerNo, month) {
+  return [
+    String(company || "").trim(),
+    String(workerNo || "").trim(),
+    normalizeAdvanceMonthKey(month)
+  ].join("__");
+}
+
+function getAbsencePayrollStatus(item) {
+  const month = monthKeyFromAdvanceDate(
+    item["扣款日期"] || item["日期"] || item["日期时间"]
+  );
+  if (!month) return "待处理";
+
+  const key = buildAbsencePayrollKey(
+    item["公司"],
+    item["工人编号"],
+    month
+  );
+  return payrollAbsenceStatusMap.get(key) || "待处理";
+}
+
+function absenceStatusClass(status) {
+  if (status === "已扣薪") return "absence-status-deducted";
+  if (status === "免扣") return "absence-status-waived";
+  return "absence-status-pending";
 }
 
 function payrollMonthEndDate(monthValue) {
@@ -474,20 +556,24 @@ function renderAdvanceLedger(advances) {
       </div>
     `).join("");
 
-    const absenceRecordsHtml = group.absenceRecords.map(item => `
-      <div class="advance-ledger-line absence-ledger-line">
-        <span>
-          ${escapeHtml(formatAdvanceDate(
-            item["扣款日期"] || item["日期"] || item["日期时间"]
-          ))}
-          · 缺席
-          · ${formatCurrency(item["金额"])}
-        </span>
-        ${String(item["备注"] || "").trim()
-          ? `<div class="advance-ledger-note">备注：${escapeHtml(item["备注"])}</div>`
-          : ""}
-      </div>
-    `).join("");
+    const absenceRecordsHtml = group.absenceRecords.map(item => {
+      const status = getAbsencePayrollStatus(item);
+      return `
+        <div class="advance-ledger-line absence-ledger-line">
+          <span>
+            ${escapeHtml(formatAdvanceDate(
+              item["扣款日期"] || item["日期"] || item["日期时间"]
+            ))}
+            · 缺席
+            · ${formatCurrency(item["金额"])}
+            · <strong class="absence-payroll-status ${absenceStatusClass(status)}">${escapeHtml(status)}</strong>
+          </span>
+          ${String(item["备注"] || "").trim()
+            ? `<div class="advance-ledger-note">备注：${escapeHtml(item["备注"])}</div>`
+            : ""}
+        </div>
+      `;
+    }).join("");
 
     const repaymentHtml = group.repaymentRecords.length ? `
       <div class="advance-ledger-records repayment-records">
@@ -528,7 +614,7 @@ function renderAdvanceLedger(advances) {
             ${absenceRecordsHtml}
           </div>
           <div class="advance-ledger-hint">
-            缺席只供 Payroll 扣薪计算，不计入累计欠款。
+            状态会按对应月份 Payroll 显示：已扣薪、免扣或待处理；缺席不计入累计欠款。
           </div>
         ` : ""}
 
