@@ -1345,7 +1345,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.6 Advance absence Payroll status */
+/* V2.7 Advance absence Payroll status */
 .absence-payroll-status {
   display: inline-block;
   font-weight: 800;
@@ -1354,3 +1354,35 @@ select[name="existingWorkerNo"] {
 .absence-status-deducted { color: #b42318; }
 .absence-status-waived { color: #087443; }
 .absence-status-pending { color: #9a6700; }
+
+
+/* V2.7 欠款历史与目前未清欠款 */
+.advance-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.advance-action-row .btn { margin-top: 0; }
+.advance-current-title { font-size: 18px; font-weight: 900; margin-bottom: 10px; }
+.advance-history-panel { scroll-margin-top: 12px; }
+.advance-history-header { margin-bottom: 12px; }
+.advance-history-lines { display: grid; gap: 6px; margin-top: 10px; }
+.advance-history-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 0;
+  border-bottom: 1px dashed #d8e8d4;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.advance-history-line strong { white-space: nowrap; }
+.advance-history-line.is-borrow strong { color: #b00020; }
+.advance-history-line.is-repayment strong { color: #13752e; }
+.advance-open-debt-line { padding: 7px 0; }
+@media (max-width: 390px) {
+  .advance-action-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .advance-action-row .btn { padding: 13px 8px; font-size: 15px; }
+}

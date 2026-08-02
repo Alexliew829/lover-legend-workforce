@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payroll System - Advance</title>
   <link rel="manifest" href="../manifest.json" />
-  <link rel="icon" href="../assets/icons/payroll-system.ico?v=2.6" />
-  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=2.6" />
-  <link rel="stylesheet" href="../css/style.css?v=2.6" />
+  <link rel="icon" href="../assets/icons/payroll-system.ico?v=2.7" />
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=2.7" />
+  <link rel="stylesheet" href="../css/style.css?v=2.7" />
 </head>
 <body>
   <div class="app">
@@ -16,7 +16,7 @@
       <div class="page-title">欠款管理</div>
     </div>
 
-    <div id="status" class="status">欠款管理 V2.6 Enterprise Stable</div>
+    <div id="status" class="status">欠款管理 V2.7 Enterprise Stable</div>
 
     <section class="card">
       <form id="advanceForm" class="form">
@@ -59,18 +59,32 @@
         <label>备注</label>
         <textarea name="remark" rows="2" placeholder="可以跳过"></textarea>
 
-        <button id="saveAdvanceBtn" class="btn" type="submit">保存记录</button>
+        <div class="advance-action-row">
+          <button id="saveAdvanceBtn" class="btn" type="submit">保存记录</button>
+          <button id="toggleAdvanceHistoryBtn" class="btn secondary" type="button">欠款历史记录</button>
+        </div>
       </form>
     </section>
 
     <section class="card">
+      <div class="advance-current-title">目前未清欠款</div>
       <div id="advanceList" class="list"></div>
+    </section>
+
+    <section id="advanceHistoryPanel" class="card advance-history-panel" hidden>
+      <div class="advance-history-header">
+        <div>
+          <div class="advance-current-title">所有欠款历史进出</div>
+          <div class="muted">显示所有公司、所有工人的新增欠款及 Payroll 扣回记录。</div>
+        </div>
+      </div>
+      <div id="advanceHistoryList" class="list"></div>
     </section>
   </div>
 
   <script src="../js/config.js"></script>
-  <script src="../js/api.js?v=2.6"></script>
-  <script src="../js/advance.js?v=2.6"></script>
-  <script src="../js/app.js?v=2.6"></script>
+  <script src="../js/api.js?v=2.7"></script>
+  <script src="../js/advance.js?v=2.7"></script>
+  <script src="../js/app.js?v=2.7"></script>
 </body>
 </html>
