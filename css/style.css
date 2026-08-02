@@ -1345,7 +1345,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.7 Advance absence Payroll status */
+/* V2.8 Advance absence Payroll status */
 .absence-payroll-status {
   display: inline-block;
   font-weight: 800;
@@ -1356,7 +1356,7 @@ select[name="existingWorkerNo"] {
 .absence-status-pending { color: #9a6700; }
 
 
-/* V2.7 欠款历史与目前未清欠款 */
+/* V2.8 欠款历史与目前未清欠款 */
 .advance-action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

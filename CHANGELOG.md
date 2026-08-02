@@ -1,11 +1,11 @@
-# V2.7 Enterprise Stable
+# V2.8 Enterprise Stable
 
 - Advance Bootstrap 由 Apps Script 直接回传 Payroll 缺席处理状态。
 - 已出粮并扣薪显示“已扣薪”；已出粮但免扣显示“免扣”；未出粮显示“待处理”。
 - 同一工人同一月份的全部缺席采用统一状态。
 - 缺席不计入累计欠款。
 - 保留 V2.4.2 手机完整查看模式及桌面全部功能。
-- 统一页面、manifest、Apps Script API、Service Worker 与 API Cache 版本为 V2.7。
+- 统一页面、manifest、Apps Script API、Service Worker 与 API Cache 版本为 V2.8。
 
 # V2.5 Absence Payroll Status
 

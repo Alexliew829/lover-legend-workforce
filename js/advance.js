@@ -486,15 +486,20 @@ async function loadAdvances(prefetchedAdvances = null) {
 
 function toggleAdvanceHistory() {
   advanceHistoryVisible = !advanceHistoryVisible;
-  const panel = document.getElementById("advanceHistoryPanel");
+  const historyPanel = document.getElementById("advanceHistoryPanel");
+  const currentPanel = document.getElementById("advanceCurrentPanel");
   const button = document.getElementById("toggleAdvanceHistoryBtn");
 
-  if (panel) panel.hidden = !advanceHistoryVisible;
+  // V2.8：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
+  if (historyPanel) historyPanel.hidden = !advanceHistoryVisible;
+  if (currentPanel) currentPanel.hidden = advanceHistoryVisible;
   if (button) button.textContent = advanceHistoryVisible ? "收起历史记录" : "欠款历史记录";
 
   if (advanceHistoryVisible) {
     renderAdvanceHistory(advanceLedgerCache);
-    panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    historyPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    currentPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 

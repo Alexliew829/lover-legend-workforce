@@ -72,7 +72,7 @@ function applyPayrollMobileReadonlyMode() {
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v230";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v280";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -248,27 +248,13 @@ function setupPayrollMonthYear() {
 
 function getSavedPayrollDefaultPeriod() {
   const now = new Date();
-  const fallback = {
+
+  // V2.8：每次进入 Payroll 都默认显示当前月份。
+  // 历史月份仍可通过月份选择器查询，但不会成为下次进入页面的默认月份。
+  return {
     month: String(now.getMonth() + 1).padStart(2, "0"),
     year: String(now.getFullYear())
   };
-
-  try {
-    const saved = JSON.parse(localStorage.getItem(PAYROLL_DEFAULT_PERIOD_KEY) || "null");
-    if (
-      saved &&
-      /^\d{2}$/.test(String(saved.month || "")) &&
-      /^\d{4}$/.test(String(saved.year || ""))
-    ) {
-      return {
-        month: String(saved.month),
-        year: String(saved.year)
-      };
-    }
-  } catch (_) {}
-
-  savePayrollDefaultPeriod(fallback.month, fallback.year);
-  return fallback;
 }
 
 function savePayrollDefaultPeriod(month, year) {
