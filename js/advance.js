@@ -490,7 +490,7 @@ function toggleAdvanceHistory() {
   const currentPanel = document.getElementById("advanceCurrentPanel");
   const button = document.getElementById("toggleAdvanceHistoryBtn");
 
-  // V3.0：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
+  // V3.0.1：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
   if (historyPanel) historyPanel.hidden = !advanceHistoryVisible;
   if (currentPanel) currentPanel.hidden = advanceHistoryVisible;
   if (button) button.textContent = advanceHistoryVisible ? "收起历史记录" : "欠款历史记录";

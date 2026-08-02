@@ -72,7 +72,7 @@ function applyPayrollMobileReadonlyMode() {
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v300";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v301";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -147,10 +147,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("focusout", event => {
     if (event.target.classList.contains("debt-record-deduction-input")) {
-      const valid = validateDebtRecordLimit(event.target, true);
+      validateDebtRecordLimit(event.target, true);
       if (event.target.value.trim()) event.target.value = moneyInput(event.target.value);
       calculatePayroll();
-      if (!valid) event.target.focus();
     }
 
     if (
@@ -252,7 +251,7 @@ function setupPayrollMonthYear() {
 function getSavedPayrollDefaultPeriod() {
   const now = new Date();
 
-  // V3.0：每次进入 Payroll 都默认显示当前月份。
+  // V3.0.1：每次进入 Payroll 都默认显示当前月份。
   // 历史月份仍可通过月份选择器查询，但不会成为下次进入页面的默认月份。
   return {
     month: String(now.getMonth() + 1).padStart(2, "0"),
@@ -821,7 +820,7 @@ function getSavedAllocationMap(type, current, records, legacyTotal) {
   return map;
 }
 
-function validateDebtRecordLimit(input, showAlert = false) {
+function validateDebtRecordLimit(input, correctValue = false) {
   if (!input) return true;
 
   const itemBalance = Math.max(0, Number(input.dataset.itemBalance) || 0);
@@ -834,7 +833,21 @@ function validateDebtRecordLimit(input, showAlert = false) {
 
   if (!valid) {
     showStatus("status", message, false);
-    if (showAlert) window.alert(message);
+
+    // 离开输入框时只提醒一次，并自动改为该笔最高可扣金额。
+    if (correctValue) {
+      const alertKey = `${input.dataset.recordKey || ""}|${deduction}|${itemBalance}`;
+      if (input.dataset.lastLimitAlert !== alertKey) {
+        input.dataset.lastLimitAlert = alertKey;
+        window.alert(message);
+      }
+      input.value = itemBalance > 0 ? moneyInput(itemBalance) : "";
+      input.classList.remove("input-error");
+      input.setCustomValidity("");
+      return true;
+    }
+  } else {
+    delete input.dataset.lastLimitAlert;
   }
 
   return valid;
@@ -908,12 +921,21 @@ function renderDebtList() {
   list.innerHTML = DEBT_TYPES.map(type => {
     const balance = balances[type] || 0;
     const value = Math.min(saved[type] || 0, balance);
+    const isAdvance = type === "支粮";
+    const remaining = Math.max(0, balance - value);
+    const hasDebt = balance > 0;
 
-    // V3.0：逐笔欠款已经显示项目、日期、未清余额，
-    // 不再重复显示红色“支粮 / 余额 / 扣后剩余”摘要。
+    // V3.0.1.1：恢复 V2.9 较醒目的项目摘要，但保留 V3.0.1 的逐笔扣款上限验证。
     return `
-      <div class="debt-row debt-row-compact">
+      <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""} ${hasDebt ? "has-debt" : ""}">
+        <div class="debt-info">
+          <div class="debt-type">${type}</div>
+          <div class="debt-balance">余额 ${formatPayrollCurrency(balance)}</div>
+          <div class="debt-remaining ${remaining > 0 ? "debt-alert" : ""}" data-remaining-type="${type}">扣后剩余 ${formatPayrollCurrency(remaining)}</div>
+        </div>
+
         ${renderDebtRecordDetails(type, balance, current, value)}
+
         <div class="debt-type-deduction-summary">
           <span>本月扣除：</span><strong data-deduction-type-total="${type}">${formatPayrollCurrency(value)}</strong>
         </div>
