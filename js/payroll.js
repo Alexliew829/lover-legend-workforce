@@ -249,7 +249,7 @@ function setupPayrollMonthYear() {
 function getSavedPayrollDefaultPeriod() {
   const now = new Date();
 
-  // V2.8：每次进入 Payroll 都默认显示当前月份。
+  // V2.9：每次进入 Payroll 都默认显示当前月份。
   // 历史月份仍可通过月份选择器查询，但不会成为下次进入页面的默认月份。
   return {
     month: String(now.getMonth() + 1).padStart(2, "0"),
@@ -1141,6 +1141,23 @@ async function handlePayrollSubmit(event) {
       }
     }
 
+    const existingPayroll = getCurrentMonthPayrollRecord();
+
+    if (!editingPayrollOriginalKey && existingPayroll) {
+      window.alert("这份 Payroll 已经保存，不能重复保存。请到下面的 Payroll 列表点击‘编辑 Payroll’后再修改。");
+      return;
+    }
+
+    if (
+      editingPayrollOriginalKey &&
+      String(existingPayroll?.["已打印"] || "").trim() === "是"
+    ) {
+      const confirmed = window.confirm(
+        "这份工资单已经打印，薪水可能已经发放。确认要修改吗？"
+      );
+      if (!confirmed) return;
+    }
+
     const calculation = calculatePayroll();
     if (String(selectedPayrollWorker["薪水类型"] || "") === "日薪" && getWorkDays() <= 0) {
       throw new Error("请输入本月计薪天数");
@@ -1190,6 +1207,7 @@ async function handlePayrollSubmit(event) {
       basicSalary: calculation.grossSalary,
       allowance: calculation.allowance,
       updateDefaultAllowance: parsePayrollMoney(selectedPayrollWorker?.["默认津贴"]) !== calculation.allowance,
+      confirmPrintedUpdate: Boolean(editingPayrollOriginalKey),
       liveCommission: calculation.liveCommission,
       absenceDays: calculation.absence.days,
       absenceAction: calculation.absenceAction,

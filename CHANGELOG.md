@@ -1,11 +1,21 @@
-# V2.8 Enterprise Stable
+# V2.9 Enterprise Stable
+
+- 欠款历史：借款（+）统一显示在上方并改为青色；Payroll 还款（-）统一显示在下方并改为红色。
+- 每位工人历史卡显示累计欠款、Payroll 累计扣回及当前未清欠款。
+- 年底结转前自动把 Advance、Payroll、Payslip、Dashboard、AuditLog 保存到 Google Sheet 历史归档。
+- 年底结转后只结转尚未还清的支粮与准证；已处理缺席及已还清欠款不再显示。
+- Payroll 已保存后不能再次直接保存，必须从列表进入编辑模式。
+- 已打印 Payroll 修改前必须二次确认，且更新后保留原打印状态与打印时间。
+- 全系统版本统一更新为 V2.9。
+
+# V2.9 Enterprise Stable
 
 - Advance Bootstrap 由 Apps Script 直接回传 Payroll 缺席处理状态。
 - 已出粮并扣薪显示“已扣薪”；已出粮但免扣显示“免扣”；未出粮显示“待处理”。
 - 同一工人同一月份的全部缺席采用统一状态。
 - 缺席不计入累计欠款。
 - 保留 V2.4.2 手机完整查看模式及桌面全部功能。
-- 统一页面、manifest、Apps Script API、Service Worker 与 API Cache 版本为 V2.8。
+- 统一页面、manifest、Apps Script API、Service Worker 与 API Cache 版本为 V2.9。
 
 # V2.5 Absence Payroll Status
 

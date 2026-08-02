@@ -490,7 +490,7 @@ function toggleAdvanceHistory() {
   const currentPanel = document.getElementById("advanceCurrentPanel");
   const button = document.getElementById("toggleAdvanceHistoryBtn");
 
-  // V2.8：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
+  // V2.9：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
   if (historyPanel) historyPanel.hidden = !advanceHistoryVisible;
   if (currentPanel) currentPanel.hidden = advanceHistoryVisible;
   if (button) button.textContent = advanceHistoryVisible ? "收起历史记录" : "欠款历史记录";
@@ -645,18 +645,29 @@ function renderAdvanceHistory(advances) {
 
   const groups = buildAdvanceGroups(advances);
   list.innerHTML = groups.map(group => {
-    const history = [...group.borrowRecords, ...group.repaymentRecords]
-      .sort((a, b) => parseDDMMYYYY(b["日期时间"] || b["日期"] || b["扣款日期"]) - parseDDMMYYYY(a["日期时间"] || a["日期"] || a["扣款日期"]));
+    const borrowHistory = [...group.borrowRecords].sort((a, b) =>
+      parseDDMMYYYY(a["日期时间"] || a["日期"] || a["扣款日期"]) -
+      parseDDMMYYYY(b["日期时间"] || b["日期"] || b["扣款日期"])
+    );
+    const repaymentHistory = [...group.repaymentRecords].sort((a, b) =>
+      parseDDMMYYYY(a["日期时间"] || a["日期"] || a["扣款日期"]) -
+      parseDDMMYYYY(b["日期时间"] || b["日期"] || b["扣款日期"])
+    );
 
-    if (!history.length) return "";
+    if (!borrowHistory.length && !repaymentHistory.length) return "";
 
-    const totalBorrowed = group.borrowRecords.reduce((sum, item) => sum + (Number(item["金额"]) || 0), 0);
-    const totalRepaid = group.repaymentRecords.reduce((sum, item) => sum + Math.abs(Number(item["显示金额"] ?? item["金额"]) || 0), 0);
+    const totalBorrowed = group.borrowRecords.reduce(
+      (sum, item) => sum + (Number(item["金额"]) || 0),
+      0
+    );
+    const totalRepaid = group.repaymentRecords.reduce(
+      (sum, item) => sum + Math.abs(Number(item["显示金额"] ?? item["金额"]) || 0),
+      0
+    );
     const remaining = Math.max(0, totalBorrowed - totalRepaid);
 
-    const rows = history.map(item => {
+    const renderHistoryRow = (item, isRepayment) => {
       const value = Number(item["显示金额"] ?? item["金额"]) || 0;
-      const isRepayment = value < 0 || item["交易来源"] === "Payroll";
       const date = formatAdvanceDate(item["日期时间"] || item["日期"] || item["扣款日期"]);
       const label = isRepayment
         ? String(item["备注"] || "Payroll 扣回")
@@ -666,12 +677,21 @@ function renderAdvanceHistory(advances) {
         <span>${escapeHtml(date)} · ${escapeHtml(label)}</span>
         <strong>${isRepayment ? "-" : "+"}${formatCurrency(Math.abs(value))}</strong>
       </div>`;
-    }).join("");
+    };
+
+    const borrowRows = borrowHistory.map(item => renderHistoryRow(item, false)).join("");
+    const repaymentRows = repaymentHistory.map(item => renderHistoryRow(item, true)).join("");
 
     return `<div class="worker-item advance-history-card">
-      <div class="worker-name">${escapeHtml(group.workerNo)} · ${escapeHtml(group.workerName)} · ${escapeHtml(group.company)}</div>
-      <div class="advance-history-lines">${rows}</div>
-      <div class="advance-ledger-remaining">当前未清欠款：${formatCurrency(remaining)}</div>
+      <div class="worker-name">${escapeHtml(group.workerNo)} · ${escapeHtml(group.workerName)}</div>
+      <div class="muted advance-company">${escapeHtml(group.company)}</div>
+      <div class="advance-history-summary">
+        <div>累计欠款：<strong>${formatCurrency(totalBorrowed)}</strong></div>
+        <div>Payroll 扣回：<strong>${formatCurrency(totalRepaid)}</strong></div>
+        <div>当前未清欠款：<strong>${formatCurrency(remaining)}</strong></div>
+      </div>
+      ${borrowRows ? `<div class="advance-history-section-title is-borrow">借款 / 欠款记录（+）</div><div class="advance-history-lines">${borrowRows}</div>` : ""}
+      ${repaymentRows ? `<div class="advance-history-section-title is-repayment">Payroll 还款记录（-）</div><div class="advance-history-lines">${repaymentRows}</div>` : ""}
     </div>`;
   }).filter(Boolean).join("") || '<p class="muted">还没有欠款历史记录。</p>';
 }

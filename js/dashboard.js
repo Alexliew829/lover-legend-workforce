@@ -276,7 +276,7 @@ async function handleYearEndClose() {
 
     showStatus(
       "maintenanceStatus",
-      `${year} 年底结转完成。已自动下载备份，并结转 ${Number(result.carriedDebtRecords) || 0} 笔未还欠款。`,
+      `${year} 年底结转完成。完整资料已保存到历史归档并自动下载备份；已结转 ${Number(result.carriedDebtRecords) || 0} 笔未还欠款。`,
       true
     );
 
