@@ -1438,7 +1438,7 @@ const summaryParts = [];
       ${liveCommission > 0 ? `<div class="muted">直播佣金 : ${formatPayrollCurrency(liveCommission)}</div>` : ""}
       ${absenceDays > 0 ? `<div class="muted payroll-record-summary">缺席 ${formatDayCount(absenceDays)} 天 · ${escapePayrollHtml(parsePayrollMoney(item["缺席扣款"]) > 0 ? "扣薪" : "免扣")}</div>` : ""}
       <div class="payroll-total-deduction-line"><span>本月扣款：</span><strong>${formatPayrollCurrency(totalDeduction)}</strong></div>
-      <div class="payroll-debt-balance-line"><span>累计欠款：</span><strong>${formatPayrollCurrency(debtBalance)}</strong></div>
+      <div class="payroll-debt-balance-line"><span>剩余欠款：</span><strong>${formatPayrollCurrency(debtBalance)}</strong></div>
       <div class="payroll-net-line"><span>实发：</span><strong>${formatPayrollCurrency(item["实发薪水"])}</strong></div>
         <div class="payroll-record-actions">
           <button
