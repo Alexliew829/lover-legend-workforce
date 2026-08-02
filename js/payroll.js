@@ -72,7 +72,7 @@ function applyPayrollMobileReadonlyMode() {
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v280";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v300";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -103,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("input", event => {
     if (event.target.classList.contains("debt-record-deduction-input")) {
+      validateDebtRecordLimit(event.target, false);
       const type = event.target.dataset.type;
       const originalInput = getDebtNoteInput(type, "source");
 
@@ -146,8 +147,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("focusout", event => {
     if (event.target.classList.contains("debt-record-deduction-input")) {
+      const valid = validateDebtRecordLimit(event.target, true);
       if (event.target.value.trim()) event.target.value = moneyInput(event.target.value);
       calculatePayroll();
+      if (!valid) event.target.focus();
     }
 
     if (
@@ -249,7 +252,7 @@ function setupPayrollMonthYear() {
 function getSavedPayrollDefaultPeriod() {
   const now = new Date();
 
-  // V2.9：每次进入 Payroll 都默认显示当前月份。
+  // V3.0：每次进入 Payroll 都默认显示当前月份。
   // 历史月份仍可通过月份选择器查询，但不会成为下次进入页面的默认月份。
   return {
     month: String(now.getMonth() + 1).padStart(2, "0"),
@@ -818,6 +821,25 @@ function getSavedAllocationMap(type, current, records, legacyTotal) {
   return map;
 }
 
+function validateDebtRecordLimit(input, showAlert = false) {
+  if (!input) return true;
+
+  const itemBalance = Math.max(0, Number(input.dataset.itemBalance) || 0);
+  const deduction = parsePayrollMoney(input.value);
+  const valid = deduction <= itemBalance;
+  const message = `本月扣除不能超过该笔欠款余额 ${formatPayrollCurrency(itemBalance)}`;
+
+  input.classList.toggle("input-error", !valid);
+  input.setCustomValidity(valid ? "" : message);
+
+  if (!valid) {
+    showStatus("status", message, false);
+    if (showAlert) window.alert(message);
+  }
+
+  return valid;
+}
+
 function renderDebtRecordDetails(type, totalBalance, current, legacyTotal) {
   const records = getWorkerDebtRecords(type);
   if (!records.length) {
@@ -853,6 +875,7 @@ function renderDebtRecordDetails(type, totalBalance, current, legacyTotal) {
           data-date="${escapePayrollHtml(date)}"
           data-item-balance="${balance}"
           data-remark="${escapePayrollHtml(item["备注"] || "")}"
+          data-limit-message="本月扣除不能超过该笔欠款余额 ${formatPayrollCurrency(balance)}"
           type="text"
           inputmode="decimal"
           placeholder="0.00"
@@ -885,23 +908,12 @@ function renderDebtList() {
   list.innerHTML = DEBT_TYPES.map(type => {
     const balance = balances[type] || 0;
     const value = Math.min(saved[type] || 0, balance);
-    const isAdvance = type === "支粮";
-    const originalNote = isAdvance ? getDebtOriginalNoteField(type) : "";
-    const malayNote = isAdvance ? getDebtMalayNoteField(type) : "";
 
-    const remaining = Math.max(0, balance - value);
-    const hasDebt = balance > 0;
-
+    // V3.0：逐笔欠款已经显示项目、日期、未清余额，
+    // 不再重复显示红色“支粮 / 余额 / 扣后剩余”摘要。
     return `
-      <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""} ${hasDebt ? "has-debt" : ""}">
-        <div class="debt-info">
-          <div class="debt-type">${type}</div>
-          <div class="debt-balance">余额 ${formatPayrollCurrency(balance)}</div>
-          <div class="debt-remaining ${remaining > 0 ? "debt-alert" : ""}" data-remaining-type="${type}">扣后剩余 ${formatPayrollCurrency(remaining)}</div>
-        </div>
-
+      <div class="debt-row debt-row-compact">
         ${renderDebtRecordDetails(type, balance, current, value)}
-
         <div class="debt-type-deduction-summary">
           <span>本月扣除：</span><strong data-deduction-type-total="${type}">${formatPayrollCurrency(value)}</strong>
         </div>
@@ -909,7 +921,6 @@ function renderDebtList() {
     `;
   }).join("");
 
-  // 扣款明细为动态生成，手机端生成后再次套用只读查看模式。
   applyPayrollMobileReadonlyMode();
 
   if (current) {
@@ -932,37 +943,21 @@ function renderDebtList() {
         : "";
     }
 
-    // 同公司 + 同月份 + 同工人：恢复之前保存的全部 Payroll 输入资料。
     form.remark.value = String(current["备注"] || "");
     showStatus("status", "正在编辑已保存的 Payroll", true);
   } else {
     const form = document.getElementById("payrollForm");
-
-    // 新月份没有已保存 Payroll：
-    // 只带入工人的默认津贴，其余每月资料全部重设。
     const allowanceInput = getAllowanceInput(form);
     if (allowanceInput) {
-      const defaultAllowance = parsePayrollMoney(
-        selectedPayrollWorker?.["默认津贴"]
-      );
-
-      allowanceInput.value = defaultAllowance > 0
-        ? moneyInput(defaultAllowance)
-        : "";
+      const defaultAllowance = parsePayrollMoney(selectedPayrollWorker?.["默认津贴"]);
+      allowanceInput.value = defaultAllowance > 0 ? moneyInput(defaultAllowance) : "";
     }
 
     const liveCommissionInput = getLiveCommissionInput(form);
-    if (liveCommissionInput) {
-      liveCommissionInput.value = "";
-    }
+    if (liveCommissionInput) liveCommissionInput.value = "";
 
-    const defaultAbsenceAction = form.querySelector(
-      'input[name="absenceAction"][value="扣薪"]'
-    );
-    if (defaultAbsenceAction) {
-      defaultAbsenceAction.checked = true;
-    }
-
+    const defaultAbsenceAction = form.querySelector('input[name="absenceAction"][value="扣薪"]');
+    if (defaultAbsenceAction) defaultAbsenceAction.checked = true;
     form.remark.value = "";
   }
 }
@@ -1032,8 +1027,7 @@ function calculatePayroll() {
 
     debtDeduction += deduction;
     deductionsByType[type] = (deductionsByType[type] || 0) + deduction;
-    input.classList.toggle("input-error", deduction > itemBalance);
-    if (deduction > itemBalance) invalidDeduction = true;
+    if (!validateDebtRecordLimit(input, false)) invalidDeduction = true;
   });
 
   DEBT_TYPES.forEach(type => {
@@ -1163,7 +1157,12 @@ async function handlePayrollSubmit(event) {
       throw new Error("请输入本月计薪天数");
     }
     if (calculation.grossSalary <= 0) throw new Error("本月工资必须大于 0");
-    if (calculation.invalidDeduction) throw new Error("本月扣除不能超过欠款余额");
+    if (calculation.invalidDeduction) {
+      const invalidInput = [...document.querySelectorAll(".debt-record-deduction-input")]
+        .find(input => parsePayrollMoney(input.value) > (Number(input.dataset.itemBalance) || 0));
+      const limit = Number(invalidInput?.dataset.itemBalance) || 0;
+      throw new Error(`本月扣除不能超过该笔欠款余额 ${formatPayrollCurrency(limit)}`);
+    }
     if (
       calculation.totalDeduction >
       calculation.grossSalary + calculation.allowance + calculation.liveCommission

@@ -1345,7 +1345,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V2.9 Advance absence Payroll status */
+/* V3.0 Advance absence Payroll status */
 .absence-payroll-status {
   display: inline-block;
   font-weight: 800;
@@ -1356,7 +1356,7 @@ select[name="existingWorkerNo"] {
 .absence-status-pending { color: #9a6700; }
 
 
-/* V2.9 欠款历史与目前未清欠款 */
+/* V3.0 欠款历史与目前未清欠款 */
 .advance-action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1406,4 +1406,24 @@ select[name="existingWorkerNo"] {
 @media (max-width: 390px) {
   .advance-action-row { grid-template-columns: 1fr 1fr; gap: 8px; }
   .advance-action-row .btn { padding: 13px 8px; font-size: 15px; }
+}
+
+
+/* V3.0：Payroll 欠款只显示逐笔未清记录，移除重复的红色项目摘要 */
+.debt-row.debt-row-compact {
+  display: block;
+  padding: 10px;
+  border-color: #cfe0ca;
+  background: #fff;
+}
+.debt-row.debt-row-compact .debt-record-details {
+  margin-top: 0;
+}
+.debt-row.debt-row-compact .debt-type-deduction-summary {
+  margin-top: 10px;
+}
+.debt-record-deduction-input:invalid,
+.debt-record-deduction-input.input-error {
+  border-color: #c40019 !important;
+  background: #fff1f2 !important;
 }
