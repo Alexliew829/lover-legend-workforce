@@ -1,3 +1,17 @@
+# V3.7 Enterprise Stable
+
+- 新增“恢复 Payroll / Payslip”专用恢复：只恢复 Backup 中的 Payroll，不覆盖 Worker、欠款管理及其他当前资料。
+- 专用恢复会按“公司 + 工人 + 月份”恢复原历史 Payroll，并保留其他月份现有 Payroll。
+- Payslip 继续由恢复后的 Payroll 动态生成，无需 Backup 内另存 Payslip。
+- Backup 完成后显示明确成功回执：时间、Backup ID、Worker、Advance、Payroll 数量与 Payroll 月份。
+- Restore 开始时显示“正在恢复，请勿关闭页面”。
+- Restore 只有经过服务器精确验证后才显示“✅ Restore 已完成并验证通过”。
+- Restore 回执显示来源时间、完成时间、Restore ID、Worker / Advance / Payroll 数量及 Payroll 月份。
+- Restore Payroll 验证升级：比较基本薪水、津贴、佣金、缺席处理、各类扣款、总扣款、实发、欠款余额、发薪日期、扣款明细、已打印与打印时间。
+- 验证失败继续自动回滚，不采用失败 Restore。
+- API 显示版本同步为 V3.7 / 3.7.0。
+- 全系统页面、Cache、Service Worker、Apps Script Bundle 与资源版本统一为 V3.7。
+
 # V3.6 Enterprise Stable
 
 - Payroll 历史改为每次从 Google Sheet fresh 读取，不再被旧 Cache 空阵列隐藏。

@@ -72,7 +72,7 @@ function applyPayrollMobileReadonlyMode() {
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v360";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v370";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -255,7 +255,7 @@ function setupPayrollMonthYear() {
 function getSavedPayrollDefaultPeriod() {
   const now = new Date();
 
-  // V3.6：每次进入 Payroll 都默认显示当前月份。
+  // V3.7：每次进入 Payroll 都默认显示当前月份。
   // 历史月份仍可通过月份选择器查询，但不会成为下次进入页面的默认月份。
   return {
     month: String(now.getMonth() + 1).padStart(2, "0"),
@@ -941,7 +941,7 @@ function renderDebtList() {
     const remaining = Math.max(0, balance - value);
     const hasDebt = balance > 0;
 
-    // V3.6：恢复 V2.9 较醒目的项目摘要，但保留 V3.6 的逐笔扣款上限验证。
+    // V3.7：恢复 V2.9 较醒目的项目摘要，但保留 V3.7 的逐笔扣款上限验证。
     return `
       <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""} ${hasDebt ? "has-debt" : ""}">
         <div class="debt-info">

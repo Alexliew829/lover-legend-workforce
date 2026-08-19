@@ -1,4 +1,4 @@
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v360";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v370";
 const PAYSLIP_IS_MOBILE_ = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
 function isPayslipMobileViewOnly() {
@@ -182,7 +182,7 @@ window.addEventListener("afterprint", async () => {
       return;
     }
 
-    const confirmKey = `ll-workforce-payroll-period-confirmed-v360-${currentMonth}`;
+    const confirmKey = `ll-workforce-payroll-period-confirmed-v370-${currentMonth}`;
     if (localStorage.getItem(confirmKey) === "yes") {
       if (status) {
         status.textContent = `${currentMonth} 全部工资单已打印完成。`;
