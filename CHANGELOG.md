@@ -1,4 +1,13 @@
-# V4.1 Enterprise Stable
+# V4.2 Enterprise Stable
+
+- 修复 Restore/旧 Payroll 的逐笔扣款 JSON 内同一欠款 key 重复时，被欠款管理重复计算的问题。
+- 同一 Payroll + 同一欠款记录只计算一次；重复 allocation 不再相加。
+- 修复 W0002 RM500 显示两次、已清 RM1,000 的连锁问题。
+- 修复过去月份 RM15/RM50 等已扣欠款因重复扣款导致的余额对应错误。
+- 读取时防御性修正，不删除或改写 Google Sheet 原始 Payroll 数据。
+- Cache / Service Worker / 页面资源 / API 版本统一升级 V4.2。
+
+# V4.2 Enterprise Stable
 
 - 从 V3.3 完美运行版重新建立，保留其 Payroll / Payslip / 欠款计算核心。
 - 强化 Backup / Restore：Payroll 与 Payslip 为强制备份资料。
@@ -6,7 +15,7 @@
 - Backup / Restore 明确显示 Payroll / Payslip 数量及时间。
 - 全系统版本统一 V4.1，API 4.0.0。
 
-# V4.1 Enterprise Stable
+# V4.2 Enterprise Stable
 
 - 修复 Lover Legend Adenium 旧月份带入欠款没有显示的问题。
 - 当前月份显示所有目前仍未清的欠款，包括以前月份带过来的余额。
