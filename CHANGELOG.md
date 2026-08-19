@@ -1,12 +1,12 @@
-# V4.0 Enterprise Stable
+# V4.1 Enterprise Stable
 
 - 从 V3.3 完美运行版重新建立，保留其 Payroll / Payslip / 欠款计算核心。
 - 强化 Backup / Restore：Payroll 与 Payslip 为强制备份资料。
 - Restore 后验证 Payroll / Payslip 行数，验证成功才报告完成。
 - Backup / Restore 明确显示 Payroll / Payslip 数量及时间。
-- 全系统版本统一 V4.0，API 4.0.0。
+- 全系统版本统一 V4.1，API 4.0.0。
 
-# V4.0 Enterprise Stable
+# V4.1 Enterprise Stable
 
 - 修复 Lover Legend Adenium 旧月份带入欠款没有显示的问题。
 - 当前月份显示所有目前仍未清的欠款，包括以前月份带过来的余额。
@@ -16,7 +16,7 @@
 - 缺席“已扣薪”计入对应 Payroll 结算日的已清金额；免扣与待处理不计。
 - 例如 W0006：RM200 + RM200 支粮扣回，加 RM60 缺席扣薪，显示“01-08-2026 已清欠款：RM460.00”。
 - 仍有余额时只显示一次“当前未清欠款”，已完全清偿则不再显示未清余额。
-- 所有页面、API、Cache、Service Worker 与资源版本统一为 V4.0。
+- 所有页面、API、Cache、Service Worker 与资源版本统一为 V4.1。
 
 # V3.2 Enterprise Stable
 

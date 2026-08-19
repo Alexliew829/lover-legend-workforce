@@ -229,7 +229,7 @@ async function handleRestoreBackup(event) {
     sessionStorage.clear();
     showStatus(
       "maintenanceStatus",
-      `✅ Restore 已完成并验证 · Payroll ${Number(result.payrollRows) || 0} 笔 · Payslip ${Number(result.payslipRows) || 0} 笔${result.backupCreatedAt ? ` · Backup ${result.backupCreatedAt}` : ""}`,
+      `✅ Restore 已完成并验证 · Payroll ${Number(result.payrollRows) || 0} 笔 · Payslip ${Number(result.payslipRows) || 0} 笔${Number(result.removedDuplicatePayrollRows) ? ` · 已清理重复 Payroll ${Number(result.removedDuplicatePayrollRows)} 笔` : ""}${result.backupCreatedAt ? ` · Backup ${result.backupCreatedAt}` : ""}`,
       true
     );
 
