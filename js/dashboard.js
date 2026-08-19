@@ -192,10 +192,9 @@ async function handleYearlyBackup() {
     const backup = await api("createYearlyBackup", { year });
     downloadBackupJson(backup);
 
-    const verify = backup.verification || {};
     showStatus(
       "maintenanceStatus",
-      `✅ Backup 已完成 · Payroll ${Number(verify.payrollRows) || 0} 笔 · Payslip ${Number(verify.payslipRows) || 0} 笔 · ${backup.createdAt || ""}`,
+      `手动备份已经下载。请妥善保存 JSON 文件。`,
       true
     );
   } catch (error) {
@@ -229,7 +228,7 @@ async function handleRestoreBackup(event) {
     sessionStorage.clear();
     showStatus(
       "maintenanceStatus",
-      `✅ Restore 已完成并验证 · Payroll ${Number(result.payrollRows) || 0} 笔 · Payslip ${Number(result.payslipRows) || 0} 笔${Number(result.removedDuplicatePayrollRows) ? ` · 已清理重复 Payroll ${Number(result.removedDuplicatePayrollRows)} 笔` : ""}${result.backupCreatedAt ? ` · Backup ${result.backupCreatedAt}` : ""}`,
+      `恢复完成，共恢复 ${Number(result.restoredSheets) || 0} 个工作表。`,
       true
     );
 
