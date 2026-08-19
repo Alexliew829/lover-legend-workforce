@@ -72,7 +72,7 @@ function applyPayrollMobileReadonlyMode() {
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v380";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v390";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -242,7 +242,7 @@ function applyPayrollBootstrapData(data) {
   payrollAdvances = Array.isArray(data?.advances) ? data.advances : [];
   payrollRecords = Array.isArray(data?.payrolls) ? data.payrolls : [];
 
-  // V3.8：后台 fresh Payroll 回来时，不再把用户刚选择的工人清空。
+  // V3.9：后台 fresh Payroll 回来时，不再把用户刚选择的工人清空。
   // 这是之前“选了工人闪一下又要重选”的原因。
   if (form) {
     if (preservedMonth) form.payMonth.value = preservedMonth;
@@ -290,7 +290,7 @@ function setupPayrollMonthYear() {
 function getSavedPayrollDefaultPeriod() {
   const now = new Date();
 
-  // V3.8：每次进入 Payroll 都默认显示当前月份。
+  // V3.9：每次进入 Payroll 都默认显示当前月份。
   // 历史月份仍可通过月份选择器查询，但不会成为下次进入页面的默认月份。
   return {
     month: String(now.getMonth() + 1).padStart(2, "0"),
@@ -629,9 +629,55 @@ function getPriorPayrollRecords() {
   );
 }
 
+
+function payrollStableDebtKeyFromParts(date, type, amount) {
+  return [
+    String(date || "").trim(),
+    normalizeDebtType(type),
+    parsePayrollMoney(amount).toFixed(2)
+  ].join("|");
+}
+
+function payrollStableDebtKeyFromRecord(item) {
+  return payrollStableDebtKeyFromParts(
+    item["日期时间"] || item["日期"] || item["扣款日期"],
+    item["项目"] || item["类型"],
+    item["金额"]
+  );
+}
+
+function payrollStableDebtKeyFromAllocation(entry) {
+  if (!entry) return "";
+
+  const explicitDate = String(entry.date || "").trim();
+  const explicitType = normalizeDebtType(entry.type);
+  const explicitAmount = parsePayrollMoney(entry.originalAmount);
+
+  if (explicitDate && explicitType && explicitAmount > 0) {
+    return payrollStableDebtKeyFromParts(explicitDate, explicitType, explicitAmount);
+  }
+
+  const key = String(entry.key || "");
+  const parts = key.split("|");
+
+  if (parts.length >= 3) {
+    return payrollStableDebtKeyFromParts(
+      parts[0],
+      parts[1],
+      parts[2]
+    );
+  }
+
+  return "";
+}
+
 function buildDebtRecordStates(type) {
   const records = getEligibleDebtSourceRecords(type);
-  const deductedByKey = new Map();
+
+  // Exact key is kept for new records, but Stable key is the real identity.
+  // Restore can change Sheet row numbers, so matching by "...|row" alone is unsafe.
+  const deductedByExactKey = new Map();
+  const deductedByStableKey = new Map();
   let legacyTotal = 0;
 
   getPriorPayrollRecords().forEach(payroll => {
@@ -648,31 +694,62 @@ function buildDebtRecordStates(type) {
 
     if (matching.length) {
       matching.forEach(entry => {
-        const key = String(entry.key || "");
+        const exactKey = String(entry.key || "");
+        const stableKey = payrollStableDebtKeyFromAllocation(entry);
         const amount = parsePayrollMoney(entry.deducted);
-        if (key && amount > 0) deductedByKey.set(key, (deductedByKey.get(key) || 0) + amount);
+
+        if (amount <= 0) return;
+
+        if (exactKey) {
+          deductedByExactKey.set(
+            exactKey,
+            (deductedByExactKey.get(exactKey) || 0) + amount
+          );
+        }
+
+        if (stableKey) {
+          deductedByStableKey.set(
+            stableKey,
+            (deductedByStableKey.get(stableKey) || 0) + amount
+          );
+        }
       });
     } else {
       legacyTotal += normalizeDebtType(type) === "支粮"
-        ? parsePayrollMoney(payroll["支粮扣款"]) + parsePayrollMoney(payroll["欠款其他扣款"]) + parsePayrollMoney(payroll["医疗扣款"])
+        ? parsePayrollMoney(payroll["支粮扣款"]) +
+          parsePayrollMoney(payroll["欠款其他扣款"]) +
+          parsePayrollMoney(payroll["医疗扣款"])
         : parsePayrollMoney(payroll["准证扣款"]);
     }
   });
 
   const states = records.map((item, index) => {
-    const key = payrollDebtRecordKey(item, index);
+    const exactKey = payrollDebtRecordKey(item, index);
+    const stableKey = payrollStableDebtKeyFromRecord(item);
     const originalAmount = parsePayrollMoney(item["金额"]);
-    const priorDeducted = Math.min(originalAmount, deductedByKey.get(key) || 0);
+
+    const exactDeducted = deductedByExactKey.get(exactKey) || 0;
+    const stableDeducted = deductedByStableKey.get(stableKey) || 0;
+
+    // Never add exact + stable; they represent the same historical repayment.
+    // Take the larger one so old Restore row-number mismatch is recovered safely.
+    const priorDeducted = Math.min(
+      originalAmount,
+      Math.max(exactDeducted, stableDeducted)
+    );
+
     return {
       ...item,
-      _debtKey: key,
+      _debtKey: exactKey,
+      _stableDebtKey: stableKey,
       _originalAmount: originalAmount,
       _priorDeducted: priorDeducted,
       _remaining: Math.max(0, originalAmount - priorDeducted)
     };
   });
 
-  // 兼容旧版没有逐笔 JSON 的 Payroll，按日期由新到旧冲销。
+  // Legacy Payroll without allocation JSON:
+  // retain old system behavior, newest debt first.
   states.forEach(item => {
     if (legacyTotal <= 0 || item._remaining <= 0) return;
     const applied = Math.min(item._remaining, legacyTotal);
@@ -849,8 +926,18 @@ function getSavedAllocationMap(type, current, records, legacyTotal) {
 
   saved.forEach(item => {
     const key = String(item.key || "");
+    const stableKey = payrollStableDebtKeyFromAllocation(item);
     const deducted = parsePayrollMoney(item.deducted);
+
     if (key && deducted > 0) map[key] = deducted;
+
+    if (stableKey && deducted > 0) {
+      records.forEach((record, index) => {
+        if (payrollStableDebtKeyFromRecord(record) !== stableKey) return;
+        const currentKey = String(record._debtKey || payrollDebtRecordKey(record, index));
+        map[currentKey] = deducted;
+      });
+    }
   });
 
   // 兼容旧 Payroll：旧记录只有项目总扣款，没有逐笔明细。
@@ -926,7 +1013,7 @@ function renderDebtRecordDetails(type, totalBalance, current, legacyTotal) {
     const key = String(item._debtKey || payrollDebtRecordKey(item, index));
     const savedValueRaw = parsePayrollMoney(savedMap[key]);
 
-    // V3.8：
+    // V3.9：
     // 已保存的历史 Payroll 必须按“当时保存的欠款本金 + 当时扣款”显示，
     // 不能拿今天的剩余余额重新计算。
     //
@@ -995,7 +1082,7 @@ function renderDebtList() {
   list.innerHTML = DEBT_TYPES.map(type => {
     const liveBalance = balances[type] || 0;
 
-    // V3.8：历史 Payroll 的摘要以保存快照为真值。
+    // V3.9：历史 Payroll 的摘要以保存快照为真值。
     // 当前欠款已经被扣清，不代表过去 Payroll 的扣款应该变成 0。
     const savedDeduction = saved[type] || 0;
     const balance = current
@@ -1025,7 +1112,7 @@ function renderDebtList() {
 
     const hasDebt = balance > 0 || value > 0;
 
-    // V3.8：恢复 V2.9 较醒目的项目摘要，但保留 V3.8 的逐笔扣款上限验证。
+    // V3.9：恢复 V2.9 较醒目的项目摘要，但保留 V3.9 的逐笔扣款上限验证。
     return `
       <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""} ${hasDebt ? "has-debt" : ""}">
         <div class="debt-info">
