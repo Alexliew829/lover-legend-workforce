@@ -1345,7 +1345,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V3.0.1 Advance absence Payroll status */
+/* V3.1 Advance absence Payroll status */
 .absence-payroll-status {
   display: inline-block;
   font-weight: 800;
@@ -1356,7 +1356,7 @@ select[name="existingWorkerNo"] {
 .absence-status-pending { color: #9a6700; }
 
 
-/* V3.0.1 欠款历史与目前未清欠款 */
+/* V3.1 欠款历史与目前未清欠款 */
 .advance-action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1409,7 +1409,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V3.0.1.1：恢复 V2.9 醒目的欠款项目摘要；保留逐笔扣款错误提示 */
+/* V3.1：恢复 V2.9 醒目的欠款项目摘要；保留逐笔扣款错误提示 */
 .debt-record-deduction-input:invalid,
 .debt-record-deduction-input.input-error {
   border-color: #c40019 !important;

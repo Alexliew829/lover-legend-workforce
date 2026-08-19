@@ -72,7 +72,7 @@ function applyPayrollMobileReadonlyMode() {
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v301";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v310";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -251,7 +251,7 @@ function setupPayrollMonthYear() {
 function getSavedPayrollDefaultPeriod() {
   const now = new Date();
 
-  // V3.0.1：每次进入 Payroll 都默认显示当前月份。
+  // V3.1：每次进入 Payroll 都默认显示当前月份。
   // 历史月份仍可通过月份选择器查询，但不会成为下次进入页面的默认月份。
   return {
     month: String(now.getMonth() + 1).padStart(2, "0"),
@@ -925,7 +925,7 @@ function renderDebtList() {
     const remaining = Math.max(0, balance - value);
     const hasDebt = balance > 0;
 
-    // V3.0.1.1：恢复 V2.9 较醒目的项目摘要，但保留 V3.0.1 的逐笔扣款上限验证。
+    // V3.1：恢复 V2.9 较醒目的项目摘要，但保留 V3.1 的逐笔扣款上限验证。
     return `
       <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""} ${hasDebt ? "has-debt" : ""}">
         <div class="debt-info">
@@ -1438,7 +1438,7 @@ const summaryParts = [];
       ${liveCommission > 0 ? `<div class="muted">直播佣金 : ${formatPayrollCurrency(liveCommission)}</div>` : ""}
       ${absenceDays > 0 ? `<div class="muted payroll-record-summary">缺席 ${formatDayCount(absenceDays)} 天 · ${escapePayrollHtml(parsePayrollMoney(item["缺席扣款"]) > 0 ? "扣薪" : "免扣")}</div>` : ""}
       <div class="payroll-total-deduction-line"><span>本月扣款：</span><strong>${formatPayrollCurrency(totalDeduction)}</strong></div>
-      <div class="payroll-debt-balance-line"><span>剩余欠款：</span><strong>${formatPayrollCurrency(debtBalance)}</strong></div>
+      <div class="payroll-debt-balance-line"><span>累计欠款：</span><strong>${formatPayrollCurrency(debtBalance)}</strong></div>
       <div class="payroll-net-line"><span>实发：</span><strong>${formatPayrollCurrency(item["实发薪水"])}</strong></div>
         <div class="payroll-record-actions">
           <button

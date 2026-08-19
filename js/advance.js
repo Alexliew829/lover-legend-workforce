@@ -406,8 +406,22 @@ async function handleAdvanceSubmit(event) {
     if (!form.amount.value.trim()) throw new Error("请输入金额");
     if (amount < 0) throw new Error("金额不能小于 0");
 
+    // V3.1：新增欠款必须大于 0；只有编辑已有欠款时才允许改为 RM0。
+    // RM0 代表这笔原记录是手误，确认后从当前欠款资料删除。
     if (amount === 0) {
-      const confirmed = window.confirm("金额为 0，将删除这笔欠款记录。是否继续？");
+      if (!editingAdvanceRow) {
+        throw new Error("新欠款金额必须大于 RM 0.00");
+      }
+
+      const confirmed = window.confirm([
+        "金额已改为 RM 0.00。",
+        "",
+        "这笔欠款将从目前欠款资料删除。",
+        "AuditLog 会保留原金额及删除记录。",
+        "",
+        "确认删除这笔错误欠款吗？"
+      ].join("\n"));
+
       if (!confirmed) return;
     }
 
@@ -456,7 +470,7 @@ async function handleAdvanceSubmit(event) {
     showStatus(
       "status",
       result && result.deleted
-        ? "欠款记录已删除"
+        ? "错误欠款已删除，AuditLog 已保留修改记录"
         : result && (result.updated || result.duplicate)
           ? "欠款记录已修改并保存到 Google Sheet"
           : "欠款记录已保存到 Google Sheet",
@@ -490,7 +504,7 @@ function toggleAdvanceHistory() {
   const currentPanel = document.getElementById("advanceCurrentPanel");
   const button = document.getElementById("toggleAdvanceHistoryBtn");
 
-  // V3.0.1：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
+  // V3.1：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
   if (historyPanel) historyPanel.hidden = !advanceHistoryVisible;
   if (currentPanel) currentPanel.hidden = advanceHistoryVisible;
   if (button) button.textContent = advanceHistoryVisible ? "收起历史记录" : "欠款历史记录";
