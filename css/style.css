@@ -1345,7 +1345,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V3.2 Advance absence Payroll status */
+/* V3.3 Advance absence Payroll status */
 .absence-payroll-status {
   display: inline-block;
   font-weight: 800;
@@ -1356,7 +1356,7 @@ select[name="existingWorkerNo"] {
 .absence-status-pending { color: #9a6700; }
 
 
-/* V3.2 欠款历史与目前未清欠款 */
+/* V3.3 欠款历史与目前未清欠款 */
 .advance-action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1409,7 +1409,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V3.2：恢复 V2.9 醒目的欠款项目摘要；保留逐笔扣款错误提示 */
+/* V3.3：恢复 V2.9 醒目的欠款项目摘要；保留逐笔扣款错误提示 */
 .debt-record-deduction-input:invalid,
 .debt-record-deduction-input.input-error {
   border-color: #c40019 !important;
@@ -1417,7 +1417,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V3.2 Advance：一笔欠款对应自己的还款流水 */
+/* V3.3 Advance：一笔欠款对应自己的还款流水 */
 .advance-debt-lifecycle,
 .advance-history-linked-line {
   display: flex;
@@ -1443,4 +1443,14 @@ select[name="existingWorkerNo"] {
 .advance-history-linked-line {
   padding: 9px 0;
   border-bottom: 1px dashed rgba(0,0,0,.12);
+}
+
+
+/* V3.3 Advance：每位工人只在卡片底部汇总已清 / 当前未清 */
+.advance-ledger-cleared {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(0,0,0,.12);
+  font-weight: 800;
+  color: #176b35;
 }
