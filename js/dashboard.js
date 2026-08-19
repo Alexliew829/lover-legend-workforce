@@ -226,12 +226,17 @@ async function handleRestoreBackup(event) {
     const result = await api("restoreYearlyBackup", { backup });
 
     sessionStorage.clear();
+    const counts = result && result.counts ? result.counts : {};
     showStatus(
       "maintenanceStatus",
-      `恢复完成，共恢复 ${Number(result.restoredSheets) || 0} 个工作表。`,
+      result && result.verified
+        ? `恢复完成并验证通过：工人 ${Number(counts.workers) || 0}、欠款 ${Number(counts.advances) || 0}、Payroll ${Number(counts.payrolls) || 0}。`
+        : `恢复完成，共恢复 ${Number(result.restoredSheets) || 0} 个工作表。`,
       true
     );
 
+    // V3.4：Restore 完成后强制重新读取服务器资料，不使用 Restore 前缓存。
+    clearApiReadCache(["*"]);
     await loadDashboard();
   } catch (error) {
     showStatus("maintenanceStatus", "恢复失败：" + error.message, false);

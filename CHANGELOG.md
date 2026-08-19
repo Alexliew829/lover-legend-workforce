@@ -1,3 +1,15 @@
+# V3.4 Enterprise Stable
+
+- 修复 Restore 后过去 Payroll / Payslip 网页读取不到的问题。
+- Payroll 月份读取兼容 Restore 产生的 `01-07-2026 00:00:00` 等旧日期文字，并正确识别为 `07-2026`。
+- Restore 写回 Payroll 时，“月份”统一恢复为 `MM-yyyy` 文字格式，避免再次发生月份错位。
+- Restore 前增加完整性检查：必须包含 Worker、Advance、Payroll 等关键工作表及必要表头；不完整备份直接禁止恢复。
+- Restore 前自动保留当前系统服务器快照。
+- Restore 后自动验证 Worker、Advance、Payroll 数量。
+- Restore 验证失败时自动回滚至 Restore 前状态，避免失败恢复覆盖真实资料。
+- Restore 成功后前端强制清除读取缓存，并显示验证后的 Worker / Advance / Payroll 数量。
+- Backup schema / 系统页面 / API / Cache / Service Worker / 资源版本统一为 V3.4。
+
 # V3.3 Enterprise Stable
 
 - 修复 Lover Legend Adenium 旧月份带入欠款没有显示的问题。
