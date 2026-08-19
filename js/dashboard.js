@@ -235,7 +235,7 @@ async function handleRestoreBackup(event) {
       true
     );
 
-    // V3.5：Restore 完成后强制重新读取服务器资料，不使用 Restore 前缓存。
+    // V3.6：Restore 完成后强制重新读取服务器资料，不使用 Restore 前缓存。
     clearApiReadCache(["*"]);
     await loadDashboard();
   } catch (error) {

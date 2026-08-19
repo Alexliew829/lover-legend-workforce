@@ -72,7 +72,7 @@ function applyPayrollMobileReadonlyMode() {
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v350";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v360";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -186,28 +186,32 @@ async function loadPayrollPage() {
     : null;
 
   if (cached) {
-    applyPayrollBootstrapData(cached);
-    showStatus("status", "系统已就绪，正在后台同步最新资料", true);
+    applyPayrollBootstrapData({
+      workers: Array.isArray(cached?.workers) ? cached.workers : [],
+      advances: Array.isArray(cached?.advances) ? cached.advances : [],
+      payrolls: []
+    });
+    showStatus("status", "正在从 Google Sheet 核对 Payroll 历史…", true);
     applyPayrollMobileReadonlyMode();
   }
 
   try {
-    const data = await loadPayrollBootstrapWithRetry(Boolean(cached));
+    if (typeof clearApiReadCache === "function") {
+      clearApiReadCache(["getPayrollBootstrap", "getPayrollData", "getPayrolls"]);
+    }
 
+    const data = await api("getPayrollBootstrap", {}, { forceRefresh: true });
     applyPayrollBootstrapData(data);
-    showStatus("status", "系统已就绪，可以计算 Payroll", true);
+
+    showStatus(
+      "status",
+      `系统已就绪，已读取 ${payrollRecords.length} 笔 Payroll`,
+      true
+    );
+
     await restorePayrollSelection();
     applyPayrollMobileReadonlyMode();
   } catch (error) {
-    if (cached) {
-      showStatus(
-        "status",
-        "暂时无法同步，正在使用上次成功载入的资料",
-        false
-      );
-      return;
-    }
-
     showStatus("status", error.message, false);
   }
 }
@@ -251,7 +255,7 @@ function setupPayrollMonthYear() {
 function getSavedPayrollDefaultPeriod() {
   const now = new Date();
 
-  // V3.5：每次进入 Payroll 都默认显示当前月份。
+  // V3.6：每次进入 Payroll 都默认显示当前月份。
   // 历史月份仍可通过月份选择器查询，但不会成为下次进入页面的默认月份。
   return {
     month: String(now.getMonth() + 1).padStart(2, "0"),
@@ -524,13 +528,25 @@ function renderAbsenceSection() {
 
 function getCurrentMonthPayrollRecord() {
   if (!selectedPayrollWorker) return null;
+
   const monthKey = normalizePayrollMonth(getSelectedPayrollMonthKey());
   const form = document.getElementById("payrollForm");
-  return payrollRecords.find(item =>
-    String(item["公司"] || "") === String(form.company.value || "") &&
-    String(item["工人编号"] || "") === String(selectedPayrollWorker["工人编号"] || "") &&
-    normalizePayrollMonth(item["月份"]) === monthKey
-  ) || null;
+  const company = String(form.company.value || "");
+  const workerNo = String(selectedPayrollWorker["工人编号"] || "");
+  const workerName = String(selectedPayrollWorker["工人名字"] || "");
+
+  return payrollRecords.find(item => {
+    if (String(item["公司"] || "") !== company) return false;
+    if (normalizePayrollMonth(item["月份"]) !== monthKey) return false;
+
+    const itemWorkerNo = String(item["工人编号"] || "");
+    const itemWorkerName = String(item["工人名字"] || "");
+
+    return (
+      (workerNo && itemWorkerNo && itemWorkerNo === workerNo) ||
+      (workerName && itemWorkerName && itemWorkerName === workerName)
+    );
+  }) || null;
 }
 
 function normalizeDebtType(type) {
@@ -925,7 +941,7 @@ function renderDebtList() {
     const remaining = Math.max(0, balance - value);
     const hasDebt = balance > 0;
 
-    // V3.5：恢复 V2.9 较醒目的项目摘要，但保留 V3.5 的逐笔扣款上限验证。
+    // V3.6：恢复 V2.9 较醒目的项目摘要，但保留 V3.6 的逐笔扣款上限验证。
     return `
       <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""} ${hasDebt ? "has-debt" : ""}">
         <div class="debt-info">
@@ -1390,6 +1406,22 @@ async function handlePayrollSubmit(event) {
   }
 }
 
+function resolvePayrollRecordWorkerNo(item) {
+  const direct = String(item?.["工人编号"] || "").trim();
+  if (direct) return direct;
+
+  const company = String(item?.["公司"] || "").trim();
+  const name = String(item?.["工人名字"] || "").trim();
+  const matches = payrollWorkers.filter(worker =>
+    String(worker["公司"] || "").trim() === company &&
+    String(worker["工人名字"] || "").trim() === name
+  );
+
+  return matches.length === 1
+    ? String(matches[0]["工人编号"] || "").trim()
+    : "";
+}
+
 function renderPayrollHistory() {
   const list = document.getElementById("payrollList");
   if (!payrollRecords.length) {
@@ -1414,7 +1446,8 @@ function renderPayrollHistory() {
   );
 
   const recordsHtml = currentMonthRecords.map(item => {
-   const absenceDays = Number(item["缺席天数"]) || 0;
+const recordWorkerNo = resolvePayrollRecordWorkerNo(item);
+const absenceDays = Number(item["缺席天数"]) || 0;
 const allowance = parsePayrollMoney(item["津贴"]);
 const liveCommission = parsePayrollMoney(item["直播佣金"]);
 const totalDeduction = parsePayrollMoney(item["总扣款"]);
@@ -1432,7 +1465,7 @@ const summaryParts = [];
 
     return `
       <div class="record-item payroll-record-item">
-        <div class="worker-name">${escapePayrollHtml(item["工人编号"])} · ${escapePayrollHtml(item["工人名字"])} · ${escapePayrollHtml(item["公司"] || "")}</div>
+        <div class="worker-name">${escapePayrollHtml(recordWorkerNo || item["工人编号"])} · ${escapePayrollHtml(item["工人名字"])} · ${escapePayrollHtml(item["公司"] || "")}</div>
         <div class="muted">${escapePayrollHtml(normalizePayrollMonth(item["月份"]))} · 本月工资 : ${formatPayrollCurrency(item["基本薪水"])}</div>
        ${allowance > 0 ? `<div class="muted">津贴 : ${formatPayrollCurrency(allowance)}</div>` : ""}
       ${liveCommission > 0 ? `<div class="muted">直播佣金 : ${formatPayrollCurrency(liveCommission)}</div>` : ""}
@@ -1444,17 +1477,17 @@ const summaryParts = [];
           <button
             type="button"
             class="payroll-action-btn payroll-edit-btn"
-            onclick="editPayrollRecord('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}')"
+            onclick="editPayrollRecord('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(recordWorkerNo)}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}')"
           >编辑 Payroll</button>
           <button
             type="button"
             class="payroll-action-btn payroll-delete-btn"
-            onclick="deletePayrollRecord('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}', '${escapePayrollJsString(item["工人名字"] || "")}')"
+            onclick="deletePayrollRecord('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(recordWorkerNo)}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}', '${escapePayrollJsString(item["工人名字"] || "")}')"
           >删除 Payroll</button>
           <a
             class="payslip-link"
-            href="payslip.html?company=${encodeURIComponent(String(item["公司"] || ""))}&workerNo=${encodeURIComponent(String(item["工人编号"] || ""))}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
-            onclick="savePayrollSelection('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}')"
+            href="payslip.html?company=${encodeURIComponent(String(item["公司"] || ""))}&workerNo=${encodeURIComponent(recordWorkerNo)}&month=${encodeURIComponent(normalizePayrollMonth(item["月份"]))}"
+            onclick="savePayrollSelection('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(recordWorkerNo)}')"
           >打印工资单 / Print Payslip</a>
         </div>
       </div>

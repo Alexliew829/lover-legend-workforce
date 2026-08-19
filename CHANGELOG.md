@@ -1,3 +1,14 @@
+# V3.6 Enterprise Stable
+
+- Payroll 历史改为每次从 Google Sheet fresh 读取，不再被旧 Cache 空阵列隐藏。
+- 修复 07-2026 Google Sheet 有 Payroll、网页却显示没有记录。
+- 旧 Payroll 缺工人编号时，可用同公司 + 工人名字安全认回。
+- 原津贴、佣金、缺席处理、支粮/准证扣款、总扣款、实发薪水重新载入。
+- Payslip 使用原 Payroll 动态恢复，不需要重新输入 7 月 Payroll。
+- Restore 验证改用 fresh Payroll reader。
+- 全系统版本、Cache、Service Worker、API Bundle 更新为 V3.6。
+- ZIP 名称、根目录、Apps_Script 与辅助文件名改成 ASCII 下划线，避免 %20。
+
 # V3.5 Enterprise Stable
 
 - 修复 Google Sheet 有 07-2026 Payroll，但网页显示“没有 Payroll 记录”的问题。

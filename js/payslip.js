@@ -1,4 +1,4 @@
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v350";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v360";
 const PAYSLIP_IS_MOBILE_ = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
 function isPayslipMobileViewOnly() {
@@ -67,14 +67,32 @@ async function loadPayslipPage() {
     }
 
     const [payrolls, advances] = await loadPayslipDataWithRetry();
-    const record = payrolls.find(item =>
+    let record = payrolls.find(item =>
       String(item["公司"] || "") === company &&
       String(item["工人编号"] || "") === workerNo &&
       normalizePayslipMonth(item["月份"]) === month
     );
 
     if (!record) {
-      throw new Error("找不到 Payroll 记录。 / Payroll record was not found.");
+      try {
+        const workers = await api("getWorkers", {}, { forceRefresh: true });
+        const worker = (Array.isArray(workers) ? workers : []).find(item =>
+          String(item["公司"] || "") === company &&
+          String(item["工人编号"] || "") === workerNo
+        );
+
+        if (worker) {
+          record = payrolls.find(item =>
+            String(item["公司"] || "") === company &&
+            String(item["工人名字"] || "") === String(worker["工人名字"] || "") &&
+            normalizePayslipMonth(item["月份"]) === month
+          );
+        }
+      } catch (_) {}
+    }
+
+    if (!record) {
+      throw new Error("找不到原 Payroll 记录。请不要重新保存 Payroll。 / Original Payroll record was not found.");
     }
 
     await ensurePayslipMalayRemarks(record);
@@ -164,7 +182,7 @@ window.addEventListener("afterprint", async () => {
       return;
     }
 
-    const confirmKey = `ll-workforce-payroll-period-confirmed-v350-${currentMonth}`;
+    const confirmKey = `ll-workforce-payroll-period-confirmed-v360-${currentMonth}`;
     if (localStorage.getItem(confirmKey) === "yes") {
       if (status) {
         status.textContent = `${currentMonth} 全部工资单已打印完成。`;
