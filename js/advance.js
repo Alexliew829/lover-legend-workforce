@@ -315,6 +315,10 @@ function handleProjectChange() {
 function handleAdvanceKeyChange() {
   updateAbsenceAmount();
   loadExistingAdvanceRecord();
+
+  // V3.2：目前欠款资料跟随上方选择的年月。
+  // 过去月份显示该月的欠款及该月月底当时余额；当前月份显示实时余额。
+  renderAdvanceLedger(advanceLedgerCache);
 }
 
 function loadExistingAdvanceRecord() {
@@ -406,7 +410,7 @@ async function handleAdvanceSubmit(event) {
     if (!form.amount.value.trim()) throw new Error("请输入金额");
     if (amount < 0) throw new Error("金额不能小于 0");
 
-    // V3.1：新增欠款必须大于 0；只有编辑已有欠款时才允许改为 RM0。
+    // V3.2：新增欠款必须大于 0；只有编辑已有欠款时才允许改为 RM0。
     // RM0 代表这笔原记录是手误，确认后从当前欠款资料删除。
     if (amount === 0) {
       if (!editingAdvanceRow) {
@@ -478,9 +482,32 @@ async function handleAdvanceSubmit(event) {
     );
 
     updateAdvanceBrowserCache();
-    form.reset();
+
+    // V3.2：保存后保留公司、工人、项目及日期，方便马上核对。
+    // 只清空本次金额与备注；要换公司/工人由使用者自己选择。
+    const keptCompany = form.company.value;
+    const keptWorkerNo = form.workerNo.value;
+    const keptType = form.type.value;
+    const keptDay = form.deductDay.value;
+    const keptMonth = form.deductMonth.value;
+    const keptYear = form.deductYear.value;
+
+    form.company.value = keptCompany;
     renderWorkerOptions();
-    clearUnsavedAdvanceInputs();
+    form.workerNo.value = keptWorkerNo;
+    form.type.value = keptType;
+    form.deductDay.value = keptDay;
+    form.deductMonth.value = keptMonth;
+    form.deductYear.value = keptYear;
+    form.amount.value = "";
+    form.remark.value = "";
+    form.amount.readOnly = false;
+    form.amount.classList.remove("readonly-field");
+    delete form.amount.dataset.autoAbsence;
+    editingAdvanceRow = null;
+
+    updateAbsenceAmount();
+    loadExistingAdvanceRecord();
     renderAdvanceLedger(advanceLedgerCache);
   } catch (error) {
     showStatus("status", error.message, false);
@@ -504,7 +531,7 @@ function toggleAdvanceHistory() {
   const currentPanel = document.getElementById("advanceCurrentPanel");
   const button = document.getElementById("toggleAdvanceHistoryBtn");
 
-  // V3.1：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
+  // V3.2：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
   if (historyPanel) historyPanel.hidden = !advanceHistoryVisible;
   if (currentPanel) currentPanel.hidden = advanceHistoryVisible;
   if (button) button.textContent = advanceHistoryVisible ? "收起历史记录" : "欠款历史记录";
@@ -568,41 +595,126 @@ function buildAdvanceGroups(advances) {
   return Object.values(groups);
 }
 
-function calculateOpenDebtRecords(group) {
-  const paidByKey = new Map();
-  let legacyRepayment = 0;
+function advanceDateNumber(value) {
+  const date = formatAdvanceDate(value);
+  const match = String(date || "").match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (!match) return 0;
+  return Number(`${match[3]}${match[2]}${match[1]}`);
+}
+
+function selectedAdvanceMonthKey() {
+  const form = document.getElementById("advanceForm");
+  if (!form) return "";
+  const month = String(form.deductMonth.value || "").padStart(2, "0");
+  const year = String(form.deductYear.value || "");
+  return month && year ? `${month}-${year}` : "";
+}
+
+function advanceMonthKeyFromItem(item) {
+  return monthKeyFromAdvanceDate(
+    item["扣款日期"] || item["日期"] || item["日期时间"]
+  );
+}
+
+function selectedAdvanceCutoffNumber() {
+  const key = selectedAdvanceMonthKey();
+  const match = key.match(/^(\d{2})-(\d{4})$/);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+
+  const month = Number(match[1]);
+  const year = Number(match[2]);
+  const today = new Date();
+  const isCurrent = today.getFullYear() === year && (today.getMonth() + 1) === month;
+  const day = isCurrent ? today.getDate() : new Date(year, month, 0).getDate();
+
+  return Number(`${year}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`);
+}
+
+function buildDebtLifecycleRecords(group) {
+  const repaymentsByKey = new Map();
+  const legacyRepayments = [];
 
   group.repaymentRecords.forEach(item => {
     const value = Math.abs(Number(item["显示金额"] ?? item["金额"]) || 0);
+    if (value <= 0) return;
+
     const key = String(item["原欠款记录"] || "").trim();
-    if (key) paidByKey.set(key, (paidByKey.get(key) || 0) + value);
-    else legacyRepayment += value;
+    if (key) {
+      if (!repaymentsByKey.has(key)) repaymentsByKey.set(key, []);
+      repaymentsByKey.get(key).push({ item, amount: value });
+    } else {
+      legacyRepayments.push({ item, amount: value });
+    }
   });
 
   const records = group.borrowRecords.map((item, index) => {
     const key = advanceDebtRecordKey(item, index);
     const amount = Number(item["金额"] || 0);
-    const paid = Math.min(amount, paidByKey.get(key) || 0);
-    return { item, key, amount, paid, remaining: Math.max(0, amount - paid) };
+    const repayments = [...(repaymentsByKey.get(key) || [])];
+    return { item, key, amount, repayments };
   });
 
-  // 兼容旧版只有项目总扣款的 Payroll：按日期由新到旧冲销。
+  // 兼容旧版没有逐笔 JSON 的 Payroll：维持旧系统“由新欠款开始冲销”的规则，
+  // 但把每一笔还款实际挂回对应欠款，方便历史追查。
+  const allocationOrder = [...records].sort((a, b) =>
+    advanceDateNumber(b.item["扣款日期"] || b.item["日期"] || b.item["日期时间"]) -
+    advanceDateNumber(a.item["扣款日期"] || a.item["日期"] || a.item["日期时间"])
+  );
+
+  legacyRepayments
+    .sort((a, b) =>
+      advanceDateNumber(a.item["日期时间"] || a.item["日期"] || a.item["扣款日期"]) -
+      advanceDateNumber(b.item["日期时间"] || b.item["日期"] || b.item["扣款日期"])
+    )
+    .forEach(payment => {
+      let remainingPayment = payment.amount;
+
+      allocationOrder.forEach(record => {
+        if (remainingPayment <= 0) return;
+        const alreadyPaid = record.repayments.reduce((sum, p) => sum + p.amount, 0);
+        const open = Math.max(0, record.amount - alreadyPaid);
+        if (open <= 0) return;
+
+        const applied = Math.min(open, remainingPayment);
+        record.repayments.push({ item: payment.item, amount: applied, legacy: true });
+        remainingPayment -= applied;
+      });
+    });
+
   records.forEach(record => {
-    if (legacyRepayment <= 0 || record.remaining <= 0) return;
-    const applied = Math.min(record.remaining, legacyRepayment);
-    record.paid += applied;
-    record.remaining -= applied;
-    legacyRepayment -= applied;
+    record.repayments.sort((a, b) =>
+      advanceDateNumber(a.item["日期时间"] || a.item["日期"] || a.item["扣款日期"]) -
+      advanceDateNumber(b.item["日期时间"] || b.item["日期"] || b.item["扣款日期"])
+    );
+    record.totalPaid = Math.min(
+      record.amount,
+      record.repayments.reduce((sum, p) => sum + p.amount, 0)
+    );
+    record.remaining = Math.max(0, record.amount - record.totalPaid);
   });
 
   return records;
+}
+
+function debtRemainingAtCutoff(record, cutoffNumber) {
+  const paidByCutoff = record.repayments.reduce((sum, payment) => {
+    const paymentDate = advanceDateNumber(
+      payment.item["日期时间"] || payment.item["日期"] || payment.item["扣款日期"]
+    );
+    return paymentDate > 0 && paymentDate <= cutoffNumber ? sum + payment.amount : sum;
+  }, 0);
+
+  return Math.max(0, record.amount - Math.min(record.amount, paidByCutoff));
 }
 
 function renderAdvanceLedger(advances) {
   const list = document.getElementById("advanceList");
   if (!list) return;
 
+  const selectedMonth = selectedAdvanceMonthKey();
+  const cutoff = selectedAdvanceCutoffNumber();
   const groups = buildAdvanceGroups(advances);
+
   if (!groups.length) {
     list.innerHTML = '<p class="muted">还没有记录。</p>';
     if (advanceHistoryVisible) renderAdvanceHistory(advances);
@@ -610,25 +722,41 @@ function renderAdvanceLedger(advances) {
   }
 
   const cards = groups.map(group => {
-    const openRecords = calculateOpenDebtRecords(group).filter(record => record.remaining > 0.005);
-    const remainingTotal = openRecords.reduce((sum, record) => sum + record.remaining, 0);
+    const lifecycleRecords = buildDebtLifecycleRecords(group)
+      .filter(record => advanceMonthKeyFromItem(record.item) === selectedMonth);
 
-    const debtHtml = openRecords.map(record => {
+    const absenceRecords = group.absenceRecords
+      .filter(item => advanceMonthKeyFromItem(item) === selectedMonth);
+
+    const debtHtml = lifecycleRecords.map(record => {
       const item = record.item;
+      const borrowDate = formatAdvanceDate(item["扣款日期"] || item["日期"] || item["日期时间"]);
+      const repayments = record.repayments.map(payment => {
+        const repayDate = formatAdvanceDate(
+          payment.item["日期时间"] || payment.item["日期"] || payment.item["扣款日期"]
+        );
+        return `<span class="advance-linked-repayment">${escapeHtml(repayDate)} <strong>-${formatCurrency(payment.amount)}</strong></span>`;
+      }).join("");
+
+      const remainingAtMonth = debtRemainingAtCutoff(record, cutoff);
+
       return `
         <div class="advance-ledger-line advance-open-debt-line">
-          <span>
-            ${escapeHtml(formatAdvanceDate(item["扣款日期"] || item["日期"] || item["日期时间"]))}
-            · ${escapeHtml(item["项目"] || item["类型"])}
-            · 未清 ${formatCurrency(record.remaining)}
-          </span>
+          <div class="advance-debt-lifecycle">
+            <span class="advance-linked-borrow">
+              ${escapeHtml(borrowDate)} · ${escapeHtml(item["项目"] || item["类型"])}
+              <strong>+${formatCurrency(record.amount)}</strong>
+            </span>
+            ${repayments}
+          </div>
           ${String(item["备注"] || "").trim()
             ? `<div class="advance-ledger-note">备注：${escapeHtml(item["备注"])}</div>`
             : ""}
+          <div class="advance-debt-month-balance">截至 ${escapeHtml(selectedMonth)} 未清：${formatCurrency(remainingAtMonth)}</div>
         </div>`;
     }).join("");
 
-    const absenceHtml = group.absenceRecords.map(item => {
+    const absenceHtml = absenceRecords.map(item => {
       const status = getAbsencePayrollStatus(item);
       return `
         <div class="advance-ledger-line absence-ledger-line">
@@ -640,16 +768,21 @@ function renderAdvanceLedger(advances) {
 
     if (!debtHtml && !absenceHtml) return "";
 
+    const remainingTotal = lifecycleRecords.reduce(
+      (sum, record) => sum + debtRemainingAtCutoff(record, cutoff),
+      0
+    );
+
     return `
       <div class="worker-item advance-ledger-card">
         <div class="worker-name">${escapeHtml(group.workerNo)} · ${escapeHtml(group.workerName)} · ${escapeHtml(group.company)}</div>
-        ${absenceHtml ? `<div class="advance-ledger-section-title">缺席记录</div><div class="advance-ledger-records absence-records">${absenceHtml}</div>` : ""}
-        ${debtHtml ? `<div class="advance-ledger-section-title">目前未清欠款</div><div class="advance-ledger-records">${debtHtml}</div>
-        <div class="advance-ledger-remaining">剩余欠款：${formatCurrency(remainingTotal)}</div>` : ""}
+        ${absenceHtml ? `<div class="advance-ledger-section-title">缺席记录 · ${escapeHtml(selectedMonth)}</div><div class="advance-ledger-records absence-records">${absenceHtml}</div>` : ""}
+        ${debtHtml ? `<div class="advance-ledger-section-title">欠款记录 · ${escapeHtml(selectedMonth)}</div><div class="advance-ledger-records">${debtHtml}</div>
+        <div class="advance-ledger-remaining">${escapeHtml(selectedMonth)} 未清欠款：${formatCurrency(remainingTotal)}</div>` : ""}
       </div>`;
   }).filter(Boolean).join("");
 
-  list.innerHTML = cards || '<p class="muted">目前没有未清欠款。</p>';
+  list.innerHTML = cards || `<p class="muted">${escapeHtml(selectedMonth)} 没有欠款或缺席记录。</p>`;
   if (advanceHistoryVisible) renderAdvanceHistory(advances);
 }
 
@@ -659,53 +792,43 @@ function renderAdvanceHistory(advances) {
 
   const groups = buildAdvanceGroups(advances);
   list.innerHTML = groups.map(group => {
-    const borrowHistory = [...group.borrowRecords].sort((a, b) =>
-      parseDDMMYYYY(a["日期时间"] || a["日期"] || a["扣款日期"]) -
-      parseDDMMYYYY(b["日期时间"] || b["日期"] || b["扣款日期"])
-    );
-    const repaymentHistory = [...group.repaymentRecords].sort((a, b) =>
-      parseDDMMYYYY(a["日期时间"] || a["日期"] || a["扣款日期"]) -
-      parseDDMMYYYY(b["日期时间"] || b["日期"] || b["扣款日期"])
+    const lifecycleRecords = buildDebtLifecycleRecords(group).sort((a, b) =>
+      advanceDateNumber(a.item["扣款日期"] || a.item["日期"] || a.item["日期时间"]) -
+      advanceDateNumber(b.item["扣款日期"] || b.item["日期"] || b.item["日期时间"])
     );
 
-    if (!borrowHistory.length && !repaymentHistory.length) return "";
+    if (!lifecycleRecords.length) return "";
 
-    const totalBorrowed = group.borrowRecords.reduce(
-      (sum, item) => sum + (Number(item["金额"]) || 0),
-      0
-    );
-    const totalRepaid = group.repaymentRecords.reduce(
-      (sum, item) => sum + Math.abs(Number(item["显示金额"] ?? item["金额"]) || 0),
-      0
-    );
-    const remaining = Math.max(0, totalBorrowed - totalRepaid);
+    const rows = lifecycleRecords.map(record => {
+      const item = record.item;
+      const borrowDate = formatAdvanceDate(item["扣款日期"] || item["日期"] || item["日期时间"]);
+      const repayments = record.repayments.map(payment => {
+        const repayDate = formatAdvanceDate(
+          payment.item["日期时间"] || payment.item["日期"] || payment.item["扣款日期"]
+        );
+        return `<span class="advance-linked-repayment">${escapeHtml(repayDate)} <strong>-${formatCurrency(payment.amount)}</strong></span>`;
+      }).join("");
 
-    const renderHistoryRow = (item, isRepayment) => {
-      const value = Number(item["显示金额"] ?? item["金额"]) || 0;
-      const date = formatAdvanceDate(item["日期时间"] || item["日期"] || item["扣款日期"]);
-      const label = isRepayment
-        ? String(item["备注"] || "Payroll 扣回")
-        : `${item["项目"] || item["类型"]}${item["备注"] ? ` · ${item["备注"]}` : ""}`;
-
-      return `<div class="advance-history-line ${isRepayment ? "is-repayment" : "is-borrow"}">
-        <span>${escapeHtml(date)} · ${escapeHtml(label)}</span>
-        <strong>${isRepayment ? "-" : "+"}${formatCurrency(Math.abs(value))}</strong>
+      return `<div class="advance-history-line advance-history-linked-line">
+        <span class="advance-linked-borrow">
+          ${escapeHtml(borrowDate)} · ${escapeHtml(item["项目"] || item["类型"])}
+          <strong>+${formatCurrency(record.amount)}</strong>
+        </span>
+        ${repayments}
+        ${record.remaining > 0.005
+          ? `<span class="advance-linked-balance">未清 ${formatCurrency(record.remaining)}</span>`
+          : ""}
+        ${String(item["备注"] || "").trim()
+          ? `<div class="advance-ledger-note">备注：${escapeHtml(item["备注"])}</div>`
+          : ""}
       </div>`;
-    };
-
-    const borrowRows = borrowHistory.map(item => renderHistoryRow(item, false)).join("");
-    const repaymentRows = repaymentHistory.map(item => renderHistoryRow(item, true)).join("");
+    }).join("");
 
     return `<div class="worker-item advance-history-card">
       <div class="worker-name">${escapeHtml(group.workerNo)} · ${escapeHtml(group.workerName)}</div>
       <div class="muted advance-company">${escapeHtml(group.company)}</div>
-      <div class="advance-history-summary">
-        <div>累计欠款：<strong>${formatCurrency(totalBorrowed)}</strong></div>
-        <div>Payroll 扣回：<strong>${formatCurrency(totalRepaid)}</strong></div>
-        <div>当前未清欠款：<strong>${formatCurrency(remaining)}</strong></div>
-      </div>
-      ${borrowRows ? `<div class="advance-history-section-title is-borrow">借款 / 欠款记录（+）</div><div class="advance-history-lines">${borrowRows}</div>` : ""}
-      ${repaymentRows ? `<div class="advance-history-section-title is-repayment">Payroll 还款记录（-）</div><div class="advance-history-lines">${repaymentRows}</div>` : ""}
+      <div class="advance-history-section-title is-borrow">借款 / 欠款记录（+）</div>
+      <div class="advance-history-lines">${rows}</div>
     </div>`;
   }).filter(Boolean).join("") || '<p class="muted">还没有欠款历史记录。</p>';
 }

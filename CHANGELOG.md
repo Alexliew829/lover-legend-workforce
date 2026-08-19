@@ -1,4 +1,14 @@
-# V3.1 Enterprise Stable
+# V3.2 Enterprise Stable
+
+- 欠款管理保存后保留公司、工人、项目及日期，方便立即检查。
+- 选择过去月份时，下方欠款资料跟随所选月份，不再固定显示当前月份。
+- 过去月份的未清欠款按该月月底状态计算；当前月份按今天实时状态计算。
+- 每笔借款直接显示对应还款日期与金额，不再显示“Payroll XX-XXXX 扣回”文字。
+- 欠款历史改为“一笔借款 → 自己的还款流水”，支持一笔借款分多次还款。
+- 借款 + 金额为青色，还款 - 金额为红色。
+- 所有页面、API、Cache、Service Worker 与资源版本统一为 V3.2。
+
+# V3.2 Enterprise Stable
 
 - 修复：编辑已有欠款时允许把金额改为 RM0。
 - RM0 只用于修正已有错误欠款；新增欠款仍必须大于 RM0。
@@ -6,9 +16,9 @@
 - 删除错误欠款后，Payroll 不再读取该笔记录。
 - AuditLog 保留原金额与“原金额 → RM0（删除）”修正轨迹。
 - 前端与 Apps Script 均加入验证，避免新增 RM0 欠款。
-- 全系统页面、API、Cache、Service Worker 与资源版本统一为 V3.1。
+- 全系统页面、API、Cache、Service Worker 与资源版本统一为 V3.2。
 
-# V3.1 Enterprise Stable
+# V3.2 Enterprise Stable
 
 - 欠款历史：借款（+）统一显示在上方并改为青色；Payroll 还款（-）统一显示在下方并改为红色。
 - 每位工人历史卡显示累计欠款、Payroll 累计扣回及当前未清欠款。
@@ -16,16 +26,16 @@
 - 年底结转后只结转尚未还清的支粮与准证；已处理缺席及已还清欠款不再显示。
 - Payroll 已保存后不能再次直接保存，必须从列表进入编辑模式。
 - 已打印 Payroll 修改前必须二次确认，且更新后保留原打印状态与打印时间。
-- 全系统版本统一更新为 V3.1。
+- 全系统版本统一更新为 V3.2。
 
-# V3.1 Enterprise Stable
+# V3.2 Enterprise Stable
 
 - Advance Bootstrap 由 Apps Script 直接回传 Payroll 缺席处理状态。
 - 已出粮并扣薪显示“已扣薪”；已出粮但免扣显示“免扣”；未出粮显示“待处理”。
 - 同一工人同一月份的全部缺席采用统一状态。
 - 缺席不计入累计欠款。
 - 保留 V2.4.2 手机完整查看模式及桌面全部功能。
-- 统一页面、manifest、Apps Script API、Service Worker 与 API Cache 版本为 V3.1。
+- 统一页面、manifest、Apps Script API、Service Worker 与 API Cache 版本为 V3.2。
 
 # V2.5 Absence Payroll Status
 
