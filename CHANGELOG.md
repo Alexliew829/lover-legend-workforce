@@ -1,78 +1,12 @@
-# V3.9 Enterprise Stable
+# V4.0 Enterprise Stable
 
-- 修复跨月欠款没有完整带入下一月的问题，适用于全部工人。
-- 根因修复：旧 Payroll 扣款明细的 key 包含 Google Sheet 行号；Restore 后行号可能改变，导致系统找不到原欠款。V3.9 改用“日期 + 项目 + 原始金额”稳定识别欠款，不再依赖行号。
-- 当前未清欠款统一按：原始欠款 - 所有过去已保存 Payroll 实际扣款。
-- W0003：07-2026 扣 RM1,065 后剩 RM5,800；8月新增 RM150，因此 08-2026 当前未清 RM5,950。
-- W0003 买手机 RM2,300，7月已扣 RM1,000，8月正确显示未清 RM1,300。
-- 欠款管理 01-08-2026 已清欠款会完整计算 RM15 + RM50 + RM1,000 = RM1,065。
-- Advance 历史还款与 Payroll 页面使用同一稳定欠款识别规则。
-- 保留 V3.8：历史 Payroll 快照、重复还款去重、选择工人不被同步清空。
-- 全系统版本统一 V3.9，API 3.9.0。
+- 从 V3.3 完美运行版重新建立，保留其 Payroll / Payslip / 欠款计算核心。
+- 强化 Backup / Restore：Payroll 与 Payslip 为强制备份资料。
+- Restore 后验证 Payroll / Payslip 行数，验证成功才报告完成。
+- Backup / Restore 明确显示 Payroll / Payslip 数量及时间。
+- 全系统版本统一 V4.0，API 4.0.0。
 
-# V3.8 Enterprise Stable
-
-- 修复已保存历史 Payroll 被当前欠款余额重新计算，导致表单“实发薪水”与下方历史列表不一致。
-- 所有工人的历史 Payroll 统一以保存时的扣款快照为准，不针对单一工人写死数据。
-- 已保存 Payroll 的逐笔欠款显示原欠款金额及原本月扣款；已还清后重新查看历史月份不会变成“未清 RM0.00”。
-- 例如 W0003 07-2026 会恢复 RM15 + RM50 + RM1,000 = RM1,065 扣款，实发 RM3,568。
-- “扣款后剩余欠款”在查看已保存 Payroll 时使用原 Payroll 保存的欠款余额。
-- 修复 Restore / Recovery 后相同 Payroll 扣款交易重复显示和重复计算（例如 -RM15 出现两次）。
-- 重复扣款去重为全体工人通用规则。
-- 修复 Payroll 选择工人后后台 fresh 数据回来时闪一下并清空选择的问题。
-- 全系统页面、Cache、Service Worker、API Bundle 与版本号统一为 V3.8。
-
-# V3.7 Enterprise Stable
-
-- 新增“恢复 Payroll / Payslip”专用恢复：只恢复 Backup 中的 Payroll，不覆盖 Worker、欠款管理及其他当前资料。
-- 专用恢复会按“公司 + 工人 + 月份”恢复原历史 Payroll，并保留其他月份现有 Payroll。
-- Payslip 继续由恢复后的 Payroll 动态生成，无需 Backup 内另存 Payslip。
-- Backup 完成后显示明确成功回执：时间、Backup ID、Worker、Advance、Payroll 数量与 Payroll 月份。
-- Restore 开始时显示“正在恢复，请勿关闭页面”。
-- Restore 只有经过服务器精确验证后才显示“✅ Restore 已完成并验证通过”。
-- Restore 回执显示来源时间、完成时间、Restore ID、Worker / Advance / Payroll 数量及 Payroll 月份。
-- Restore Payroll 验证升级：比较基本薪水、津贴、佣金、缺席处理、各类扣款、总扣款、实发、欠款余额、发薪日期、扣款明细、已打印与打印时间。
-- 验证失败继续自动回滚，不采用失败 Restore。
-- API 显示版本同步为 V3.7 / 3.7.0。
-- 全系统页面、Cache、Service Worker、Apps Script Bundle 与资源版本统一为 V3.7。
-
-# V3.6 Enterprise Stable
-
-- Payroll 历史改为每次从 Google Sheet fresh 读取，不再被旧 Cache 空阵列隐藏。
-- 修复 07-2026 Google Sheet 有 Payroll、网页却显示没有记录。
-- 旧 Payroll 缺工人编号时，可用同公司 + 工人名字安全认回。
-- 原津贴、佣金、缺席处理、支粮/准证扣款、总扣款、实发薪水重新载入。
-- Payslip 使用原 Payroll 动态恢复，不需要重新输入 7 月 Payroll。
-- Restore 验证改用 fresh Payroll reader。
-- 全系统版本、Cache、Service Worker、API Bundle 更新为 V3.6。
-- ZIP 名称、根目录、Apps_Script 与辅助文件名改成 ASCII 下划线，避免 %20。
-
-# V3.5 Enterprise Stable
-
-- 修复 Google Sheet 有 07-2026 Payroll，但网页显示“没有 Payroll 记录”的问题。
-- 自动识别并迁移 Restore 后的旧 Payroll Sheet 栏位结构到当前 canonical schema。
-- 迁移只整理栏位与日期格式，不重新计算工资、不修改真实欠款本金。
-- 旧 Payroll 若工人编号缺失，会优先用公司 + 工人名字从 Worker 主资料安全补回。
-- 保留原 Payroll 的发薪日期、津贴、佣金、缺席处理、扣款明细 JSON、已打印及打印时间。
-- Payslip 继续由恢复后的原 Payroll 动态生成，无需重新输入 7 月 Payroll。
-- Backup 前强制整理 Payroll 为当前 schema，避免未来 Backup 再保存旧栏位结构。
-- Restore 后立即迁移 Payroll，再验证每笔 Payroll 的月份 / 公司 / 工人 / 发薪日期 / 已打印 / 扣款明细可读取性。
-- Restore 失败继续自动回滚。
-- 所有页面、API、Cache、Service Worker、Apps Script Bundle 与资源版本统一为 V3.5。
-
-# V3.4 Enterprise Stable
-
-- 修复 Restore 后过去 Payroll / Payslip 网页读取不到的问题。
-- Payroll 月份读取兼容 Restore 产生的 `01-07-2026 00:00:00` 等旧日期文字，并正确识别为 `07-2026`。
-- Restore 写回 Payroll 时，“月份”统一恢复为 `MM-yyyy` 文字格式，避免再次发生月份错位。
-- Restore 前增加完整性检查：必须包含 Worker、Advance、Payroll 等关键工作表及必要表头；不完整备份直接禁止恢复。
-- Restore 前自动保留当前系统服务器快照。
-- Restore 后自动验证 Worker、Advance、Payroll 数量。
-- Restore 验证失败时自动回滚至 Restore 前状态，避免失败恢复覆盖真实资料。
-- Restore 成功后前端强制清除读取缓存，并显示验证后的 Worker / Advance / Payroll 数量。
-- Backup schema / 系统页面 / API / Cache / Service Worker / 资源版本统一为 V3.4。
-
-# V3.3 Enterprise Stable
+# V4.0 Enterprise Stable
 
 - 修复 Lover Legend Adenium 旧月份带入欠款没有显示的问题。
 - 当前月份显示所有目前仍未清的欠款，包括以前月份带过来的余额。
@@ -82,7 +16,7 @@
 - 缺席“已扣薪”计入对应 Payroll 结算日的已清金额；免扣与待处理不计。
 - 例如 W0006：RM200 + RM200 支粮扣回，加 RM60 缺席扣薪，显示“01-08-2026 已清欠款：RM460.00”。
 - 仍有余额时只显示一次“当前未清欠款”，已完全清偿则不再显示未清余额。
-- 所有页面、API、Cache、Service Worker 与资源版本统一为 V3.3。
+- 所有页面、API、Cache、Service Worker 与资源版本统一为 V4.0。
 
 # V3.2 Enterprise Stable
 

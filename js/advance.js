@@ -316,7 +316,7 @@ function handleAdvanceKeyChange() {
   updateAbsenceAmount();
   loadExistingAdvanceRecord();
 
-  // V3.9：目前欠款资料跟随上方选择的年月。
+  // V4.0：目前欠款资料跟随上方选择的年月。
   // 过去月份显示该月的欠款及该月月底当时余额；当前月份显示实时余额。
   renderAdvanceLedger(advanceLedgerCache);
 }
@@ -410,7 +410,7 @@ async function handleAdvanceSubmit(event) {
     if (!form.amount.value.trim()) throw new Error("请输入金额");
     if (amount < 0) throw new Error("金额不能小于 0");
 
-    // V3.9：新增欠款必须大于 0；只有编辑已有欠款时才允许改为 RM0。
+    // V4.0：新增欠款必须大于 0；只有编辑已有欠款时才允许改为 RM0。
     // RM0 代表这笔原记录是手误，确认后从当前欠款资料删除。
     if (amount === 0) {
       if (!editingAdvanceRow) {
@@ -483,7 +483,7 @@ async function handleAdvanceSubmit(event) {
 
     updateAdvanceBrowserCache();
 
-    // V3.9：保存后保留公司、工人、项目及日期，方便马上核对。
+    // V4.0：保存后保留公司、工人、项目及日期，方便马上核对。
     // 只清空本次金额与备注；要换公司/工人由使用者自己选择。
     const keptCompany = form.company.value;
     const keptWorkerNo = form.workerNo.value;
@@ -531,7 +531,7 @@ function toggleAdvanceHistory() {
   const currentPanel = document.getElementById("advanceCurrentPanel");
   const button = document.getElementById("toggleAdvanceHistoryBtn");
 
-  // V3.9：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
+  // V4.0：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
   if (historyPanel) historyPanel.hidden = !advanceHistoryVisible;
   if (currentPanel) currentPanel.hidden = advanceHistoryVisible;
   if (button) button.textContent = advanceHistoryVisible ? "收起历史记录" : "欠款历史记录";
@@ -740,118 +740,32 @@ function buildClearedSummaryByDate(lifecycleRecords, absenceRecords, selectedMon
     .sort((a, b) => advanceDateNumber(a[0]) - advanceDateNumber(b[0]));
 }
 
-
-function advanceRepaymentSignature_(item) {
-  const date = formatAdvanceDate(
-    item["日期时间"] || item["日期"] || item["扣款日期"]
-  );
-  const sourceDebt = String(item["原欠款记录"] || "").trim();
-  const amount = Math.abs(Number(item["显示金额"] ?? item["金额"]) || 0);
-  const source = String(item["交易来源"] || "").trim();
-  const month = String(item["Payroll月份"] || item["月份"] || "").trim();
-
-  return [
-    sourceDebt,
-    date,
-    amount.toFixed(2),
-    source,
-    month
-  ].join("|");
-}
-
-function dedupeAdvanceRepaymentRecords_(records) {
-  const seen = new Set();
-
-  return (Array.isArray(records) ? records : []).filter(item => {
-    const signature = advanceRepaymentSignature_(item);
-    if (seen.has(signature)) return false;
-    seen.add(signature);
-    return true;
-  });
-}
-
-
-function advanceStableDebtKeyFromParts(date, type, amount) {
-  return [
-    formatAdvanceDate(date),
-    String(type || "").trim(),
-    Number(amount || 0).toFixed(2)
-  ].join("|");
-}
-
-function advanceStableDebtKeyFromBorrow(item) {
-  return advanceStableDebtKeyFromParts(
-    item["扣款日期"] || item["日期"] || item["日期时间"],
-    item["项目"] || item["类型"],
-    item["金额"]
-  );
-}
-
-function advanceStableDebtKeyFromPayrollKey(key) {
-  const parts = String(key || "").split("|");
-  if (parts.length < 3) return "";
-  return advanceStableDebtKeyFromParts(parts[0], parts[1], parts[2]);
-}
-
 function buildDebtLifecycleRecords(group) {
-  const repaymentsByExactKey = new Map();
-  const repaymentsByStableKey = new Map();
+  const repaymentsByKey = new Map();
   const legacyRepayments = [];
 
-  // V3.9：相同 Payroll 扣款先去重。
-  const uniqueRepaymentRecords = dedupeAdvanceRepaymentRecords_(group.repaymentRecords);
-
-  uniqueRepaymentRecords.forEach(item => {
+  group.repaymentRecords.forEach(item => {
     const value = Math.abs(Number(item["显示金额"] ?? item["金额"]) || 0);
     if (value <= 0) return;
 
-    const exactKey = String(item["原欠款记录"] || "").trim();
-    const stableKey = advanceStableDebtKeyFromPayrollKey(exactKey);
-    const payment = { item, amount: value };
-
-    if (exactKey) {
-      if (!repaymentsByExactKey.has(exactKey)) repaymentsByExactKey.set(exactKey, []);
-      repaymentsByExactKey.get(exactKey).push(payment);
-
-      if (stableKey) {
-        if (!repaymentsByStableKey.has(stableKey)) repaymentsByStableKey.set(stableKey, []);
-        repaymentsByStableKey.get(stableKey).push(payment);
-      }
+    const key = String(item["原欠款记录"] || "").trim();
+    if (key) {
+      if (!repaymentsByKey.has(key)) repaymentsByKey.set(key, []);
+      repaymentsByKey.get(key).push({ item, amount: value });
     } else {
-      legacyRepayments.push(payment);
+      legacyRepayments.push({ item, amount: value });
     }
   });
 
   const records = group.borrowRecords.map((item, index) => {
-    const exactKey = advanceDebtRecordKey(item, index);
-    const stableKey = advanceStableDebtKeyFromBorrow(item);
-
-    const exact = repaymentsByExactKey.get(exactKey) || [];
-    const stable = repaymentsByStableKey.get(stableKey) || [];
-
-    // Exact and stable may point to the same payment.
-    // Merge by repayment signature so one Payroll repayment is counted once.
-    const merged = [];
-    const seen = new Set();
-
-    [...exact, ...stable].forEach(payment => {
-      const signature = advanceRepaymentSignature_(payment.item);
-      if (seen.has(signature)) return;
-      seen.add(signature);
-      merged.push(payment);
-    });
-
-    return {
-      item,
-      key: exactKey,
-      stableKey,
-      amount: Number(item["金额"] || 0),
-      repayments: merged
-    };
+    const key = advanceDebtRecordKey(item, index);
+    const amount = Number(item["金额"] || 0);
+    const repayments = [...(repaymentsByKey.get(key) || [])];
+    return { item, key, amount, repayments };
   });
 
-  // Legacy Payroll without allocation JSON:
-  // preserve original newest-debt-first allocation rule.
+  // 兼容旧版没有逐笔 JSON 的 Payroll：维持旧系统“由新欠款开始冲销”的规则，
+  // 但把每一笔还款实际挂回对应欠款，方便历史追查。
   const allocationOrder = [...records].sort((a, b) =>
     advanceDateNumber(b.item["扣款日期"] || b.item["日期"] || b.item["日期时间"]) -
     advanceDateNumber(a.item["扣款日期"] || a.item["日期"] || a.item["日期时间"])
@@ -882,12 +796,10 @@ function buildDebtLifecycleRecords(group) {
       advanceDateNumber(a.item["日期时间"] || a.item["日期"] || a.item["扣款日期"]) -
       advanceDateNumber(b.item["日期时间"] || b.item["日期"] || b.item["扣款日期"])
     );
-
     record.totalPaid = Math.min(
       record.amount,
-      record.repayments.reduce((sum, payment) => sum + payment.amount, 0)
+      record.repayments.reduce((sum, p) => sum + p.amount, 0)
     );
-
     record.remaining = Math.max(0, record.amount - record.totalPaid);
   });
 
