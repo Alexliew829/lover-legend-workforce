@@ -1,3 +1,16 @@
+# V3.5 Enterprise Stable
+
+- 修复 Google Sheet 有 07-2026 Payroll，但网页显示“没有 Payroll 记录”的问题。
+- 自动识别并迁移 Restore 后的旧 Payroll Sheet 栏位结构到当前 canonical schema。
+- 迁移只整理栏位与日期格式，不重新计算工资、不修改真实欠款本金。
+- 旧 Payroll 若工人编号缺失，会优先用公司 + 工人名字从 Worker 主资料安全补回。
+- 保留原 Payroll 的发薪日期、津贴、佣金、缺席处理、扣款明细 JSON、已打印及打印时间。
+- Payslip 继续由恢复后的原 Payroll 动态生成，无需重新输入 7 月 Payroll。
+- Backup 前强制整理 Payroll 为当前 schema，避免未来 Backup 再保存旧栏位结构。
+- Restore 后立即迁移 Payroll，再验证每笔 Payroll 的月份 / 公司 / 工人 / 发薪日期 / 已打印 / 扣款明细可读取性。
+- Restore 失败继续自动回滚。
+- 所有页面、API、Cache、Service Worker、Apps Script Bundle 与资源版本统一为 V3.5。
+
 # V3.4 Enterprise Stable
 
 - 修复 Restore 后过去 Payroll / Payslip 网页读取不到的问题。
