@@ -1,6 +1,6 @@
-# Lover Legend Workforce ERP V3.7 Enterprise Stable
+# Lover Legend Workforce ERP V3.8 Enterprise Stable
 
-V3.7 在 Advance 缺席记录中显示对应 Payroll 的最终处理状态：已扣薪、免扣或待处理。
+V3.8 在 Advance 缺席记录中显示对应 Payroll 的最终处理状态：已扣薪、免扣或待处理。
 
 部署时必须同时更新 Frontend 与 Apps Script，并为 Apps Script 建立新部署版本。
 

@@ -316,7 +316,7 @@ function handleAdvanceKeyChange() {
   updateAbsenceAmount();
   loadExistingAdvanceRecord();
 
-  // V3.7：目前欠款资料跟随上方选择的年月。
+  // V3.8：目前欠款资料跟随上方选择的年月。
   // 过去月份显示该月的欠款及该月月底当时余额；当前月份显示实时余额。
   renderAdvanceLedger(advanceLedgerCache);
 }
@@ -410,7 +410,7 @@ async function handleAdvanceSubmit(event) {
     if (!form.amount.value.trim()) throw new Error("请输入金额");
     if (amount < 0) throw new Error("金额不能小于 0");
 
-    // V3.7：新增欠款必须大于 0；只有编辑已有欠款时才允许改为 RM0。
+    // V3.8：新增欠款必须大于 0；只有编辑已有欠款时才允许改为 RM0。
     // RM0 代表这笔原记录是手误，确认后从当前欠款资料删除。
     if (amount === 0) {
       if (!editingAdvanceRow) {
@@ -483,7 +483,7 @@ async function handleAdvanceSubmit(event) {
 
     updateAdvanceBrowserCache();
 
-    // V3.7：保存后保留公司、工人、项目及日期，方便马上核对。
+    // V3.8：保存后保留公司、工人、项目及日期，方便马上核对。
     // 只清空本次金额与备注；要换公司/工人由使用者自己选择。
     const keptCompany = form.company.value;
     const keptWorkerNo = form.workerNo.value;
@@ -531,7 +531,7 @@ function toggleAdvanceHistory() {
   const currentPanel = document.getElementById("advanceCurrentPanel");
   const button = document.getElementById("toggleAdvanceHistoryBtn");
 
-  // V3.7：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
+  // V3.8：欠款历史与目前未清欠款互斥显示，避免两个长列表同时出现。
   if (historyPanel) historyPanel.hidden = !advanceHistoryVisible;
   if (currentPanel) currentPanel.hidden = advanceHistoryVisible;
   if (button) button.textContent = advanceHistoryVisible ? "收起历史记录" : "欠款历史记录";
@@ -740,11 +740,45 @@ function buildClearedSummaryByDate(lifecycleRecords, absenceRecords, selectedMon
     .sort((a, b) => advanceDateNumber(a[0]) - advanceDateNumber(b[0]));
 }
 
+
+function advanceRepaymentSignature_(item) {
+  const date = formatAdvanceDate(
+    item["日期时间"] || item["日期"] || item["扣款日期"]
+  );
+  const sourceDebt = String(item["原欠款记录"] || "").trim();
+  const amount = Math.abs(Number(item["显示金额"] ?? item["金额"]) || 0);
+  const source = String(item["交易来源"] || "").trim();
+  const month = String(item["Payroll月份"] || item["月份"] || "").trim();
+
+  return [
+    sourceDebt,
+    date,
+    amount.toFixed(2),
+    source,
+    month
+  ].join("|");
+}
+
+function dedupeAdvanceRepaymentRecords_(records) {
+  const seen = new Set();
+
+  return (Array.isArray(records) ? records : []).filter(item => {
+    const signature = advanceRepaymentSignature_(item);
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+}
+
 function buildDebtLifecycleRecords(group) {
   const repaymentsByKey = new Map();
   const legacyRepayments = [];
 
-  group.repaymentRecords.forEach(item => {
+  // V3.8：Restore / Recovery 旧资料若留下相同的 Payroll 扣款交易，
+  // 显示和余额计算只认一笔，避免 +15 → -15 → -15 这种重复。
+  const uniqueRepaymentRecords = dedupeAdvanceRepaymentRecords_(group.repaymentRecords);
+
+  uniqueRepaymentRecords.forEach(item => {
     const value = Math.abs(Number(item["显示金额"] ?? item["金额"]) || 0);
     if (value <= 0) return;
 

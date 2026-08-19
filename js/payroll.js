@@ -72,7 +72,7 @@ function applyPayrollMobileReadonlyMode() {
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v370";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v380";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
@@ -232,11 +232,46 @@ async function loadPayrollBootstrapWithRetry(forceRefresh) {
 }
 
 function applyPayrollBootstrapData(data) {
+  const form = document.getElementById("payrollForm");
+  const preservedCompany = String(form?.company?.value || "");
+  const preservedWorkerNo = String(form?.workerNo?.value || "");
+  const preservedMonth = String(form?.payMonth?.value || "");
+  const preservedYear = String(form?.payYear?.value || "");
+
   payrollWorkers = Array.isArray(data?.workers) ? data.workers : [];
   payrollAdvances = Array.isArray(data?.advances) ? data.advances : [];
   payrollRecords = Array.isArray(data?.payrolls) ? data.payrolls : [];
 
+  // V3.8：后台 fresh Payroll 回来时，不再把用户刚选择的工人清空。
+  // 这是之前“选了工人闪一下又要重选”的原因。
+  if (form) {
+    if (preservedMonth) form.payMonth.value = preservedMonth;
+    if (preservedYear) form.payYear.value = preservedYear;
+    if (preservedCompany) form.company.value = preservedCompany;
+  }
+
   renderPayrollWorkers();
+
+  if (form && preservedWorkerNo) {
+    form.workerNo.value = preservedWorkerNo;
+
+    if (form.workerNo.value === preservedWorkerNo) {
+      selectedPayrollWorker = payrollWorkers.find(worker =>
+        String(worker["工人编号"] || "") === preservedWorkerNo &&
+        (!preservedCompany || String(worker["公司"] || "") === preservedCompany)
+      ) || null;
+
+      if (selectedPayrollWorker) {
+        form.salaryType.value = String(selectedPayrollWorker["薪水类型"] || "");
+        renderSalarySection();
+        renderAbsenceSection();
+        renderDebtList();
+        calculatePayroll();
+        showSavedPayrollState();
+      }
+    }
+  }
+
   renderPayrollHistory();
 }
 
@@ -255,7 +290,7 @@ function setupPayrollMonthYear() {
 function getSavedPayrollDefaultPeriod() {
   const now = new Date();
 
-  // V3.7：每次进入 Payroll 都默认显示当前月份。
+  // V3.8：每次进入 Payroll 都默认显示当前月份。
   // 历史月份仍可通过月份选择器查询，但不会成为下次进入页面的默认月份。
   return {
     month: String(now.getMonth() + 1).padStart(2, "0"),
@@ -876,6 +911,7 @@ function renderDebtRecordDetails(type, totalBalance, current, legacyTotal) {
   }
 
   const savedMap = getSavedAllocationMap(type, current, records, legacyTotal);
+  const hasSavedPayroll = Boolean(current);
   let previousMonth = "";
 
   const rows = records.map((item, index) => {
@@ -887,14 +923,35 @@ function renderDebtRecordDetails(type, totalBalance, current, legacyTotal) {
     previousMonth = month;
 
     const itemType = normalizeDebtType(item["项目"] || item["类型"]);
-    const balance = Math.max(0, parsePayrollMoney(item._remaining));
     const key = String(item._debtKey || payrollDebtRecordKey(item, index));
-    const savedValue = Math.min(parsePayrollMoney(savedMap[key]), balance);
+    const savedValueRaw = parsePayrollMoney(savedMap[key]);
+
+    // V3.8：
+    // 已保存的历史 Payroll 必须按“当时保存的欠款本金 + 当时扣款”显示，
+    // 不能拿今天的剩余余额重新计算。
+    //
+    // 例：26-07 支粮 RM15 已在 01-08 扣清，
+    // 重新打开 07-2026 Payroll 时仍必须显示 RM15 / 扣 RM15，
+    // 不能因为当前余额已经是 0 而显示“未清 RM0.00”。
+    const originalAmount = Math.max(
+      0,
+      parsePayrollMoney(item._originalAmount || item["金额"])
+    );
+    const currentRemaining = Math.max(0, parsePayrollMoney(item._remaining));
+
+    const itemBalance = hasSavedPayroll && savedValueRaw > 0
+      ? Math.max(originalAmount, savedValueRaw)
+      : currentRemaining;
+
+    const savedValue = Math.min(savedValueRaw, itemBalance);
+    const label = hasSavedPayroll && savedValueRaw > 0
+      ? `欠款 ${formatPayrollCurrency(originalAmount)}`
+      : `未清 ${formatPayrollCurrency(currentRemaining)}`;
 
     return `${spacer}
       <div class="debt-record-line debt-record-select-line">
         <div class="debt-record-text">
-          <span>${escapePayrollHtml(date)} · ${escapePayrollHtml(itemType)} · 未清 ${formatPayrollCurrency(balance)}</span>
+          <span>${escapePayrollHtml(date)} · ${escapePayrollHtml(itemType)} · ${label}</span>
           ${item["备注"] ? `<small>${escapePayrollHtml(item["备注"])}</small>` : ""}
         </div>
         <input
@@ -902,9 +959,10 @@ function renderDebtRecordDetails(type, totalBalance, current, legacyTotal) {
           data-type="${escapePayrollHtml(itemType)}"
           data-record-key="${escapePayrollHtml(key)}"
           data-date="${escapePayrollHtml(date)}"
-          data-item-balance="${balance}"
+          data-item-balance="${itemBalance}"
+          data-original-amount="${originalAmount}"
           data-remark="${escapePayrollHtml(item["备注"] || "")}"
-          data-limit-message="本月扣除不能超过该笔欠款余额 ${formatPayrollCurrency(balance)}"
+          data-limit-message="本月扣除不能超过该笔欠款金额 ${formatPayrollCurrency(itemBalance)}"
           type="text"
           inputmode="decimal"
           placeholder="0.00"
@@ -935,13 +993,39 @@ function renderDebtList() {
   };
 
   list.innerHTML = DEBT_TYPES.map(type => {
-    const balance = balances[type] || 0;
-    const value = Math.min(saved[type] || 0, balance);
-    const isAdvance = type === "支粮";
-    const remaining = Math.max(0, balance - value);
-    const hasDebt = balance > 0;
+    const liveBalance = balances[type] || 0;
 
-    // V3.7：恢复 V2.9 较醒目的项目摘要，但保留 V3.7 的逐笔扣款上限验证。
+    // V3.8：历史 Payroll 的摘要以保存快照为真值。
+    // 当前欠款已经被扣清，不代表过去 Payroll 的扣款应该变成 0。
+    const savedDeduction = saved[type] || 0;
+    const balance = current
+      ? Math.max(
+          liveBalance,
+          savedDeduction + (
+            type === "支粮"
+              ? parsePayrollMoney(current["欠款余额"])
+              : 0
+          )
+        )
+      : liveBalance;
+
+    const value = current
+      ? savedDeduction
+      : Math.min(savedDeduction, balance);
+
+    const isAdvance = type === "支粮";
+    const remaining = current
+      ? Math.max(
+          0,
+          type === "支粮"
+            ? parsePayrollMoney(current["欠款余额"])
+            : balance - value
+        )
+      : Math.max(0, balance - value);
+
+    const hasDebt = balance > 0 || value > 0;
+
+    // V3.8：恢复 V2.9 较醒目的项目摘要，但保留 V3.8 的逐笔扣款上限验证。
     return `
       <div class="debt-row ${isAdvance ? "debt-row-with-notes" : ""} ${hasDebt ? "has-debt" : ""}">
         <div class="debt-info">
@@ -1091,7 +1175,10 @@ function calculatePayroll() {
     0,
     grossSalary + allowance + liveCommission - totalDeduction
   );
-  const remainingDebt = Math.max(0, totalOutstanding - debtDeduction);
+  const savedPayroll = getCurrentMonthPayrollRecord();
+  const remainingDebt = savedPayroll
+    ? Math.max(0, parsePayrollMoney(savedPayroll["欠款余额"]))
+    : Math.max(0, totalOutstanding - debtDeduction);
 
   document.getElementById("totalDeductionText").textContent = formatPayrollCurrency(totalDeduction);
   document.getElementById("netSalaryText").textContent = formatPayrollCurrency(netSalary);

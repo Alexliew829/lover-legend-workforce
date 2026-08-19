@@ -1,3 +1,15 @@
+# V3.8 Enterprise Stable
+
+- 修复已保存历史 Payroll 被当前欠款余额重新计算，导致表单“实发薪水”与下方历史列表不一致。
+- 所有工人的历史 Payroll 统一以保存时的扣款快照为准，不针对单一工人写死数据。
+- 已保存 Payroll 的逐笔欠款显示原欠款金额及原本月扣款；已还清后重新查看历史月份不会变成“未清 RM0.00”。
+- 例如 W0003 07-2026 会恢复 RM15 + RM50 + RM1,000 = RM1,065 扣款，实发 RM3,568。
+- “扣款后剩余欠款”在查看已保存 Payroll 时使用原 Payroll 保存的欠款余额。
+- 修复 Restore / Recovery 后相同 Payroll 扣款交易重复显示和重复计算（例如 -RM15 出现两次）。
+- 重复扣款去重为全体工人通用规则。
+- 修复 Payroll 选择工人后后台 fresh 数据回来时闪一下并清空选择的问题。
+- 全系统页面、Cache、Service Worker、API Bundle 与版本号统一为 V3.8。
+
 # V3.7 Enterprise Stable
 
 - 新增“恢复 Payroll / Payslip”专用恢复：只恢复 Backup 中的 Payroll，不覆盖 Worker、欠款管理及其他当前资料。
