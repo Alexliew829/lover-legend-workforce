@@ -1,4 +1,4 @@
-const CACHE_NAME = "ll-workforce-v340";
+const CACHE_NAME = "ll-workforce-v350";
 
 const APP_SHELL = [
   "./app/index.html",
@@ -10,28 +10,28 @@ const APP_SHELL = [
   "./app/settings.html",
   "./manifest.json",
 
-  "./css/style.css?v=3.4",
+  "./css/style.css?v=3.5",
 
-  "./js/config.js?v=3.4",
-  "./js/app.js?v=3.4",
-  "./js/api.js?v=3.4",
-  "./js/format.js?v=3.4",
-  "./js/dashboard.js?v=3.4",
-  "./js/worker.js?v=3.4",
-  "./js/advance.js?v=3.4",
-  "./js/payroll.js?v=3.4",
-  "./js/payslip.js?v=3.4",
+  "./js/config.js?v=3.5",
+  "./js/app.js?v=3.5",
+  "./js/api.js?v=3.5",
+  "./js/format.js?v=3.5",
+  "./js/dashboard.js?v=3.5",
+  "./js/worker.js?v=3.5",
+  "./js/advance.js?v=3.5",
+  "./js/payroll.js?v=3.5",
+  "./js/payslip.js?v=3.5",
 
   "./assets/lover-legend-green.png",
   "./assets/lover-legend-red.jpg",
-  "./assets/icons/apple-touch-icon.png?v=3.4",
-  "./assets/icons/favicon.ico?v=3.4",
-  "./assets/icons/icon-32.png?v=3.4",
-  "./assets/icons/icon-180.png?v=3.4",
-  "./assets/icons/icon-192.png?v=3.4",
-  "./assets/icons/icon-256.png?v=3.4",
-  "./assets/icons/icon-512.png?v=3.4",
-  "./assets/icons/maskable-icon-512.png?v=3.4"
+  "./assets/icons/apple-touch-icon.png?v=3.5",
+  "./assets/icons/favicon.ico?v=3.5",
+  "./assets/icons/icon-32.png?v=3.5",
+  "./assets/icons/icon-180.png?v=3.5",
+  "./assets/icons/icon-192.png?v=3.5",
+  "./assets/icons/icon-256.png?v=3.5",
+  "./assets/icons/icon-512.png?v=3.5",
+  "./assets/icons/maskable-icon-512.png?v=3.5"
 ];
 
 self.addEventListener("install", event => {
