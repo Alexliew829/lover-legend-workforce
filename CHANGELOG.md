@@ -1,3 +1,17 @@
+# V3.4 Enterprise Stable
+
+- 基于 V3.3 完美运行版，只修改 Backup / Restore；Payroll、Payslip、Advance 与工资/欠款计算核心不改。
+- Backup 的 Payroll 月份固定保存为 MM-yyyy，例如 07-2026。
+- Restore 兼容旧 Backup 的 01-07-2026 00:00:00，并恢复为 07-2026。
+- Restore 前自动保存当前数据作为回滚点；验证失败自动回滚。
+- Restore 后验证 Payroll 数量、月份、公司、工人编号、已打印状态、发薪日期。
+- 同时验证 Worker / Advance / Payslip 数量。
+- Backup 成功明确显示“✅ Backup 已完成”及资料数量。
+- Restore 成功只有在服务器验证通过后才显示“✅ Restore 已完成并验证”。
+- 新增“恢复 Payroll / Payslip（紧急修复）”，只恢复 Payroll / Payslip，不覆盖 Worker / Advance。
+- Restore 只恢复 Google Sheet 数据，不改变网页程序、排版或计算公式。
+- 前端 Cache / Service Worker / API 显示版本统一更新至 V3.4。
+
 # V3.3 Enterprise Stable
 
 - 修复 Lover Legend Adenium 旧月份带入欠款没有显示的问题。

@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payroll System - Dashboard</title>
-  <link rel="manifest" href="../manifest.json?v=3.3" />
-  <link rel="icon" href="../assets/icons/payroll-system.ico?v=3.3" />
-  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=3.3" />
-  <link rel="stylesheet" href="../css/style.css?v=3.3" />
+  <link rel="manifest" href="../manifest.json?v=3.4" />
+  <link rel="icon" href="../assets/icons/payroll-system.ico?v=3.4" />
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=3.4" />
+  <link rel="stylesheet" href="../css/style.css?v=3.4" />
 </head>
 <body>
   <div class="app">
@@ -59,18 +59,23 @@
           ♻ Restore / 恢复
         </button>
 
+        <button id="restorePayrollPayslipBtn" class="btn secondary maintenance-btn" type="button">
+          🧾 恢复 Payroll / Payslip（紧急修复）
+        </button>
+
         <button id="yearEndCloseBtn" class="btn danger maintenance-btn" type="button">
           ⚠ 年底结转 / Year-End Closing
         </button>
       </div>
 
       <input id="restoreBackupFile" type="file" accept=".json,application/json" hidden />
+      <input id="restorePayrollPayslipFile" type="file" accept=".json,application/json" hidden />
       <div id="maintenanceStatus" class="status"></div>
     </section>
   </div>
 
-  <script src="../js/config.js?v=3.3"></script>
-  <script src="../js/api.js?v=3.3"></script>
-  <script src="../js/dashboard.js?v=3.3"></script>
+  <script src="../js/config.js?v=3.4"></script>
+  <script src="../js/api.js?v=3.4"></script>
+  <script src="../js/dashboard.js?v=3.4"></script>
 </body>
 </html>

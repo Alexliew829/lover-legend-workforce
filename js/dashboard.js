@@ -15,6 +15,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("restoreBackupFile").click();
   });
   document.getElementById("restoreBackupFile").addEventListener("change", handleRestoreBackup);
+
+  document.getElementById("restorePayrollPayslipBtn").addEventListener("click", () => {
+    document.getElementById("restorePayrollPayslipFile").click();
+  });
+  document.getElementById("restorePayrollPayslipFile").addEventListener(
+    "change",
+    handleRestorePayrollPayslip
+  );
+
   document.getElementById("yearEndCloseBtn").addEventListener("click", handleYearEndClose);
 
   loadDashboard();
@@ -192,11 +201,26 @@ async function handleYearlyBackup() {
     const backup = await api("createYearlyBackup", { year });
     downloadBackupJson(backup);
 
+    const verify = backup.verification || {};
+    const months = Array.isArray(verify.payrollMonths)
+      ? verify.payrollMonths.join(", ")
+      : "-";
+
     showStatus(
       "maintenanceStatus",
-      `手动备份已经下载。请妥善保存 JSON 文件。`,
+      `✅ Backup 已完成 · Payroll ${Number(verify.payrollRows) || 0} 笔 · Payslip ${Number(verify.payslipRows) || 0} 笔 · ${backup.createdAt || ""}`,
       true
     );
+
+    alert([
+      "✅ Backup 已完成",
+      `时间：${backup.createdAt || "-"}`,
+      `Worker：${Number(verify.workerRows) || 0}`,
+      `Advance：${Number(verify.advanceRows) || 0}`,
+      `Payroll：${Number(verify.payrollRows) || 0}`,
+      `Payslip：${Number(verify.payslipRows) || 0}`,
+      `Payroll 月份：${months}`
+    ].join("\n"));
   } catch (error) {
     showStatus("maintenanceStatus", error.message, false);
   } finally {
@@ -210,34 +234,141 @@ async function handleRestoreBackup(event) {
   event.target.value = "";
   if (!file) return;
 
-  const confirmed = confirm(
-    "恢复会覆盖目前的系统资料。确定继续吗？\n\nRestore will overwrite current data."
-  );
-  if (!confirmed) return;
-
   const button = document.getElementById("restoreBackupBtn");
 
   try {
-    button.disabled = true;
-    button.textContent = "正在恢复...";
-
     const text = await file.text();
     const backup = JSON.parse(text);
-    const result = await api("restoreYearlyBackup", { backup });
 
-    sessionStorage.clear();
+    const confirmed = confirm([
+      "Restore 会覆盖目前的数据。",
+      "",
+      `Backup 时间：${backup.createdAt || "-"}`,
+      "",
+      "Restore 只恢复 Google Sheet 数据，不会改变网页程序、排版或计算公式。",
+      "只有看到“✅ Restore 已完成并验证”才算真正成功。",
+      "",
+      "确定继续吗？"
+    ].join("\n"));
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+    button.textContent = "正在恢复...";
     showStatus(
       "maintenanceStatus",
-      `恢复完成，共恢复 ${Number(result.restoredSheets) || 0} 个工作表。`,
+      "正在 Restore，请不要关闭页面……",
       true
     );
 
+    const result = await api("restoreYearlyBackup", { backup });
+
+    if (!result?.verified) {
+      throw new Error("服务器没有返回 Restore 验证成功状态。");
+    }
+
+    if (typeof clearApiReadCache === "function") clearApiReadCache(["*"]);
+    sessionStorage.clear();
+
+    const verify = result.verification || {};
+    const months = Array.isArray(verify.payrollMonths)
+      ? verify.payrollMonths.join(", ")
+      : "-";
+
+    showStatus(
+      "maintenanceStatus",
+      `✅ Restore 已完成并验证 · Payroll ${Number(verify.payrollRows) || 0} 笔 · ${result.backupCreatedAt || ""}`,
+      true
+    );
+
+    alert([
+      "✅ Restore 已完成并验证",
+      `恢复来源：${result.backupCreatedAt || "-"}`,
+      `Worker：${Number(verify.workerRows) || 0}`,
+      `Advance：${Number(verify.advanceRows) || 0}`,
+      `Payroll：${Number(verify.payrollRows) || 0}`,
+      `Payslip：${Number(verify.payslipRows) || 0}`,
+      `Payroll 月份：${months}`
+    ].join("\n"));
+
     await loadDashboard();
   } catch (error) {
-    showStatus("maintenanceStatus", "恢复失败：" + error.message, false);
+    const message = "❌ Restore 失败：" + error.message;
+    showStatus("maintenanceStatus", message, false);
+    alert(message);
   } finally {
     button.disabled = false;
     button.textContent = "♻ Restore / 恢复";
+  }
+}
+
+async function handleRestorePayrollPayslip(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+
+  const button = document.getElementById("restorePayrollPayslipBtn");
+
+  try {
+    const text = await file.text();
+    const backup = JSON.parse(text);
+
+    const confirmed = confirm([
+      "这是紧急修复工具。",
+      "只恢复 Backup 内的 Payroll / Payslip 数据。",
+      "不会覆盖 Worker、Advance / 欠款及其他当前资料。",
+      "",
+      `Backup 时间：${backup.createdAt || "-"}`,
+      "",
+      "确定继续吗？"
+    ].join("\n"));
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+    button.textContent = "正在恢复 Payroll...";
+    showStatus(
+      "maintenanceStatus",
+      "正在紧急恢复 Payroll / Payslip，请不要关闭页面……",
+      true
+    );
+
+    const result = await api("restorePayrollPayslipBackup", { backup });
+
+    if (!result?.verified) {
+      throw new Error("服务器没有返回 Payroll / Payslip 验证成功状态。");
+    }
+
+    if (typeof clearApiReadCache === "function") clearApiReadCache(["*"]);
+    sessionStorage.clear();
+
+    const verify = result.verification || {};
+    const months = Array.isArray(verify.payrollMonths)
+      ? verify.payrollMonths.join(", ")
+      : "-";
+
+    showStatus(
+      "maintenanceStatus",
+      `✅ Payroll / Payslip 恢复完成并验证 · Payroll ${Number(verify.payrollRows) || 0} 笔`,
+      true
+    );
+
+    alert([
+      "✅ Payroll / Payslip 恢复完成并验证",
+      `恢复来源：${result.backupCreatedAt || "-"}`,
+      `Payroll：${Number(verify.payrollRows) || 0}`,
+      `Payslip：${Number(verify.payslipRows) || 0}`,
+      `Payroll 月份：${months}`
+    ].join("\n"));
+
+    await loadDashboard();
+  } catch (error) {
+    const message = "❌ Payroll / Payslip 恢复失败：" + error.message;
+    showStatus("maintenanceStatus", message, false);
+    alert(message);
+  } finally {
+    button.disabled = false;
+    button.textContent = "🧾 恢复 Payroll / Payslip（紧急修复）";
   }
 }
 
