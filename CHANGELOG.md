@@ -1,3 +1,13 @@
+# V3.7 Enterprise Stable
+
+- 基于 V3.6，只修复 Backup / Restore Job 完成状态重复弹窗。
+- Backup / Restore 进行中：关闭网页后重新打开仍会继续读取本机 Job ID + Apps Script Job 状态，并显示当前步骤。
+- Backup / Restore 成功或失败：alert 只显示一次；用户确认后该 Job 在本机标记为已通知。
+- 再次进入 Dashboard：仍保留最后 Job 状态条，但不会重复弹出同一个成功/失败警告。
+- Job 历史状态不删除，后端 Job 记录继续保留。
+- 不修改 Backup 内容、Restore 数据逻辑、Payroll、Payslip、Advance 或欠款计算。
+- 当前版本、Frontend Cache、Service Worker、Manifest 与 API 统一更新 V3.7 / 3.7.0。
+
 # V3.6 Enterprise Stable
 
 - 基于 V3.5 完美运行版，只加强 Backup / Restore Job 状态，不修改 Payroll / Payslip / Advance 计算逻辑。

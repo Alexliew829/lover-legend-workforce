@@ -6,6 +6,35 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
+const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v370:";
+
+function maintenanceNoticeKey(jobId) {
+  return MAINTENANCE_JOB_NOTICE_PREFIX + String(jobId || "");
+}
+
+function hasMaintenanceTerminalNoticeBeenShown(jobId) {
+  if (!jobId) return false;
+  try {
+    return localStorage.getItem(maintenanceNoticeKey(jobId)) === "1";
+  } catch (_) {
+    return false;
+  }
+}
+
+function markMaintenanceTerminalNoticeShown(jobId) {
+  if (!jobId) return;
+  try {
+    localStorage.setItem(maintenanceNoticeKey(jobId), "1");
+  } catch (_) {}
+}
+
+function clearMaintenanceTerminalNotice(jobId) {
+  if (!jobId) return;
+  try {
+    localStorage.removeItem(maintenanceNoticeKey(jobId));
+  } catch (_) {}
+}
+
 let maintenanceJobPollTimer = null;
 let maintenanceOperationActive = false;
 
@@ -478,6 +507,7 @@ function createMaintenanceJobId(type) {
 
 function beginMaintenanceJob(type) {
   const job = { jobId: createMaintenanceJobId(type), type, status: "running", step: "正在连接服务器", startedAt: new Date().toISOString() };
+  clearMaintenanceTerminalNotice(job.jobId);
   localStorage.setItem(MAINTENANCE_JOB_KEY, JSON.stringify(job));
   maintenanceOperationActive = true;
   return job.jobId;
@@ -501,24 +531,49 @@ function maintenanceTypeLabel(type) {
 
 function renderMaintenanceJob(job, alertTerminal) {
   if (!job) return;
+
   writeLocalMaintenanceJob(job);
   const label = maintenanceTypeLabel(job.type);
+
   if (job.status === "running") {
-    showStatus("maintenanceStatus", `${label} 进行中 · 当前步骤：${job.step || "处理中"} · 请勿关闭或 Refresh 页面`, true);
+    showStatus(
+      "maintenanceStatus",
+      `${label} 进行中 · 当前步骤：${job.step || "处理中"} · 请勿关闭或 Refresh 页面`,
+      true
+    );
     return;
   }
+
   stopMaintenanceJobPolling();
+
+  const alreadyShown = hasMaintenanceTerminalNoticeBeenShown(job.jobId);
+
   if (job.status === "success") {
-    const msg = `✅ ${label} 成功 · ${job.step || "已完成"}${job.completedAt ? " · " + job.completedAt : ""}`;
+    const msg =
+      `✅ ${label} 成功 · ${job.step || "已完成"}` +
+      `${job.completedAt ? " · " + job.completedAt : ""}`;
+
     showStatus("maintenanceStatus", msg, true);
-    if (alertTerminal) alert(msg);
+
+    // V3.7：成功/失败只弹一次。
+    // Job 状态仍保留；重新进入 Dashboard 只显示状态条，不再重复 alert。
+    if (alertTerminal && !alreadyShown) {
+      alert(msg);
+      markMaintenanceTerminalNoticeShown(job.jobId);
+    }
   } else if (job.status === "failed") {
-    const msg = `❌ ${label} 失败 · ${job.step || "处理失败"}${job.error ? "\n原因：" + job.error : ""}`;
+    const msg =
+      `❌ ${label} 失败 · ${job.step || "处理失败"}` +
+      `${job.error ? "\n原因：" + job.error : ""}`;
+
     showStatus("maintenanceStatus", msg.replace("\n", " · "), false);
-    if (alertTerminal) alert(msg);
+
+    if (alertTerminal && !alreadyShown) {
+      alert(msg);
+      markMaintenanceTerminalNoticeShown(job.jobId);
+    }
   }
 }
-
 async function fetchMaintenanceJob(jobId) {
   if (!jobId) return null;
   try { return await api("getMaintenanceJob", { jobId }, { forceRefresh: true }); } catch (_) { return null; }
@@ -541,8 +596,19 @@ function stopMaintenanceJobPolling() {
 
 async function finishMaintenanceJobFromServer(jobId) {
   const job = await fetchMaintenanceJob(jobId);
-  if (job) renderMaintenanceJob(job, false);
-  else stopMaintenanceJobPolling();
+
+  if (job) {
+    renderMaintenanceJob(job, false);
+
+    // The initiating Backup / Restore handler already shows its own final
+    // success/failure message. Mark this terminal Job as acknowledged so
+    // reopening Dashboard does not show the same alert again.
+    if (job.status === "success" || job.status === "failed") {
+      markMaintenanceTerminalNoticeShown(job.jobId);
+    }
+  } else {
+    stopMaintenanceJobPolling();
+  }
 }
 
 async function markCurrentMaintenanceFailure(message) {
@@ -556,8 +622,17 @@ async function markCurrentMaintenanceFailure(message) {
 async function resumeMaintenanceJob() {
   const local = readLocalMaintenanceJob();
   if (!local || !local.jobId) return;
+
   const server = await fetchMaintenanceJob(local.jobId);
   const job = server || local;
-  renderMaintenanceJob(job, job.status !== "running");
-  if (job.status === "running") startMaintenanceJobPolling(job.jobId);
+
+  const shouldAlertTerminal =
+    job.status !== "running" &&
+    !hasMaintenanceTerminalNoticeBeenShown(job.jobId);
+
+  renderMaintenanceJob(job, shouldAlertTerminal);
+
+  if (job.status === "running") {
+    startMaintenanceJobPolling(job.jobId);
+  }
 }
