@@ -1,13 +1,21 @@
-# V3.5 Enterprise Stable
+# V3.6 Enterprise Stable
+
+- 基于 V3.5 完美运行版，只加强 Backup / Restore Job 状态，不修改 Payroll / Payslip / Advance 计算逻辑。
+- Backup / Restore 进行中显示当前步骤，并警告不要关闭或 Refresh。
+- 浏览器本机保存 Job ID；页面关闭再打开后会向 Apps Script 读取持久 Job 状态。
+- 明确显示成功或失败原因；Restore 成功仍以服务器完整验证为准。
+- Apps Script 持久保存 Job 状态，避免网页关闭后无法判断结果。
+
+# V3.6 Enterprise Stable
 
 - 基于 V3.4，只修正 Backup / Restore 的 Worker 验证，不修改 Payroll / Advance / Payslip 计算逻辑。
 - 找到 V3.4 Restore 报错 5/6 的根因：getWorkers() 会刻意排除“离职”工人，因此 6 笔 Sheet 资料只返回 5 位在职工人。
-- V3.5 Restore 验证直接核对 Google Sheet 真实资料，不再用前端业务过滤后的 getWorkers()。
+- V3.6 Restore 验证直接核对 Google Sheet 真实资料，不再用前端业务过滤后的 getWorkers()。
 - Worker 验证包含全部工人（在职 + 离职），并核对工人编号与状态。
 - Advance 验证同样直接核对 Sheet 真实记录，避免未来业务过滤导致假性 Restore 失败。
 - 保留 V3.4 Payroll 月份 MM-yyyy 保护、Restore 自动回滚、Payroll/Payslip 紧急恢复与成功验证机制。
 - 修正首页仍显示 V3.3 的版本标签。
-- 当前版本、Frontend Cache、Service Worker、Manifest 与 API 统一更新至 V3.5 / 3.5.0。
+- 当前版本、Frontend Cache、Service Worker、Manifest 与 API 统一更新至 V3.6 / 3.6.0。
 
 # V3.4 Enterprise Stable
 

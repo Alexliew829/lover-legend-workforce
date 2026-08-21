@@ -5,6 +5,10 @@ const DASHBOARD_COMPANIES = [
   "Lover Legend Gardening"
 ];
 
+const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
+let maintenanceJobPollTimer = null;
+let maintenanceOperationActive = false;
+
 document.addEventListener("DOMContentLoaded", () => {
   setupDashboardPeriod();
   document.getElementById("dashboardMonth").addEventListener("change", loadDashboard);
@@ -26,6 +30,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("yearEndCloseBtn").addEventListener("click", handleYearEndClose);
 
+  resumeMaintenanceJob();
+  window.addEventListener("beforeunload", event => {
+    if (!maintenanceOperationActive) return;
+    event.preventDefault();
+    event.returnValue = "Backup / Restore 仍在进行中。";
+  });
   loadDashboard();
 });
 
@@ -198,8 +208,12 @@ async function handleYearlyBackup() {
     button.disabled = true;
     button.textContent = "正在准备备份...";
 
-    const backup = await api("createYearlyBackup", { year });
+    const jobId = beginMaintenanceJob("backup");
+    showStatus("maintenanceStatus", "Backup 进行中 · 当前步骤：正在准备 Backup · 请勿关闭或 Refresh 页面", true);
+    startMaintenanceJobPolling(jobId);
+    const backup = await api("createYearlyBackup", { year, jobId });
     downloadBackupJson(backup);
+    await finishMaintenanceJobFromServer(jobId);
 
     const verify = backup.verification || {};
     const months = Array.isArray(verify.payrollMonths)
@@ -222,7 +236,9 @@ async function handleYearlyBackup() {
       `Payroll 月份：${months}`
     ].join("\n"));
   } catch (error) {
-    showStatus("maintenanceStatus", error.message, false);
+    await markCurrentMaintenanceFailure(error.message);
+    showStatus("maintenanceStatus", "❌ Backup 失败：" + error.message, false);
+    alert("❌ Backup 失败：" + error.message);
   } finally {
     button.disabled = false;
     button.textContent = "💾 手动备份 / Backup Now";
@@ -261,7 +277,11 @@ async function handleRestoreBackup(event) {
       true
     );
 
-    const result = await api("restoreYearlyBackup", { backup });
+    const jobId = beginMaintenanceJob("restore");
+    startMaintenanceJobPolling(jobId);
+    const result = await api("restoreYearlyBackup", { backup, jobId });
+
+    await finishMaintenanceJobFromServer(jobId);
 
     if (!result?.verified) {
       throw new Error("服务器没有返回 Restore 验证成功状态。");
@@ -333,7 +353,9 @@ async function handleRestorePayrollPayslip(event) {
       true
     );
 
-    const result = await api("restorePayrollPayslipBackup", { backup });
+    const jobId = beginMaintenanceJob("payrollRestore");
+    startMaintenanceJobPolling(jobId);
+    const result = await api("restorePayrollPayslipBackup", { backup, jobId });
 
     if (!result?.verified) {
       throw new Error("服务器没有返回 Payroll / Payslip 验证成功状态。");
@@ -447,4 +469,95 @@ function downloadBackupJson(backup) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+}
+
+
+function createMaintenanceJobId(type) {
+  return `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function beginMaintenanceJob(type) {
+  const job = { jobId: createMaintenanceJobId(type), type, status: "running", step: "正在连接服务器", startedAt: new Date().toISOString() };
+  localStorage.setItem(MAINTENANCE_JOB_KEY, JSON.stringify(job));
+  maintenanceOperationActive = true;
+  return job.jobId;
+}
+
+function readLocalMaintenanceJob() {
+  try { return JSON.parse(localStorage.getItem(MAINTENANCE_JOB_KEY) || "null"); } catch (_) { return null; }
+}
+
+function writeLocalMaintenanceJob(job) {
+  if (!job) return;
+  localStorage.setItem(MAINTENANCE_JOB_KEY, JSON.stringify(job));
+  maintenanceOperationActive = job.status === "running";
+}
+
+function maintenanceTypeLabel(type) {
+  if (type === "backup") return "Backup";
+  if (type === "payrollRestore") return "Payroll / Payslip Restore";
+  return "Restore";
+}
+
+function renderMaintenanceJob(job, alertTerminal) {
+  if (!job) return;
+  writeLocalMaintenanceJob(job);
+  const label = maintenanceTypeLabel(job.type);
+  if (job.status === "running") {
+    showStatus("maintenanceStatus", `${label} 进行中 · 当前步骤：${job.step || "处理中"} · 请勿关闭或 Refresh 页面`, true);
+    return;
+  }
+  stopMaintenanceJobPolling();
+  if (job.status === "success") {
+    const msg = `✅ ${label} 成功 · ${job.step || "已完成"}${job.completedAt ? " · " + job.completedAt : ""}`;
+    showStatus("maintenanceStatus", msg, true);
+    if (alertTerminal) alert(msg);
+  } else if (job.status === "failed") {
+    const msg = `❌ ${label} 失败 · ${job.step || "处理失败"}${job.error ? "\n原因：" + job.error : ""}`;
+    showStatus("maintenanceStatus", msg.replace("\n", " · "), false);
+    if (alertTerminal) alert(msg);
+  }
+}
+
+async function fetchMaintenanceJob(jobId) {
+  if (!jobId) return null;
+  try { return await api("getMaintenanceJob", { jobId }, { forceRefresh: true }); } catch (_) { return null; }
+}
+
+function startMaintenanceJobPolling(jobId) {
+  stopMaintenanceJobPolling();
+  maintenanceOperationActive = true;
+  maintenanceJobPollTimer = setInterval(async () => {
+    const job = await fetchMaintenanceJob(jobId);
+    if (job) renderMaintenanceJob(job, false);
+  }, 2500);
+}
+
+function stopMaintenanceJobPolling() {
+  if (maintenanceJobPollTimer) clearInterval(maintenanceJobPollTimer);
+  maintenanceJobPollTimer = null;
+  maintenanceOperationActive = false;
+}
+
+async function finishMaintenanceJobFromServer(jobId) {
+  const job = await fetchMaintenanceJob(jobId);
+  if (job) renderMaintenanceJob(job, false);
+  else stopMaintenanceJobPolling();
+}
+
+async function markCurrentMaintenanceFailure(message) {
+  const local = readLocalMaintenanceJob();
+  if (!local || local.status !== "running") return;
+  const server = await fetchMaintenanceJob(local.jobId);
+  if (server) renderMaintenanceJob(server, false);
+  else renderMaintenanceJob(Object.assign({}, local, { status: "failed", step: "请求失败", error: message }), false);
+}
+
+async function resumeMaintenanceJob() {
+  const local = readLocalMaintenanceJob();
+  if (!local || !local.jobId) return;
+  const server = await fetchMaintenanceJob(local.jobId);
+  const job = server || local;
+  renderMaintenanceJob(job, job.status !== "running");
+  if (job.status === "running") startMaintenanceJobPolling(job.jobId);
 }
