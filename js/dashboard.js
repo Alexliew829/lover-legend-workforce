@@ -6,15 +6,13 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-// V4.4: version-independent terminal notice store. Do not change this key in future versions.
-// This prevents an old completed Restore/Backup from alerting again after an app upgrade.
+// V4.5: version-independent notice store. Never change this key in future releases.
 const MAINTENANCE_NOTICE_STORE_KEY = "ll-workforce-maintenance-terminal-notices";
-const LEGACY_MAINTENANCE_NOTICE_PREFIX = "ll-workforce-maintenance-notice-";
 
 function readMaintenanceNoticeStore() {
   try {
-    const parsed = JSON.parse(localStorage.getItem(MAINTENANCE_NOTICE_STORE_KEY) || "{}");
-    return parsed && typeof parsed === "object" ? parsed : {};
+    const value = JSON.parse(localStorage.getItem(MAINTENANCE_NOTICE_STORE_KEY) || "{}");
+    return value && typeof value === "object" ? value : {};
   } catch (_) {
     return {};
   }
@@ -32,12 +30,12 @@ function hasMaintenanceTerminalNoticeBeenShown(jobId) {
   const store = readMaintenanceNoticeStore();
   if (store[id]) return true;
 
-  // Migrate any V3.x / V4.x versioned one-time keys without depending on their version suffix.
+  // Migrate old V3.x/V4.x one-time notice keys.
   try {
-    for (let index = 0; index < localStorage.length; index += 1) {
-      const key = localStorage.key(index) || "";
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i) || "";
       if (
-        key.startsWith(LEGACY_MAINTENANCE_NOTICE_PREFIX) &&
+        key.startsWith("ll-workforce-maintenance-notice-") &&
         key.endsWith(":" + id) &&
         localStorage.getItem(key) === "1"
       ) {
@@ -47,7 +45,6 @@ function hasMaintenanceTerminalNoticeBeenShown(jobId) {
       }
     }
   } catch (_) {}
-
   return false;
 }
 
@@ -56,7 +53,6 @@ function markMaintenanceTerminalNoticeShown(jobId) {
   const store = readMaintenanceNoticeStore();
   store[String(jobId)] = Date.now();
 
-  // Keep the store bounded. A few dozen historical jobs are more than enough.
   const ids = Object.keys(store).sort((a, b) => Number(store[b]) - Number(store[a]));
   ids.slice(50).forEach(id => delete store[id]);
   writeMaintenanceNoticeStore(store);
@@ -238,7 +234,7 @@ function getDashboardMonthKey() {
   return `${document.getElementById("dashboardMonth").value}-${document.getElementById("dashboardYear").value}`;
 }
 
-const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v44-";
+const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v45-";
 const DASHBOARD_BROWSER_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
 
 function readDashboardBrowserCache(monthKey) {
@@ -263,14 +259,6 @@ function writeDashboardBrowserCache(monthKey, data) {
       DASHBOARD_BROWSER_CACHE_PREFIX + monthKey,
       JSON.stringify({ data, time: Date.now() })
     );
-  } catch (_) {}
-}
-
-function clearDashboardBrowserCache() {
-  try {
-    Object.keys(localStorage)
-      .filter(key => key.startsWith(DASHBOARD_BROWSER_CACHE_PREFIX))
-      .forEach(key => localStorage.removeItem(key));
   } catch (_) {}
 }
 
@@ -376,7 +364,6 @@ async function handleRestoreBackup(event) {
     }
 
     if (typeof clearApiReadCache === "function") clearApiReadCache(["*"]);
-    clearDashboardBrowserCache();
     sessionStorage.clear();
 
     const verify = result.verification || {};
@@ -445,14 +432,12 @@ async function handleRestorePayrollPayslip(event) {
     const jobId = beginMaintenanceJob("payrollRestore");
     startMaintenanceJobPolling(jobId);
     const result = await api("restorePayrollPayslipBackup", { backup, jobId });
-    await finishMaintenanceJobFromServer(jobId);
 
     if (!result?.verified) {
       throw new Error("服务器没有返回 Payroll / Payslip 验证成功状态。");
     }
 
     if (typeof clearApiReadCache === "function") clearApiReadCache(["*"]);
-    clearDashboardBrowserCache();
     sessionStorage.clear();
 
     const verify = result.verification || {};
@@ -514,7 +499,6 @@ async function handleYearEndClose() {
 
     if (result.backup) downloadBackupJson(result.backup);
 
-    clearDashboardBrowserCache();
     sessionStorage.clear();
     document.getElementById("dashboardYear").value = String(result.newYear || year + 1);
     document.getElementById("dashboardMonth").value = "01";
@@ -689,8 +673,8 @@ async function resumeMaintenanceJob() {
   const server = await fetchMaintenanceJob(local.jobId);
   const job = server || local;
 
-  // V4.4: reopening/refreshing Dashboard never re-alerts a completed old Job.
-  // The initiating operation owns the one success/failure popup; resume only restores the status line.
+  // V4.5: reopening/refreshing Dashboard restores the status line only.
+  // A completed old Job must never alert again.
   renderMaintenanceJob(job, false);
 
   if (job.status === "running") {
