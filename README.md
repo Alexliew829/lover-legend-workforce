@@ -1,4 +1,4 @@
-# Lover Legend Workforce ERP V4.3 Enterprise Stable
+# Lover Legend Workforce ERP V4.11 Enterprise Stable
 
 V3.3 在 Advance 缺席记录中显示对应 Payroll 的最终处理状态：已扣薪、免扣或待处理。
 

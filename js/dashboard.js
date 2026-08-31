@@ -6,12 +6,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice:";
-const MAINTENANCE_JOB_LEGACY_NOTICE_PREFIXES = [
-  "ll-workforce-maintenance-notice-v43:",
-  "ll-workforce-maintenance-notice-v38:",
-  "ll-workforce-maintenance-notice-v37:"
-];
+const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v411:";
 
 function maintenanceNoticeKey(jobId) {
   return MAINTENANCE_JOB_NOTICE_PREFIX + String(jobId || "");
@@ -20,10 +15,7 @@ function maintenanceNoticeKey(jobId) {
 function hasMaintenanceTerminalNoticeBeenShown(jobId) {
   if (!jobId) return false;
   try {
-    if (localStorage.getItem(maintenanceNoticeKey(jobId)) === "1") return true;
-    return MAINTENANCE_JOB_LEGACY_NOTICE_PREFIXES.some(prefix =>
-      localStorage.getItem(prefix + String(jobId)) === "1"
-    );
+    return localStorage.getItem(maintenanceNoticeKey(jobId)) === "1";
   } catch (_) {
     return false;
   }
@@ -34,13 +26,6 @@ function markMaintenanceTerminalNoticeShown(jobId) {
   try {
     localStorage.setItem(maintenanceNoticeKey(jobId), "1");
   } catch (_) {}
-}
-
-function showMaintenanceTerminalAlertOnce(jobId, message) {
-  if (!jobId || hasMaintenanceTerminalNoticeBeenShown(jobId)) return;
-  // Mark before alert so refresh/navigation cannot race and show it again.
-  markMaintenanceTerminalNoticeShown(jobId);
-  alert(message);
 }
 
 function clearMaintenanceTerminalNotice(jobId) {
@@ -221,7 +206,7 @@ function getDashboardMonthKey() {
 
 function readDashboardBrowserCache(monthKey) {
   try {
-    const raw = localStorage.getItem(`ll-dashboard-v43-${monthKey}`);
+    const raw = sessionStorage.getItem(`ll-dashboard-v411-${monthKey}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed && parsed.data ? parsed.data : null;
@@ -232,7 +217,7 @@ function readDashboardBrowserCache(monthKey) {
 
 function writeDashboardBrowserCache(monthKey, data) {
   try {
-    localStorage.setItem(`ll-dashboard-v43-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
+    sessionStorage.setItem(`ll-dashboard-v411-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
   } catch (error) {}
 }
 
@@ -276,7 +261,7 @@ async function handleYearlyBackup() {
       true
     );
 
-    showMaintenanceTerminalAlertOnce(jobId, [
+    alert([
       "✅ Backup 已完成",
       `时间：${backup.createdAt || "-"}`,
       `Worker：${Number(verify.workerRows) || 0}`,
@@ -351,7 +336,7 @@ async function handleRestoreBackup(event) {
       true
     );
 
-    showMaintenanceTerminalAlertOnce(jobId, [
+    alert([
       "✅ Restore 已完成并验证",
       `恢复来源：${result.backupCreatedAt || "-"}`,
       `Worker：${Number(verify.workerRows) || 0}`,
@@ -425,7 +410,7 @@ async function handleRestorePayrollPayslip(event) {
       true
     );
 
-    showMaintenanceTerminalAlertOnce(jobId, [
+    alert([
       "✅ Payroll / Payslip 恢复完成并验证",
       `恢复来源：${result.backupCreatedAt || "-"}`,
       `Payroll：${Number(verify.payrollRows) || 0}`,
@@ -576,10 +561,11 @@ function renderMaintenanceJob(job, alertTerminal) {
 
     showStatus("maintenanceStatus", msg, true);
 
-    // V4.3：成功/失败按 Job ID 只弹一次。
+    // V3.8：成功/失败只弹一次。
     // Job 状态仍保留；重新进入 Dashboard 只显示状态条，不再重复 alert。
     if (alertTerminal && !alreadyShown) {
-      showMaintenanceTerminalAlertOnce(job.jobId, msg);
+      alert(msg);
+      markMaintenanceTerminalNoticeShown(job.jobId);
     }
   } else if (job.status === "failed") {
     const msg =
@@ -589,7 +575,8 @@ function renderMaintenanceJob(job, alertTerminal) {
     showStatus("maintenanceStatus", msg.replace("\n", " · "), false);
 
     if (alertTerminal && !alreadyShown) {
-      showMaintenanceTerminalAlertOnce(job.jobId, msg);
+      alert(msg);
+      markMaintenanceTerminalNoticeShown(job.jobId);
     }
   }
 }
@@ -645,9 +632,11 @@ async function resumeMaintenanceJob() {
   const server = await fetchMaintenanceJob(local.jobId);
   const job = server || local;
 
-  // Reopening Dashboard must never re-alert an already completed historical Job.
-  // The status remains visible; a Job started in the current page is alerted by its handler exactly once.
-  renderMaintenanceJob(job, false);
+  const shouldAlertTerminal =
+    job.status !== "running" &&
+    !hasMaintenanceTerminalNoticeBeenShown(job.jobId);
+
+  renderMaintenanceJob(job, shouldAlertTerminal);
 
   if (job.status === "running") {
     startMaintenanceJobPolling(job.jobId);

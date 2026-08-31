@@ -1,12 +1,4 @@
-# V4.3 Enterprise Stable
-
-- Dashboard 使用持久化 last-good snapshot，打开时先显示缓存，再后台刷新。
-- Backup/Restore terminal notice 改为稳定 Job-ID 去重；旧 completed Job 在重新进入 Dashboard 时不再弹窗。
-- 所有当前 release / cache / asset version 更新为 V4.3 / API 4.3.0。
-- 保留 V4.11 工资总数、总扣款、实发工资总数。
-- 不改 Payroll / Advance / Payslip 数据计算逻辑。
-
-# V4.3 Enterprise Stable
+# V4.11 Enterprise Stable
 
 - 以 V4.0 Enterprise Stable 为基准。
 - Payroll 底部新增三项月度汇总：两间公司本月工资总数、总共扣款、实发工资总数。
@@ -14,7 +6,7 @@
 - 三项金额只根据所选月份已经保存的 Payroll 快照计算，不重新套用当前工人薪资或欠款。
 - 工资总数 = 实发工资总数 + 总共扣款。
 - 保留 V4.0 Payment Date、V3.9 待处理缺席删除、每月 8 号切换默认 Payroll 月份及手机 Payroll 只读。
-- 版本统一更新 V4.3 / API 4.3.0。
+- 版本统一更新 V4.11 / API 4.11.0。
 
 # V4.0
 

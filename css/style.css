@@ -1485,7 +1485,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V4.3 Monthly Payroll three-total summary */
+/* V4.11 Monthly Payroll three-total summary */
 .payroll-month-summary-row,
 .dashboard-payroll-summary-row {
   display: flex;
