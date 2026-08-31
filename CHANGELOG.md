@@ -1,4 +1,4 @@
-# V4.11 Enterprise Stable
+# V4.4 Enterprise Stable
 
 - 以 V4.0 Enterprise Stable 为基准。
 - Payroll 底部新增三项月度汇总：两间公司本月工资总数、总共扣款、实发工资总数。
@@ -6,7 +6,7 @@
 - 三项金额只根据所选月份已经保存的 Payroll 快照计算，不重新套用当前工人薪资或欠款。
 - 工资总数 = 实发工资总数 + 总共扣款。
 - 保留 V4.0 Payment Date、V3.9 待处理缺席删除、每月 8 号切换默认 Payroll 月份及手机 Payroll 只读。
-- 版本统一更新 V4.11 / API 4.11.0。
+- 版本统一更新 V4.4 / API 4.4.0。
 
 # V4.0
 
