@@ -1485,21 +1485,31 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V4.1 Monthly payroll totals */
-.payroll-total-card .payroll-total-deduction-line {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #d7e7d1;
-}
-.payroll-total-net-title { margin-top: 12px; }
-.dashboard-summary-row {
+/* V4.11 Monthly Payroll three-total summary */
+.payroll-month-summary-row,
+.dashboard-payroll-summary-row {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 12px;
-  align-items: center;
   margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #cfe3c8;
+  padding-top: 9px;
+  border-top: 1px solid #cfe4d2;
+  font-weight: 900;
 }
-.dashboard-summary-row strong { font-size: 1.05rem; }
-.dashboard-net-label { margin-top: 12px; }
+.payroll-month-summary-row strong,
+.dashboard-payroll-summary-row strong {
+  white-space: nowrap;
+}
+.payroll-month-deduction-row,
+.dashboard-payroll-deduction-row {
+  color: #c00000;
+}
+.payroll-month-net-row,
+.dashboard-payroll-net-row {
+  color: #16823a;
+  font-size: 18px;
+}
+.dashboard-payroll-summary-card .dashboard-big-money {
+  margin-bottom: 2px;
+}

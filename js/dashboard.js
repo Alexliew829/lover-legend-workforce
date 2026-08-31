@@ -6,7 +6,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v410:";
+const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v411:";
 
 function maintenanceNoticeKey(jobId) {
   return MAINTENANCE_JOB_NOTICE_PREFIX + String(jobId || "");
@@ -157,12 +157,15 @@ function renderDashboard(data) {
   const payrollPercent = Math.max(0, Math.min(100, Number(data?.payrollPercent) || 0));
 
   container.innerHTML = `
-    <article class="dashboard-card dashboard-highlight">
+    <article class="dashboard-card dashboard-highlight dashboard-payroll-summary-card">
       <div class="dashboard-card-label">${escapeDashboardHtml(data?.month || getDashboardMonthKey())} · 两间公司本月工资总数</div>
       <div class="dashboard-big-money">${formatDashboardCurrency(data?.totalGross)}</div>
-      <div class="dashboard-summary-row"><span>总共扣款</span><strong>${formatDashboardCurrency(data?.totalDeduction)}</strong></div>
-      <div class="dashboard-card-label dashboard-net-label">实发工资总数</div>
-      <div class="dashboard-big-money">${formatDashboardCurrency(data?.totalNet)}</div>
+      <div class="dashboard-payroll-summary-row dashboard-payroll-deduction-row">
+        <span>总共扣款</span><strong>${formatDashboardCurrency(data?.totalDeduction)}</strong>
+      </div>
+      <div class="dashboard-payroll-summary-row dashboard-payroll-net-row">
+        <span>实发工资总数</span><strong>${formatDashboardCurrency(data?.totalNet)}</strong>
+      </div>
     </article>
 
     <div class="dashboard-stat-row">
@@ -203,7 +206,7 @@ function getDashboardMonthKey() {
 
 function readDashboardBrowserCache(monthKey) {
   try {
-    const raw = sessionStorage.getItem(`ll-dashboard-v1861-${monthKey}`);
+    const raw = sessionStorage.getItem(`ll-dashboard-v411-${monthKey}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed && parsed.data ? parsed.data : null;
@@ -214,7 +217,7 @@ function readDashboardBrowserCache(monthKey) {
 
 function writeDashboardBrowserCache(monthKey, data) {
   try {
-    sessionStorage.setItem(`ll-dashboard-v1861-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
+    sessionStorage.setItem(`ll-dashboard-v411-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
   } catch (error) {}
 }
 
