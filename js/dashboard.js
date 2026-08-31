@@ -6,7 +6,13 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v411:";
+const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-terminal-notice:";
+const MAINTENANCE_JOB_LEGACY_NOTICE_PREFIXES = [
+  "ll-workforce-maintenance-notice-v42:",
+  "ll-workforce-maintenance-notice-v38:",
+  "ll-workforce-maintenance-notice-v37:",
+  "ll-workforce-maintenance-notice-v360:"
+];
 
 function maintenanceNoticeKey(jobId) {
   return MAINTENANCE_JOB_NOTICE_PREFIX + String(jobId || "");
@@ -15,7 +21,17 @@ function maintenanceNoticeKey(jobId) {
 function hasMaintenanceTerminalNoticeBeenShown(jobId) {
   if (!jobId) return false;
   try {
-    return localStorage.getItem(maintenanceNoticeKey(jobId)) === "1";
+    if (localStorage.getItem(maintenanceNoticeKey(jobId)) === "1") return true;
+
+    // V4.2: migrate acknowledgment written by older releases so a completed
+    // Backup / Restore Job never pops up again just because the app version changed.
+    for (const prefix of MAINTENANCE_JOB_LEGACY_NOTICE_PREFIXES) {
+      if (localStorage.getItem(prefix + String(jobId)) === "1") {
+        localStorage.setItem(maintenanceNoticeKey(jobId), "1");
+        return true;
+      }
+    }
+    return false;
   } catch (_) {
     return false;
   }
@@ -204,12 +220,20 @@ function getDashboardMonthKey() {
   return `${document.getElementById("dashboardMonth").value}-${document.getElementById("dashboardYear").value}`;
 }
 
+const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-summary:";
+const DASHBOARD_BROWSER_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+
 function readDashboardBrowserCache(monthKey) {
   try {
-    const raw = sessionStorage.getItem(`ll-dashboard-v411-${monthKey}`);
+    const raw = localStorage.getItem(DASHBOARD_BROWSER_CACHE_PREFIX + monthKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && parsed.data ? parsed.data : null;
+    if (!parsed || !parsed.data) return null;
+    if (Date.now() - Number(parsed.time || 0) > DASHBOARD_BROWSER_CACHE_MAX_AGE) {
+      localStorage.removeItem(DASHBOARD_BROWSER_CACHE_PREFIX + monthKey);
+      return null;
+    }
+    return parsed.data;
   } catch (error) {
     return null;
   }
@@ -217,8 +241,19 @@ function readDashboardBrowserCache(monthKey) {
 
 function writeDashboardBrowserCache(monthKey, data) {
   try {
-    sessionStorage.setItem(`ll-dashboard-v411-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
+    localStorage.setItem(
+      DASHBOARD_BROWSER_CACHE_PREFIX + monthKey,
+      JSON.stringify({ data, time: Date.now() })
+    );
   } catch (error) {}
+}
+
+function clearDashboardBrowserCache() {
+  try {
+    Object.keys(localStorage)
+      .filter(key => key.startsWith(DASHBOARD_BROWSER_CACHE_PREFIX))
+      .forEach(key => localStorage.removeItem(key));
+  } catch (_) {}
 }
 
 function formatDashboardCurrency(value) {
@@ -323,6 +358,7 @@ async function handleRestoreBackup(event) {
     }
 
     if (typeof clearApiReadCache === "function") clearApiReadCache(["*"]);
+    clearDashboardBrowserCache();
     sessionStorage.clear();
 
     const verify = result.verification || {};
@@ -397,6 +433,7 @@ async function handleRestorePayrollPayslip(event) {
     }
 
     if (typeof clearApiReadCache === "function") clearApiReadCache(["*"]);
+    clearDashboardBrowserCache();
     sessionStorage.clear();
 
     const verify = result.verification || {};
@@ -458,6 +495,7 @@ async function handleYearEndClose() {
 
     if (result.backup) downloadBackupJson(result.backup);
 
+    clearDashboardBrowserCache();
     sessionStorage.clear();
     document.getElementById("dashboardYear").value = String(result.newYear || year + 1);
     document.getElementById("dashboardMonth").value = "01";
@@ -561,11 +599,11 @@ function renderMaintenanceJob(job, alertTerminal) {
 
     showStatus("maintenanceStatus", msg, true);
 
-    // V3.8：成功/失败只弹一次。
+    // V4.2：成功/失败只弹一次，并跨版本记住已提示的 Job。
     // Job 状态仍保留；重新进入 Dashboard 只显示状态条，不再重复 alert。
     if (alertTerminal && !alreadyShown) {
-      alert(msg);
       markMaintenanceTerminalNoticeShown(job.jobId);
+      alert(msg);
     }
   } else if (job.status === "failed") {
     const msg =
@@ -575,8 +613,8 @@ function renderMaintenanceJob(job, alertTerminal) {
     showStatus("maintenanceStatus", msg.replace("\n", " · "), false);
 
     if (alertTerminal && !alreadyShown) {
-      alert(msg);
       markMaintenanceTerminalNoticeShown(job.jobId);
+      alert(msg);
     }
   }
 }
