@@ -1,6 +1,6 @@
 const API_READ_CACHE_MS = 30000;
 const API_STALE_CACHE_MS = 24 * 60 * 60 * 1000;
-const API_CACHE_PREFIX = "ll-api-cache-v45:";
+const API_CACHE_PREFIX = "ll-api-cache-v400:";
 
 const apiReadCache = new Map();
 const apiPendingRequests = new Map();
@@ -219,30 +219,13 @@ async function api(action, payload = {}, options = {}) {
   }
 
   const request = (async () => {
-    const requestBody = JSON.stringify({
-      action,
-      ...payload
+    const response = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify({
+        action,
+        ...payload
+      })
     });
-
-    async function runFetch() {
-      return fetch(url, {
-        method: "POST",
-        body: requestBody,
-        cache: "no-store",
-        redirect: "follow"
-      });
-    }
-
-    let response;
-    try {
-      response = await runFetch();
-    } catch (firstError) {
-      // V4.5: retry READ once only. Never retry a write automatically,
-      // because a duplicate write is more dangerous than a visible error.
-      if (!isRead) throw firstError;
-      await new Promise(resolve => setTimeout(resolve, 700));
-      response = await runFetch();
-    }
 
     if (!response.ok) {
       throw new Error(`API HTTP ${response.status}`);
