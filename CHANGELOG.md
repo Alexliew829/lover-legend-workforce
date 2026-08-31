@@ -1,4 +1,14 @@
-# V4.4 Enterprise Stable
+# V4.5 Enterprise Stable
+
+- Rebuilt from V4.11 known-working baseline; V4.2/V4.3/V4.4 API changes were not inherited.
+- Keeps the V4.11 Apps Script request protocol and configured API URL unchanged.
+- Dashboard repeat visits can show the last successful local summary immediately, then refresh from server.
+- Backup/Restore terminal alert is deduplicated by permanent Job ID store; reopening Dashboard never re-alerts an old completed Job.
+- Read-only API requests retry once after a transient network fetch failure; write requests are never auto-retried.
+- Payroll / Advance / Worker / Payslip / Payment Date / cutoff-day calculations are unchanged from V4.11.
+- Current package/UI/API/cache/resource versions updated to V4.5 / API 4.5.0.
+
+# V4.11 Enterprise Stable
 
 - 以 V4.0 Enterprise Stable 为基准。
 - Payroll 底部新增三项月度汇总：两间公司本月工资总数、总共扣款、实发工资总数。
@@ -6,7 +16,7 @@
 - 三项金额只根据所选月份已经保存的 Payroll 快照计算，不重新套用当前工人薪资或欠款。
 - 工资总数 = 实发工资总数 + 总共扣款。
 - 保留 V4.0 Payment Date、V3.9 待处理缺席删除、每月 8 号切换默认 Payroll 月份及手机 Payroll 只读。
-- 版本统一更新 V4.4 / API 4.4.0。
+- 版本统一更新 V4.11 / API 4.11.0。
 
 # V4.0
 
