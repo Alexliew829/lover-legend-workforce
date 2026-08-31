@@ -6,7 +6,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v370:";
+const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v400:";
 
 function maintenanceNoticeKey(jobId) {
   return MAINTENANCE_JOB_NOTICE_PREFIX + String(jobId || "");

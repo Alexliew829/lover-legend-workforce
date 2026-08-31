@@ -28,6 +28,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const historyButton = document.getElementById("toggleAdvanceHistoryBtn");
     if (historyButton) historyButton.addEventListener("click", toggleAdvanceHistory);
+
+    const advanceList = document.getElementById("advanceList");
+    if (advanceList) advanceList.addEventListener("click", handlePendingAbsenceDeleteClick);
   }
 
   loadAdvancePage();
@@ -817,6 +820,43 @@ function debtRemainingAtCutoff(record, cutoffNumber) {
   return Math.max(0, record.amount - Math.min(record.amount, paidByCutoff));
 }
 
+async function handlePendingAbsenceDeleteClick(event) {
+  const button = event.target.closest(".absence-delete-btn");
+  if (!button) return;
+
+  const row = Number(button.dataset.row || 0);
+  const date = String(button.dataset.date || "");
+  const amount = Number(button.dataset.amount || 0);
+  if (!row) return;
+
+  const confirmed = window.confirm(
+    `确定删除这笔错误缺席记录吗？\n\n${date} · 缺席 · ${formatCurrency(amount)}\n\n删除后如日期输入错误，请重新记录正确日期。`
+  );
+  if (!confirmed) return;
+
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "删除中...";
+
+  try {
+    const result = await api("deletePendingAbsence", { row });
+    const deletedRow = Number(result?.row || row);
+
+    // Google Sheet 删除行后，后续 row 会前移；直接重新同步，避免前端 row 编号失真。
+    const data = await api("getAdvanceBootstrap", {}, { forceRefresh: true });
+    applyAdvanceBootstrapData(data);
+    loadPayrollRepaymentsInBackground();
+    updateAdvanceBrowserCache();
+
+    showStatus("status", `✅ 已删除 ${date} 的待处理缺席记录`, true);
+  } catch (error) {
+    showStatus("status", error.message || "删除失败", false);
+    window.alert(error.message || "删除失败");
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
 function renderAdvanceLedger(advances) {
   const list = document.getElementById("advanceList");
   if (!list) return;
@@ -885,11 +925,17 @@ function renderAdvanceLedger(advances) {
 
     const absenceHtml = absenceRecords.map(item => {
       const status = getAbsencePayrollStatus(item);
+      const date = formatAdvanceDate(item["扣款日期"] || item["日期"] || item["日期时间"]);
+      const row = Number(item.row) || 0;
+      const canDelete = status === "待处理" && row > 0 && item["交易来源"] !== "Payroll";
       return `
         <div class="advance-ledger-line absence-ledger-line">
-          <span>${escapeHtml(formatAdvanceDate(item["扣款日期"] || item["日期"] || item["日期时间"]))}
+          <span>${escapeHtml(date)}
           · 缺席 · ${formatCurrency(item["金额"])}
           · <strong class="absence-payroll-status ${absenceStatusClass(status)}">${escapeHtml(status)}</strong></span>
+          ${canDelete
+            ? `<button type="button" class="absence-delete-btn" data-row="${row}" data-date="${escapeHtml(date)}" data-amount="${Number(item["金额"] || 0)}">删除</button>`
+            : ""}
         </div>`;
     }).join("");
 

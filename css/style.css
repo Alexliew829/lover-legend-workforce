@@ -917,6 +917,35 @@ select[name="existingWorkerNo"] {
   font-weight: 800;
 }
 
+.absence-ledger-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.absence-delete-btn {
+  flex: 0 0 auto;
+  padding: 6px 11px;
+  border: 1px solid #b00020;
+  border-radius: 9px;
+  background: #fff0f0;
+  color: #b00020;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.absence-delete-btn:active {
+  transform: scale(0.97);
+}
+
+.absence-delete-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .advance-ledger-note {
   margin-top: 3px;
   font-size: 13px;

@@ -1129,8 +1129,14 @@ function getPayrollPaymentDate() {
   const year = Number(form?.payYear?.value || 0);
   if (!month || !year) return formatDateDDMMYYYY(new Date());
 
-  // 工资通常在次月 1 日发放，例如 07-2026 的工资日期为 01-08-2026。
-  const paymentDate = new Date(year, month, 1);
+  // V4.0：Payment Date 不能早于工资月份的次月 1 日；
+  // 如果实际处理 Payroll 时已经超过 1 日，则使用当天日期。
+  // 例如：31/08 准备 08-2026 -> 01-09-2026；02/09 准备 -> 02-09-2026。
+  const scheduledDate = new Date(year, month, 1);
+  scheduledDate.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const paymentDate = today > scheduledDate ? today : scheduledDate;
   return formatDateDDMMYYYY(paymentDate);
 }
 

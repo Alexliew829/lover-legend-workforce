@@ -372,7 +372,7 @@ function createPayslipCopyHtml(item, advances) {
       <div><span>No. Pekerja / Employee No.</span><strong>${escapePayslipHtml(item["工人编号"] || "-")}</strong></div>
       <div><span>Nama Pekerja / Employee Name</span><strong>${escapePayslipHtml(item["工人名字"] || "-")}</strong></div>
       <div><span>Jenis Gaji / Salary Type</span><strong>${escapePayslipHtml(translateSalaryType(item["薪水类型"]))}</strong></div>
-      <div><span>Tarikh Bayaran / Payment Date</span><strong>${escapePayslipHtml(getPayslipPaymentDate(month))}</strong></div>
+      <div><span>Tarikh Bayaran / Payment Date</span><strong>${escapePayslipHtml(getPayslipPaymentDate(month, item["发薪日期"]))}</strong></div>
     </div>
 
     <div class="payslip-section-title">Pendapatan / Income</div>
@@ -434,13 +434,14 @@ function normalizePayslipMonth(value) {
   return text;
 }
 
-function getPayslipPaymentDate(monthValue) {
+function getPayslipPaymentDate(monthValue, savedPaymentDate) {
+  // V4.0：新 Payroll 直接显示保存时写入的实际 Payment Date。
+  // 历史记录若没有发薪日期，才沿用旧规则：工资月份的次月 1 日。
+  if (savedPaymentDate) return formatPayslipDate(savedPaymentDate);
+
   const month = normalizePayslipMonth(monthValue);
   const match = month.match(/^(\d{2})-(\d{4})$/);
   if (!match) return "-";
-
-  // Payroll for a month is paid on the first day of the following month.
-  // Example: 07-2026 -> 01-08-2026.
   const date = new Date(Number(match[2]), Number(match[1]), 1);
   return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
 }
