@@ -555,7 +555,7 @@ function renderMaintenanceJob(job, alertTerminal) {
 
     showStatus("maintenanceStatus", msg, true);
 
-    // V3.7：成功/失败只弹一次。
+    // V3.8：成功/失败只弹一次。
     // Job 状态仍保留；重新进入 Dashboard 只显示状态条，不再重复 alert。
     if (alertTerminal && !alreadyShown) {
       alert(msg);
