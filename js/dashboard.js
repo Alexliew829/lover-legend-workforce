@@ -6,33 +6,65 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v400:";
+// V4.6: permanent, version-independent terminal notice history.
+// Future upgrades must keep this key unchanged.
+const MAINTENANCE_NOTICE_STORE_KEY = "ll-workforce-maintenance-terminal-notices";
 
-function maintenanceNoticeKey(jobId) {
-  return MAINTENANCE_JOB_NOTICE_PREFIX + String(jobId || "");
+function readMaintenanceNoticeStore() {
+  try {
+    const value = JSON.parse(localStorage.getItem(MAINTENANCE_NOTICE_STORE_KEY) || "{}");
+    return value && typeof value === "object" ? value : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function writeMaintenanceNoticeStore(store) {
+  try {
+    localStorage.setItem(MAINTENANCE_NOTICE_STORE_KEY, JSON.stringify(store || {}));
+  } catch (_) {}
 }
 
 function hasMaintenanceTerminalNoticeBeenShown(jobId) {
   if (!jobId) return false;
+  const id = String(jobId);
+  const store = readMaintenanceNoticeStore();
+  if (store[id]) return true;
+
+  // Migrate any older V3.x/V4.x one-time keys if they already acknowledged this Job.
   try {
-    return localStorage.getItem(maintenanceNoticeKey(jobId)) === "1";
-  } catch (_) {
-    return false;
-  }
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i) || "";
+      if (
+        key.startsWith("ll-workforce-maintenance-notice-") &&
+        key.endsWith(":" + id) &&
+        localStorage.getItem(key) === "1"
+      ) {
+        store[id] = Date.now();
+        writeMaintenanceNoticeStore(store);
+        return true;
+      }
+    }
+  } catch (_) {}
+  return false;
 }
 
 function markMaintenanceTerminalNoticeShown(jobId) {
   if (!jobId) return;
-  try {
-    localStorage.setItem(maintenanceNoticeKey(jobId), "1");
-  } catch (_) {}
+  const store = readMaintenanceNoticeStore();
+  store[String(jobId)] = Date.now();
+
+  // Keep only the latest 50 terminal Jobs.
+  const ids = Object.keys(store).sort((a, b) => Number(store[b]) - Number(store[a]));
+  ids.slice(50).forEach(id => delete store[id]);
+  writeMaintenanceNoticeStore(store);
 }
 
 function clearMaintenanceTerminalNotice(jobId) {
   if (!jobId) return;
-  try {
-    localStorage.removeItem(maintenanceNoticeKey(jobId));
-  } catch (_) {}
+  const store = readMaintenanceNoticeStore();
+  delete store[String(jobId)];
+  writeMaintenanceNoticeStore(store);
 }
 
 let maintenanceJobPollTimer = null;
@@ -157,9 +189,15 @@ function renderDashboard(data) {
   const payrollPercent = Math.max(0, Math.min(100, Number(data?.payrollPercent) || 0));
 
   container.innerHTML = `
-    <article class="dashboard-card dashboard-highlight">
-      <div class="dashboard-card-label">${escapeDashboardHtml(data?.month || getDashboardMonthKey())} · 本月实发工资</div>
-      <div class="dashboard-big-money">${formatDashboardCurrency(data?.totalNet)}</div>
+    <article class="dashboard-card dashboard-highlight dashboard-payroll-summary-card">
+      <div class="dashboard-card-label">${escapeDashboardHtml(data?.month || getDashboardMonthKey())} · 两间公司本月工资总数</div>
+      <div class="dashboard-big-money">${formatDashboardCurrency(data?.totalGross)}</div>
+      <div class="dashboard-payroll-summary-row dashboard-payroll-deduction-row">
+        <span>总共扣款</span><strong>${formatDashboardCurrency(data?.totalDeduction)}</strong>
+      </div>
+      <div class="dashboard-payroll-summary-row dashboard-payroll-net-row">
+        <span>实发工资总数</span><strong>${formatDashboardCurrency(data?.totalNet)}</strong>
+      </div>
     </article>
 
     <div class="dashboard-stat-row">
@@ -198,21 +236,32 @@ function getDashboardMonthKey() {
   return `${document.getElementById("dashboardMonth").value}-${document.getElementById("dashboardYear").value}`;
 }
 
+const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v460-";
+const DASHBOARD_BROWSER_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
+
 function readDashboardBrowserCache(monthKey) {
   try {
-    const raw = sessionStorage.getItem(`ll-dashboard-v1861-${monthKey}`);
+    const raw = localStorage.getItem(DASHBOARD_BROWSER_CACHE_PREFIX + monthKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && parsed.data ? parsed.data : null;
-  } catch (error) {
+    if (!parsed || !parsed.data) return null;
+    if (Date.now() - Number(parsed.time || 0) > DASHBOARD_BROWSER_CACHE_MAX_AGE) {
+      localStorage.removeItem(DASHBOARD_BROWSER_CACHE_PREFIX + monthKey);
+      return null;
+    }
+    return parsed.data;
+  } catch (_) {
     return null;
   }
 }
 
 function writeDashboardBrowserCache(monthKey, data) {
   try {
-    sessionStorage.setItem(`ll-dashboard-v1861-${monthKey}`, JSON.stringify({ data, time: Date.now() }));
-  } catch (error) {}
+    localStorage.setItem(
+      DASHBOARD_BROWSER_CACHE_PREFIX + monthKey,
+      JSON.stringify({ data, time: Date.now() })
+    );
+  } catch (_) {}
 }
 
 function formatDashboardCurrency(value) {
@@ -558,8 +607,8 @@ function renderMaintenanceJob(job, alertTerminal) {
     // V3.8：成功/失败只弹一次。
     // Job 状态仍保留；重新进入 Dashboard 只显示状态条，不再重复 alert。
     if (alertTerminal && !alreadyShown) {
-      alert(msg);
       markMaintenanceTerminalNoticeShown(job.jobId);
+      alert(msg);
     }
   } else if (job.status === "failed") {
     const msg =
@@ -569,8 +618,8 @@ function renderMaintenanceJob(job, alertTerminal) {
     showStatus("maintenanceStatus", msg.replace("\n", " · "), false);
 
     if (alertTerminal && !alreadyShown) {
-      alert(msg);
       markMaintenanceTerminalNoticeShown(job.jobId);
+      alert(msg);
     }
   }
 }
@@ -579,12 +628,19 @@ async function fetchMaintenanceJob(jobId) {
   try { return await api("getMaintenanceJob", { jobId }, { forceRefresh: true }); } catch (_) { return null; }
 }
 
-function startMaintenanceJobPolling(jobId) {
+function startMaintenanceJobPolling(jobId, alertTerminalOnFinish = false) {
   stopMaintenanceJobPolling();
   maintenanceOperationActive = true;
   maintenanceJobPollTimer = setInterval(async () => {
     const job = await fetchMaintenanceJob(jobId);
-    if (job) renderMaintenanceJob(job, false);
+    if (!job) return;
+
+    const terminal = job.status === "success" || job.status === "failed";
+    renderMaintenanceJob(job, Boolean(alertTerminalOnFinish && terminal));
+
+    if (terminal) {
+      stopMaintenanceJobPolling();
+    }
   }, 2500);
 }
 
@@ -626,13 +682,11 @@ async function resumeMaintenanceJob() {
   const server = await fetchMaintenanceJob(local.jobId);
   const job = server || local;
 
-  const shouldAlertTerminal =
-    job.status !== "running" &&
-    !hasMaintenanceTerminalNoticeBeenShown(job.jobId);
-
-  renderMaintenanceJob(job, shouldAlertTerminal);
+  // Reopening Dashboard with an already-completed Job restores the status line only.
+  // A historical terminal Job must never pop up again.
+  renderMaintenanceJob(job, false);
 
   if (job.status === "running") {
-    startMaintenanceJobPolling(job.jobId);
+    startMaintenanceJobPolling(job.jobId, true);
   }
 }

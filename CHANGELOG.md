@@ -1,3 +1,14 @@
+# V4.6 Enterprise Stable
+
+- Rebuilt from the user-confirmed V4.0 connection baseline; API fetch transport and config.js Web App URL are preserved.
+- Retains Payroll cutoff-day logic: day 1-7 defaults to the previous payroll month; day 8 starts the current payroll month.
+- Retains Payment Date logic: later of the payroll month's next-month day 1 or the actual Payroll processing date.
+- Adds the saved-Payroll monthly summary: total payroll, total deductions, and total net pay on Payroll and Dashboard.
+- Dashboard uses local last-success cache for faster repeat opening, then refreshes in the background; API request protocol is unchanged.
+- Backup/Restore terminal notice is deduplicated by a permanent Job ID store. Reopening Dashboard never re-alerts an already-completed Job.
+- Payroll / Advance / Worker / Payslip / Backup-Restore data calculations are otherwise unchanged.
+- All current UI/API/resource/cache/package versions updated to V4.6 / API 4.6.0.
+
 # V4.0
 
 - Payment Date = 工资月份次月1号与实际处理 Payroll 当天，两者取较迟日期。

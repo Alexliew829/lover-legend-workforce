@@ -435,7 +435,7 @@ function normalizePayslipMonth(value) {
 }
 
 function getPayslipPaymentDate(monthValue, savedPaymentDate) {
-  // V4.0：新 Payroll 直接显示保存时写入的实际 Payment Date。
+  // V4.6：新 Payroll 直接显示保存时写入的实际 Payment Date。
   // 历史记录若没有发薪日期，才沿用旧规则：工资月份的次月 1 日。
   if (savedPaymentDate) return formatPayslipDate(savedPaymentDate);
 
