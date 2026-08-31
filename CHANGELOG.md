@@ -1,3 +1,13 @@
+# V3.8 Enterprise Stable
+
+- 基于 V3.7，只修复手机 Payroll 输入权限。
+- 手机端直播佣金恢复可输入。
+- 手机端每笔支粮 / 准证“本月扣除”恢复可输入，并继续沿用原有“不能超过该笔未清余额”限制。
+- 手机端缺席“扣薪 / 免扣”恢复可选择。
+- 其他手机字段维持 V3.7 只读规则；保存、编辑、删除及打印仍维持电脑处理。
+- 不修改 Payroll 计算公式、欠款 carry-forward、Advance、Payslip 或 Backup / Restore 数据逻辑。
+- 当前版本、Frontend Cache、Service Worker、Manifest、Backup schema 与 API 统一更新为 V3.8 / 3.8.0。
+
 # V3.7 Enterprise Stable
 
 - 基于 V3.6，只修复 Backup / Restore Job 完成状态重复弹窗。

@@ -37,16 +37,36 @@ function applyPayrollMobileReadonlyMode() {
     });
 
     form.querySelectorAll('input:not([type="radio"]):not([type="checkbox"]), textarea').forEach(field => {
+      const isMobileEditable =
+        field.name === "liveCommission" ||
+        field.id === "liveCommission" ||
+        field.classList.contains("debt-record-deduction-input");
+
       field.disabled = false;
-      field.readOnly = true;
-      field.setAttribute("aria-readonly", "true");
-      field.title = "手机只可查看，请到电脑处理";
+      field.readOnly = !isMobileEditable;
+
+      if (isMobileEditable) {
+        field.removeAttribute("aria-readonly");
+        field.title = field.classList.contains("debt-record-deduction-input")
+          ? "手机可输入本月扣除，不能超过该笔未清余额"
+          : "手机可输入直播佣金";
+      } else {
+        field.setAttribute("aria-readonly", "true");
+        field.title = "手机只可查看，请到电脑处理";
+      }
     });
 
     form.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(field => {
-      field.disabled = true;
-      field.setAttribute("aria-disabled", "true");
-      field.title = "手机只可查看，请到电脑处理";
+      const isAbsenceAction = field.type === "radio" && field.name === "absenceAction";
+      field.disabled = !isAbsenceAction;
+
+      if (isAbsenceAction) {
+        field.removeAttribute("aria-disabled");
+        field.title = "手机可选择扣薪或免扣";
+      } else {
+        field.setAttribute("aria-disabled", "true");
+        field.title = "手机只可查看，请到电脑处理";
+      }
     });
   }
 
@@ -72,7 +92,7 @@ function applyPayrollMobileReadonlyMode() {
 const payrollRemarkTranslationCache = new Map();
 let payrollRemarkTranslationRun = 0;
 
-const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v330";
+const PAYROLL_DEFAULT_PERIOD_KEY = "ll-workforce-payroll-default-period-v380";
 
 const DEBT_TYPES = ["支粮", "准证"];
 const COMPANY_ORDER = {
