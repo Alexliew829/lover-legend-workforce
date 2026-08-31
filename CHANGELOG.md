@@ -1,3 +1,11 @@
+# V4.1 Enterprise Stable
+
+- Payroll 底部月度汇总改为三项：本月工资总数、总共扣款、实发工资总数。
+- Dashboard 顶部同步显示同一组三项汇总。
+- 汇总只使用所选月份已保存 Payroll：工资总数 = 实发工资 + 总扣款。
+- 保留 V4.0 Payment Date 与 V3.9/V3.8 既有逻辑。
+- 版本统一更新 V4.1 / API 4.1.0。
+
 # V4.0
 
 - Payment Date = 工资月份次月1号与实际处理 Payroll 当天，两者取较迟日期。

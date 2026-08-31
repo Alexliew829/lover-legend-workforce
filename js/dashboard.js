@@ -6,7 +6,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v400:";
+const MAINTENANCE_JOB_NOTICE_PREFIX = "ll-workforce-maintenance-notice-v410:";
 
 function maintenanceNoticeKey(jobId) {
   return MAINTENANCE_JOB_NOTICE_PREFIX + String(jobId || "");
@@ -158,7 +158,10 @@ function renderDashboard(data) {
 
   container.innerHTML = `
     <article class="dashboard-card dashboard-highlight">
-      <div class="dashboard-card-label">${escapeDashboardHtml(data?.month || getDashboardMonthKey())} · 本月实发工资</div>
+      <div class="dashboard-card-label">${escapeDashboardHtml(data?.month || getDashboardMonthKey())} · 两间公司本月工资总数</div>
+      <div class="dashboard-big-money">${formatDashboardCurrency(data?.totalGross)}</div>
+      <div class="dashboard-summary-row"><span>总共扣款</span><strong>${formatDashboardCurrency(data?.totalDeduction)}</strong></div>
+      <div class="dashboard-card-label dashboard-net-label">实发工资总数</div>
       <div class="dashboard-big-money">${formatDashboardCurrency(data?.totalNet)}</div>
     </article>
 

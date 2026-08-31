@@ -1423,6 +1423,11 @@ function renderPayrollHistory() {
     (sum, item) => sum + parsePayrollMoney(item["实发薪水"]),
     0
   );
+  const totalDeduction = currentMonthRecords.reduce(
+    (sum, item) => sum + parsePayrollMoney(item["总扣款"]),
+    0
+  );
+  const totalGrossSalary = totalNetSalary + totalDeduction;
 
   const recordsHtml = currentMonthRecords.map(item => {
    const absenceDays = Number(item["缺席天数"]) || 0;
@@ -1474,7 +1479,10 @@ const summaryParts = [];
 
   const totalHtml = `
     <div class="payroll-total-card">
-      <div class="payroll-total-title">${escapePayrollHtml(selectedMonth)} · 两间公司本月实发工资总数</div>
+      <div class="payroll-total-title">${escapePayrollHtml(selectedMonth)} · 两间公司本月工资总数</div>
+      <div class="payroll-total-amount">${formatPayrollCurrency(totalGrossSalary)}</div>
+      <div class="payroll-total-deduction-line"><span>总共扣款</span><strong>${formatPayrollCurrency(totalDeduction)}</strong></div>
+      <div class="payroll-total-title payroll-total-net-title">实发工资总数</div>
       <div class="payroll-total-amount">${formatPayrollCurrency(totalNetSalary)}</div>
     </div>
   `;

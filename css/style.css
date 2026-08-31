@@ -1483,3 +1483,23 @@ select[name="existingWorkerNo"] {
   font-weight: 800;
   color: #176b35;
 }
+
+
+/* V4.1 Monthly payroll totals */
+.payroll-total-card .payroll-total-deduction-line {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #d7e7d1;
+}
+.payroll-total-net-title { margin-top: 12px; }
+.dashboard-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #cfe3c8;
+}
+.dashboard-summary-row strong { font-size: 1.05rem; }
+.dashboard-net-label { margin-top: 12px; }

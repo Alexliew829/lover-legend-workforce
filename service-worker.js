@@ -1,4 +1,4 @@
-const CACHE_NAME = "ll-workforce-v400";
+const CACHE_NAME = "ll-workforce-v410";
 
 const APP_SHELL = [
   "./app/index.html",
