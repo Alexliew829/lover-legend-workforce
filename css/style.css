@@ -1485,7 +1485,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V4.6 Monthly Payroll three-total summary */
+/* V4.7 Monthly Payroll three-total summary */
 .payroll-month-summary-row,
 .dashboard-payroll-summary-row {
   display: flex;
@@ -1512,4 +1512,30 @@ select[name="existingWorkerNo"] {
 }
 .dashboard-payroll-summary-card .dashboard-big-money {
   margin-bottom: 2px;
+}
+
+
+/* V4.7 mobile-only: keep pending absence row and delete button inside its card. */
+@media (max-width: 600px) {
+  .absence-ledger-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .absence-ledger-line > span {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+  }
+
+  .absence-ledger-line .absence-delete-btn {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 8px 12px;
+  }
 }

@@ -181,9 +181,23 @@ form.addEventListener("keydown", event => {
 });
 
 async function loadPayrollPage() {
-  const cached = typeof getApiCachedData === "function"
+  let cached = typeof getApiCachedData === "function"
     ? getApiCachedData("getPayrollBootstrap", {})
     : null;
+
+  if (!cached && typeof getSharedWorkersCache_ === "function") {
+    const sharedWorkers = getSharedWorkersCache_();
+    const sharedAdvances = typeof getSharedAdvancesCache_ === "function" ? getSharedAdvancesCache_() : null;
+    const sharedPayrolls = typeof getSharedPayrollsCache_ === "function" ? getSharedPayrollsCache_() : null;
+
+    if (Array.isArray(sharedWorkers) && Array.isArray(sharedAdvances) && Array.isArray(sharedPayrolls)) {
+      cached = {
+        workers: sharedWorkers,
+        advances: sharedAdvances,
+        payrolls: sharedPayrolls
+      };
+    }
+  }
 
   if (cached) {
     applyPayrollBootstrapData(cached);
@@ -231,6 +245,12 @@ function applyPayrollBootstrapData(data) {
   payrollWorkers = Array.isArray(data?.workers) ? data.workers : [];
   payrollAdvances = Array.isArray(data?.advances) ? data.advances : [];
   payrollRecords = Array.isArray(data?.payrolls) ? data.payrolls : [];
+
+  if (typeof setApiCachedData === "function") {
+    setApiCachedData("getWorkers", {}, payrollWorkers);
+    setApiCachedData("getAdvances", {}, payrollAdvances);
+    setApiCachedData("getPayrolls", {}, payrollRecords);
+  }
 
   renderPayrollWorkers();
   renderPayrollHistory();
@@ -1129,7 +1149,7 @@ function getPayrollPaymentDate() {
   const year = Number(form?.payYear?.value || 0);
   if (!month || !year) return formatDateDDMMYYYY(new Date());
 
-  // V4.6：Payment Date 不能早于工资月份的次月 1 日；
+  // V4.7：Payment Date 不能早于工资月份的次月 1 日；
   // 如果实际处理 Payroll 时已经超过 1 日，则使用当天日期。
   // 例如：31/08 准备 08-2026 -> 01-09-2026；02/09 准备 -> 02-09-2026。
   const scheduledDate = new Date(year, month, 1);
@@ -1427,7 +1447,7 @@ function renderPayrollHistory() {
     (sum, item) => sum + parsePayrollMoney(item["总扣款"]),
     0
   );
-  // V4.6：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
+  // V4.7：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
   const totalGrossSalary = totalNetSalary + totalDeductionSalary;
 
   const recordsHtml = currentMonthRecords.map(item => {

@@ -37,9 +37,36 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function loadAdvancePage() {
-  const cached = typeof getApiCachedData === "function"
+  let cached = typeof getApiCachedData === "function"
     ? getApiCachedData("getAdvanceBootstrap", {})
     : null;
+
+  if (!cached && typeof getSharedWorkersCache_ === "function" && typeof getSharedAdvancesCache_ === "function") {
+    const sharedWorkers = getSharedWorkersCache_();
+    const sharedAdvances = getSharedAdvancesCache_();
+    const sharedPayrolls = typeof getSharedPayrollsCache_ === "function" ? getSharedPayrollsCache_() : null;
+
+    if (Array.isArray(sharedWorkers) && Array.isArray(sharedAdvances)) {
+      cached = {
+        workers: sharedWorkers,
+        advances: sharedAdvances,
+        payrollAbsenceStatuses: Array.isArray(sharedPayrolls)
+          ? sharedPayrolls.map(payroll => {
+              const absenceAction = String(payroll["缺席处理"] || "").trim();
+              const absenceDeduction = Number(payroll["缺席扣款"] || 0);
+              return {
+                "公司": payroll["公司"],
+                "工人编号": payroll["工人编号"],
+                "月份": payroll["月份"],
+                "状态": absenceAction === "免扣"
+                  ? "免扣"
+                  : (absenceAction === "扣薪" || absenceDeduction > 0 ? "已扣薪" : "免扣")
+              };
+            })
+          : []
+      };
+    }
+  }
 
   if (cached) {
     applyAdvanceBootstrapData(cached);
@@ -94,6 +121,20 @@ function applyAdvanceBootstrapData(data) {
     }));
 
   applyPayrollAbsenceStatuses(data?.payrollAbsenceStatuses);
+
+  if (typeof setApiCachedData === "function") {
+    setApiCachedData("getWorkers", {}, workersCache);
+    setApiCachedData(
+      "getAdvances",
+      {},
+      advanceLedgerCache.filter(item => item["交易来源"] !== "Payroll").map(item => {
+        const record = { ...item };
+        delete record["交易来源"];
+        delete record["显示金额"];
+        return record;
+      })
+    );
+  }
 
   renderWorkerOptions();
   renderAdvanceLedger(advanceLedgerCache);

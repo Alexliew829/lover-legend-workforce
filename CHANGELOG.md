@@ -1,3 +1,15 @@
+# V4.7 Enterprise Stable
+
+- Built from V4.6 without changing Payroll formulas, deduction formulas, Payslip formulas, Payment Date logic, Payroll cutoff logic, or existing page layout.
+- Worker / Advance / Payroll pages reuse already-loaded Worker/Advance/Payroll datasets across pages for immediate company/worker filtering.
+- V4.6 browser API cache is migrated into V4.7 so an upgrade does not unnecessarily discard the last successful local data snapshot.
+- Apps Script data cache increased from 30 seconds to 10 minutes; existing write actions still invalidate affected caches.
+- Worker add/update/resign also invalidates Advance cache because Advance display uses the worker's latest name/company.
+- Dashboard debt calculation changed from repeated per-worker scans to mathematically equivalent one-pass aggregation; displayed formulas and totals are unchanged.
+- Dashboard result cache increased to 10 minutes and remains tied to the data revision, so writes invalidate the old summary.
+- Mobile pending-absence delete row is contained inside the card; desktop layout and all other display styles are unchanged.
+- All current UI/API/resource/cache/package versions updated to V4.7 / API 4.7.0.
+
 # V4.6 Enterprise Stable
 
 - Rebuilt from the user-confirmed V4.0 connection baseline; API fetch transport and config.js Web App URL are preserved.

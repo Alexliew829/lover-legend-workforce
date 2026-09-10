@@ -6,7 +6,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-// V4.6: permanent, version-independent terminal notice history.
+// V4.7: permanent, version-independent terminal notice history.
 // Future upgrades must keep this key unchanged.
 const MAINTENANCE_NOTICE_STORE_KEY = "ll-workforce-maintenance-terminal-notices";
 
@@ -236,7 +236,7 @@ function getDashboardMonthKey() {
   return `${document.getElementById("dashboardMonth").value}-${document.getElementById("dashboardYear").value}`;
 }
 
-const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v460-";
+const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v470-";
 const DASHBOARD_BROWSER_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
 
 function readDashboardBrowserCache(monthKey) {

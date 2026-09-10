@@ -109,9 +109,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function loadWorkers() {
-  const cached = typeof getApiCachedData === "function"
-    ? getApiCachedData("getWorkers", {})
-    : null;
+  const cached = typeof getSharedWorkersCache_ === "function"
+    ? getSharedWorkersCache_()
+    : (typeof getApiCachedData === "function" ? getApiCachedData("getWorkers", {}) : null);
 
   if (Array.isArray(cached)) {
     workersCache = cached;

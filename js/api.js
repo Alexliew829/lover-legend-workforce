@@ -1,9 +1,83 @@
 const API_READ_CACHE_MS = 30000;
 const API_STALE_CACHE_MS = 24 * 60 * 60 * 1000;
-const API_CACHE_PREFIX = "ll-api-cache-v460:";
+const API_CACHE_PREFIX = "ll-api-cache-v470:";
+const API_PREVIOUS_CACHE_PREFIXES = ["ll-api-cache-v470:"];
 
 const apiReadCache = new Map();
 const apiPendingRequests = new Map();
+
+const API_SHARED_DATASET_KEYS = {
+  workers: "getWorkers:{}",
+  advances: "getAdvances:{}",
+  payrolls: "getPayrolls:{}"
+};
+
+function migratePreviousApiCaches_() {
+  try {
+    API_PREVIOUS_CACHE_PREFIXES.forEach(prefix => {
+      Object.keys(localStorage)
+        .filter(key => key.startsWith(prefix))
+        .forEach(key => {
+          const suffix = key.slice(prefix.length);
+          const target = API_CACHE_PREFIX + suffix;
+          if (!localStorage.getItem(target)) {
+            localStorage.setItem(target, localStorage.getItem(key));
+          }
+        });
+    });
+  } catch (_) {}
+}
+
+function seedSharedApiDatasets_(action, data) {
+  if (!data) return;
+
+  if (action === "getWorkers" && Array.isArray(data)) {
+    setApiCachedData("getWorkers", {}, data, { skipSeed: true });
+    return;
+  }
+
+  if (action === "getAdvances" && Array.isArray(data)) {
+    setApiCachedData("getAdvances", {}, data, { skipSeed: true });
+    return;
+  }
+
+  if (action === "getPayrolls" && Array.isArray(data)) {
+    setApiCachedData("getPayrolls", {}, data, { skipSeed: true });
+    return;
+  }
+
+  if (action === "getAdvanceBootstrap") {
+    if (Array.isArray(data.workers)) setApiCachedData("getWorkers", {}, data.workers, { skipSeed: true });
+    if (Array.isArray(data.advances)) setApiCachedData("getAdvances", {}, data.advances, { skipSeed: true });
+    return;
+  }
+
+  if (action === "getPayrollBootstrap") {
+    if (Array.isArray(data.workers)) setApiCachedData("getWorkers", {}, data.workers, { skipSeed: true });
+    if (Array.isArray(data.advances)) setApiCachedData("getAdvances", {}, data.advances, { skipSeed: true });
+    if (Array.isArray(data.payrolls)) setApiCachedData("getPayrolls", {}, data.payrolls, { skipSeed: true });
+    return;
+  }
+
+  if (action === "getPayrollData") {
+    if (Array.isArray(data.advances)) setApiCachedData("getAdvances", {}, data.advances, { skipSeed: true });
+    if (Array.isArray(data.payrolls)) setApiCachedData("getPayrolls", {}, data.payrolls, { skipSeed: true });
+  }
+}
+
+function getSharedWorkersCache_() {
+  return getApiCachedData("getWorkers", {});
+}
+
+function getSharedAdvancesCache_() {
+  return getApiCachedData("getAdvances", {});
+}
+
+function getSharedPayrollsCache_() {
+  return getApiCachedData("getPayrolls", {});
+}
+
+migratePreviousApiCaches_();
 
 const API_READ_ACTIONS = new Set([
   "getWorkers",
@@ -179,12 +253,16 @@ function getApiCachedData(action, payload = {}, maxAge = API_STALE_CACHE_MS) {
   return persistent.data;
 }
 
-function setApiCachedData(action, payload = {}, data) {
+function setApiCachedData(action, payload = {}, data, options = {}) {
   const cacheKey = makeApiCacheKey(action, payload);
   const cachedValue = { time: Date.now(), data };
 
   apiReadCache.set(cacheKey, cachedValue);
   writePersistentApiCache(cacheKey, data);
+
+  if (!options.skipSeed) {
+    seedSharedApiDatasets_(action, data);
+  }
 }
 
 function invalidateAfterWrite(action) {
