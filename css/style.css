@@ -917,12 +917,6 @@ select[name="existingWorkerNo"] {
   font-weight: 800;
 }
 
-.absence-ledger-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
 
 .absence-delete-btn {
   flex: 0 0 auto;
@@ -1485,7 +1479,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V4.9 Monthly Payroll three-total summary */
+/* V5.0 Monthly Payroll three-total summary */
 .payroll-month-summary-row,
 .dashboard-payroll-summary-row {
   display: flex;
@@ -1515,33 +1509,32 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V4.9 mobile-only: keep pending absence row and delete button inside its card. */
-@media (max-width: 600px) {
-  .absence-ledger-line {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
-    align-items: stretch;
-  }
+/* V5.0: pending absence row is stable on both desktop and mobile narrow cards. */
+.absence-ledger-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
 
-  .absence-ledger-line > span {
-    display: block;
-    min-width: 0;
-    overflow-wrap: anywhere;
-    line-height: 1.45;
-  }
+.absence-ledger-line > span {
+  display: block;
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+  line-height: 1.45;
+}
 
-  .absence-ledger-line .absence-delete-btn {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    margin: 0;
-    padding: 8px 12px;
-  }
+.absence-ledger-line .absence-delete-btn {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 12px;
 }
 
 
-/* V4.9 Dashboard Excel export */
+/* V5.0 Dashboard Excel export */
 .dashboard-export-btn {
   width: 100%;
   margin-top: 12px;

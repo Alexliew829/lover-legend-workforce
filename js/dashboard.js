@@ -7,7 +7,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-// V4.9: permanent, version-independent terminal notice history.
+// V5.0: permanent, version-independent terminal notice history.
 // Future upgrades must keep this key unchanged.
 const MAINTENANCE_NOTICE_STORE_KEY = "ll-workforce-maintenance-terminal-notices";
 
@@ -237,7 +237,7 @@ function getDashboardMonthKey() {
   return `${document.getElementById("dashboardMonth").value}-${document.getElementById("dashboardYear").value}`;
 }
 
-const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v490-";
+const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v500-";
 const DASHBOARD_BROWSER_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
 
 function readDashboardBrowserCache(monthKey) {
@@ -266,7 +266,7 @@ function writeDashboardBrowserCache(monthKey, data) {
 }
 
 
-function exportDashboardExcel() {
+async function exportDashboardExcel() {
   const data = latestDashboardData || readDashboardBrowserCache(getDashboardMonthKey());
   if (!data) {
     showStatus("status", "Dashboard 资料尚未载入，暂时无法导出 Excel", false);
@@ -277,12 +277,16 @@ function exportDashboardExcel() {
   const originalText = button.textContent;
   try {
     button.disabled = true;
-    button.textContent = "正在导出 Excel...";
+    button.textContent = "正在读取所有工人欠款并导出...";
 
+    // V5.0: export every worker debt record (including cleared records),
+    // while keeping Dashboard calculations untouched.
+    const ledger = await refreshReadWithRetry_("getAdvanceLedger", {}, 900);
     const month = String(data.month || getDashboardMonthKey());
     const companies = Array.isArray(data.companies) ? data.companies : [];
     const now = new Date();
-    const rows = [
+
+    const summaryRows = [
       ["Lover Legend Workforce ERP - Dashboard"],
       ["月份", month],
       ["导出日期", now],
@@ -301,14 +305,14 @@ function exportDashboardExcel() {
       ["公司", "工人数", "本月实发", "欠款余额"]
     ];
 
-    companies.forEach(item => rows.push([
+    companies.forEach(item => summaryRows.push([
       String(item.company || ""),
       Number(item.workerCount) || 0,
       Number(item.netSalary) || 0,
       Number(item.debtBalance) || 0
     ]));
 
-    rows.push(
+    summaryRows.push(
       [],
       ["全部欠款余额", Number(data.totalDebt) || 0],
       [],
@@ -319,35 +323,23 @@ function exportDashboardExcel() {
       ["待处理", Number(data.absencePendingDays) || 0]
     );
 
-    const moneyLabels = new Set([
-      "两间公司本月工资总数", "总共扣款", "实发工资总数", "全部欠款余额"
-    ]);
-    const xmlRows = rows.map((row, rowIndex) => {
-      const cells = row.map((value, colIndex) => {
-        let type = "String";
-        let style = rowIndex === 0 ? "Title" : "Default";
-        let cellValue = value == null ? "" : value;
+    const debtRows = buildDashboardDebtExportRows_(Array.isArray(ledger) ? ledger : [], month);
+    const debtSheetRows = [
+      ["全部工人欠款记录（截至 " + month + "）"],
+      ["工人编号", "工人姓名", "公司", "项目", "欠款日期", "原欠款金额", "已清金额", "当前未清余额", "状态", "还款记录", "备注"],
+      ...debtRows
+    ];
 
-        if (value instanceof Date) {
-          type = "DateTime";
-          style = "Date";
-          cellValue = dashboardExcelDateTime_(value);
-        } else if (typeof value === "number") {
-          type = "Number";
-          const label = String(row[0] || "");
-          const isCompanyMoney = rowIndex > 0 && companies.some(item => String(item.company || "") === label) && colIndex >= 2;
-          style = (moneyLabels.has(label) && colIndex === 1) || isCompanyMoney ? "Money" : "Number";
-        } else if (rowIndex === 4 || rowIndex === 9 || rowIndex === 15 || rowIndex === rows.length - 5) {
-          style = "Header";
-        }
+    const summaryXml = dashboardExcelWorksheetXml_("Dashboard " + month, summaryRows, {
+      moneyLabels: new Set(["两间公司本月工资总数", "总共扣款", "实发工资总数", "全部欠款余额"]),
+      companies
+    });
+    const debtXml = dashboardExcelWorksheetXml_("欠款记录", debtSheetRows, {
+      moneyColumns: new Set([5, 6, 7]),
+      dateColumns: new Set([4]),
+      headerRows: new Set([1])
+    });
 
-        return `<Cell ss:StyleID="${style}"><Data ss:Type="${type}">${escapeDashboardExcelXml_(cellValue)}</Data></Cell>`;
-      }).join("");
-      return `<Row>${cells}</Row>`;
-    }).join("");
-
-    const widths = dashboardExcelColumnWidths_(rows);
-    const columns = widths.map(width => `<Column ss:AutoFitWidth="0" ss:Width="${width}"/>`).join("");
     const xml = `<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
@@ -355,11 +347,11 @@ function exportDashboardExcel() {
 <Style ss:ID="Default"><Alignment ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="11"/></Style>
 <Style ss:ID="Title"><Font ss:FontName="Arial" ss:Size="14" ss:Bold="1"/></Style>
 <Style ss:ID="Header"><Font ss:FontName="Arial" ss:Size="11" ss:Bold="1"/></Style>
-<Style ss:ID="Money"><NumberFormat ss:Format="#\,##0.00"/></Style>
+<Style ss:ID="Money"><NumberFormat ss:Format="#\\,##0.00"/></Style>
 <Style ss:ID="Number"><NumberFormat ss:Format="0.##"/></Style>
 <Style ss:ID="Date"><NumberFormat ss:Format="dd-mm-yyyy"/></Style>
 </Styles>
-<Worksheet ss:Name="Dashboard ${escapeDashboardExcelXml_(month)}"><Table>${columns}${xmlRows}</Table></Worksheet>
+${summaryXml}${debtXml}
 </Workbook>`;
 
     const blob = new Blob(["\ufeff", xml], { type: "application/vnd.ms-excel;charset=utf-8" });
@@ -371,13 +363,196 @@ function exportDashboardExcel() {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showStatus("status", "Dashboard Excel 已导出", true);
+    showStatus("status", `Dashboard Excel 已导出（含 ${debtRows.length} 笔工人欠款记录）`, true);
   } catch (error) {
     showStatus("status", "Excel 导出失败：" + error.message, false);
   } finally {
     button.disabled = false;
     button.textContent = originalText;
   }
+}
+
+function buildDashboardDebtExportRows_(ledger, monthKey) {
+  const cutoff = dashboardExcelMonthNumber_(monthKey);
+  const groups = new Map();
+
+  (ledger || []).forEach((item, index) => {
+    let type = String(item["项目"] || item["类型"] || "").trim();
+    if (type === "缺席") return;
+    if (type === "医疗" || type === "其他") type = "支粮";
+    if (type !== "支粮" && type !== "准证") return;
+
+    const amount = Number(item["显示金额"] ?? item["金额"]) || 0;
+    if (!amount) return;
+    const dateText = dashboardExcelNormalizeDate_(item["日期时间"] || item["日期"] || item["扣款日期"]);
+    const dateMonth = dashboardExcelDateMonthNumber_(dateText);
+    if (dateMonth && dateMonth > cutoff) return;
+
+    const company = String(item["公司"] || "").trim();
+    const workerNo = String(item["工人编号"] || "").trim();
+    const workerName = String(item["工人名字"] || item["工人姓名"] || "").trim();
+    const groupKey = [company, workerNo, workerName].join("__");
+    if (!groups.has(groupKey)) groups.set(groupKey, { company, workerNo, workerName, borrows: [], payments: [] });
+    const group = groups.get(groupKey);
+
+    if (amount > 0 && String(item["交易来源"] || "新增") !== "Payroll") {
+      const row = Number(item.row) || 0;
+      const key = [dateText, type, amount.toFixed(2), row || index + 1].join("|");
+      group.borrows.push({
+        key,
+        dateText,
+        type,
+        amount,
+        remark: String(item["备注"] || "").trim(),
+        payments: []
+      });
+    } else if (amount < 0 || String(item["交易来源"] || "") === "Payroll") {
+      group.payments.push({
+        dateText,
+        type,
+        amount: Math.abs(amount),
+        originalKey: String(item["原欠款记录"] || "").trim(),
+        remark: String(item["备注"] || "").trim()
+      });
+    }
+  });
+
+  const output = [];
+  [...groups.values()]
+    .sort((a, b) => a.company.localeCompare(b.company) || a.workerNo.localeCompare(b.workerNo, undefined, { numeric: true }))
+    .forEach(group => {
+      const byKey = new Map(group.borrows.map(b => [b.key, b]));
+      const legacy = [];
+
+      group.payments
+        .sort((a, b) => dashboardExcelDateNumber_(a.dateText) - dashboardExcelDateNumber_(b.dateText))
+        .forEach(payment => {
+          if (payment.originalKey && byKey.has(payment.originalKey)) {
+            byKey.get(payment.originalKey).payments.push({ ...payment });
+          } else {
+            legacy.push(payment);
+          }
+        });
+
+      // Match old Payroll rows without per-record JSON exactly like Advance page:
+      // oldest repayment first, newest open debt first.
+      const allocationOrder = [...group.borrows].sort((a, b) =>
+        dashboardExcelDateNumber_(b.dateText) - dashboardExcelDateNumber_(a.dateText)
+      );
+      legacy.forEach(payment => {
+        let remainingPayment = payment.amount;
+        allocationOrder.forEach(record => {
+          if (remainingPayment <= 0) return;
+          const alreadyPaid = record.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+          const open = Math.max(0, record.amount - alreadyPaid);
+          if (open <= 0) return;
+          const applied = Math.min(open, remainingPayment);
+          record.payments.push({ ...payment, amount: applied });
+          remainingPayment -= applied;
+        });
+      });
+
+      group.borrows
+        .sort((a, b) => dashboardExcelDateNumber_(a.dateText) - dashboardExcelDateNumber_(b.dateText))
+        .forEach(record => {
+          const paid = Math.min(record.amount, record.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0));
+          const remaining = Math.max(0, record.amount - paid);
+          const repayments = record.payments
+            .sort((a, b) => dashboardExcelDateNumber_(a.dateText) - dashboardExcelDateNumber_(b.dateText))
+            .map(p => `${p.dateText} -${dashboardExcelMoneyText_(p.amount)}`)
+            .join("；");
+
+          output.push([
+            group.workerNo,
+            group.workerName,
+            group.company,
+            record.type,
+            dashboardExcelDateValue_(record.dateText),
+            record.amount,
+            paid,
+            remaining,
+            remaining > 0.005 ? "未清" : "已清",
+            repayments,
+            record.remark
+          ]);
+        });
+    });
+
+  return output;
+}
+
+function dashboardExcelWorksheetXml_(sheetName, rows, options = {}) {
+  const moneyLabels = options.moneyLabels || new Set();
+  const companies = options.companies || [];
+  const moneyColumns = options.moneyColumns || new Set();
+  const dateColumns = options.dateColumns || new Set();
+  const headerRows = options.headerRows || new Set();
+
+  const xmlRows = rows.map((row, rowIndex) => {
+    const cells = row.map((value, colIndex) => {
+      let type = "String";
+      let style = rowIndex === 0 ? "Title" : (headerRows.has(rowIndex) ? "Header" : "Default");
+      let cellValue = value == null ? "" : value;
+
+      if (value instanceof Date) {
+        type = "DateTime";
+        style = "Date";
+        cellValue = dashboardExcelDateTime_(value);
+      } else if (typeof value === "number") {
+        type = "Number";
+        const label = String(row[0] || "");
+        const isCompanyMoney = rowIndex > 0 && companies.some(item => String(item.company || "") === label) && colIndex >= 2;
+        const isMoney = moneyColumns.has(colIndex) || ((moneyLabels.has(label) && colIndex === 1) || isCompanyMoney);
+        style = isMoney ? "Money" : "Number";
+      } else if (!headerRows.size && (rowIndex === 4 || rowIndex === 9 || rowIndex === 15 || rowIndex === rows.length - 5)) {
+        style = "Header";
+      }
+
+      return `<Cell ss:StyleID="${style}"><Data ss:Type="${type}">${escapeDashboardExcelXml_(cellValue)}</Data></Cell>`;
+    }).join("");
+    return `<Row>${cells}</Row>`;
+  }).join("");
+
+  const widths = dashboardExcelColumnWidths_(rows);
+  const columns = widths.map(width => `<Column ss:AutoFitWidth="0" ss:Width="${width}"/>`).join("");
+  return `<Worksheet ss:Name="${escapeDashboardExcelXml_(sheetName)}"><Table>${columns}${xmlRows}</Table></Worksheet>`;
+}
+
+function dashboardExcelMonthNumber_(value) {
+  const match = String(value || "").trim().match(/^(\d{2})-(\d{4})$/);
+  return match ? Number(match[2]) * 100 + Number(match[1]) : 0;
+}
+
+function dashboardExcelNormalizeDate_(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${String(value.getDate()).padStart(2, "0")}-${String(value.getMonth() + 1).padStart(2, "0")}-${value.getFullYear()}`;
+  }
+  const text = String(value || "").trim();
+  let match = text.match(/^(\d{2})-(\d{2})-(\d{4})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+  return text;
+}
+
+function dashboardExcelDateMonthNumber_(value) {
+  const match = dashboardExcelNormalizeDate_(value).match(/^\d{2}-(\d{2})-(\d{4})$/);
+  return match ? Number(match[2]) * 100 + Number(match[1]) : 0;
+}
+
+function dashboardExcelDateNumber_(value) {
+  const match = dashboardExcelNormalizeDate_(value).match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  return match ? Number(match[3]) * 10000 + Number(match[2]) * 100 + Number(match[1]) : 0;
+}
+
+function dashboardExcelDateValue_(value) {
+  const match = dashboardExcelNormalizeDate_(value).match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (!match) return String(value || "");
+  return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+}
+
+function dashboardExcelMoneyText_(value) {
+  return (Number(value) || 0).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function dashboardExcelDateTime_(date) {

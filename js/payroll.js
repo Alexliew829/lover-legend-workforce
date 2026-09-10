@@ -1151,7 +1151,7 @@ function getPayrollPaymentDate() {
   const year = Number(form?.payYear?.value || 0);
   if (!month || !year) return formatDateDDMMYYYY(new Date());
 
-  // V4.9：Payment Date 不能早于工资月份的次月 1 日；
+  // V5.0：Payment Date 不能早于工资月份的次月 1 日；
   // 如果实际处理 Payroll 时已经超过 1 日，则使用当天日期。
   // 例如：31/08 准备 08-2026 -> 01-09-2026；02/09 准备 -> 02-09-2026。
   const scheduledDate = new Date(year, month, 1);
@@ -1449,7 +1449,7 @@ function renderPayrollHistory() {
     (sum, item) => sum + parsePayrollMoney(item["总扣款"]),
     0
   );
-  // V4.9：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
+  // V5.0：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
   const totalGrossSalary = totalNetSalary + totalDeductionSalary;
 
   const recordsHtml = currentMonthRecords.map(item => {
