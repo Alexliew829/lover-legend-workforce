@@ -75,11 +75,9 @@ async function loadAdvancePage() {
   }
 
   try {
-    const data = await api(
-      "getAdvanceBootstrap",
-      {},
-      { forceRefresh: Boolean(cached) }
-    );
+    const data = cached && typeof refreshReadWithRetry_ === "function"
+      ? await refreshReadWithRetry_("getAdvanceBootstrap", {})
+      : await api("getAdvanceBootstrap", {});
 
     applyAdvanceBootstrapData(data);
     showStatus("status", "系统已就绪，可以记录欠款", true);
@@ -88,7 +86,7 @@ async function loadAdvancePage() {
     loadPayrollRepaymentsInBackground();
   } catch (error) {
     if (cached) {
-      showStatus("status", "暂时无法同步，正在使用上次载入的欠款资料", false);
+      showStatus("status", "系统已就绪，正在使用最近成功载入的欠款资料；后台同步稍后再试", true);
       return;
     }
 
@@ -993,11 +991,13 @@ function renderAdvanceLedger(advances) {
       selectedMonth
     );
 
-    const clearedHtml = clearedSummaries.map(([date, amount]) => `
-      <div class="advance-ledger-cleared">
-        ${escapeHtml(date)} 已清欠款：${formatCurrency(amount)}
-      </div>
-    `).join("");
+    const clearedHtml = monthInfo.isCurrent
+      ? ""
+      : clearedSummaries.map(([date, amount]) => `
+          <div class="advance-ledger-cleared">
+            ${escapeHtml(date)} 已清欠款：${formatCurrency(amount)}
+          </div>
+        `).join("");
 
     return `
       <div class="worker-item advance-ledger-card">

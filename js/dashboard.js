@@ -1,4 +1,5 @@
 let dashboardRequestToken = 0;
+let latestDashboardData = null;
 
 const DASHBOARD_COMPANIES = [
   "Lover Legend Adenium",
@@ -6,7 +7,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-// V4.7: permanent, version-independent terminal notice history.
+// V4.9: permanent, version-independent terminal notice history.
 // Future upgrades must keep this key unchanged.
 const MAINTENANCE_NOTICE_STORE_KEY = "ll-workforce-maintenance-terminal-notices";
 
@@ -74,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDashboardPeriod();
   document.getElementById("dashboardMonth").addEventListener("change", loadDashboard);
   document.getElementById("dashboardYear").addEventListener("change", loadDashboard);
+  document.getElementById("exportDashboardExcelBtn").addEventListener("click", exportDashboardExcel);
 
   document.getElementById("yearlyBackupBtn").addEventListener("click", handleYearlyBackup);
   document.getElementById("restoreBackupBtn").addEventListener("click", () => {
@@ -141,11 +143,9 @@ async function loadDashboard() {
   }
 
   try {
-    const summary = await api(
-      "getDashboardSummary",
-      { month: monthKey },
-      { forceRefresh: Boolean(cached) }
-    );
+    const summary = cached && typeof refreshReadWithRetry_ === "function"
+      ? await refreshReadWithRetry_("getDashboardSummary", { month: monthKey })
+      : await api("getDashboardSummary", { month: monthKey });
 
     if (token !== dashboardRequestToken) return;
 
@@ -158,8 +158,8 @@ async function loadDashboard() {
     if (cached) {
       showStatus(
         "status",
-        "暂时无法同步，正在使用上次成功载入的 Dashboard",
-        false
+        "Dashboard 已显示最近成功资料；最新同步稍后再试",
+        true
       );
       return;
     }
@@ -171,6 +171,7 @@ async function loadDashboard() {
 }
 
 function renderDashboard(data) {
+  latestDashboardData = data || null;
   const container = document.getElementById("dashboard");
   const companies = Array.isArray(data?.companies) ? data.companies : [];
 
@@ -236,7 +237,7 @@ function getDashboardMonthKey() {
   return `${document.getElementById("dashboardMonth").value}-${document.getElementById("dashboardYear").value}`;
 }
 
-const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v470-";
+const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v490-";
 const DASHBOARD_BROWSER_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
 
 function readDashboardBrowserCache(monthKey) {
@@ -262,6 +263,151 @@ function writeDashboardBrowserCache(monthKey, data) {
       JSON.stringify({ data, time: Date.now() })
     );
   } catch (_) {}
+}
+
+
+function exportDashboardExcel() {
+  const data = latestDashboardData || readDashboardBrowserCache(getDashboardMonthKey());
+  if (!data) {
+    showStatus("status", "Dashboard 资料尚未载入，暂时无法导出 Excel", false);
+    return;
+  }
+
+  const button = document.getElementById("exportDashboardExcelBtn");
+  const originalText = button.textContent;
+  try {
+    button.disabled = true;
+    button.textContent = "正在导出 Excel...";
+
+    const month = String(data.month || getDashboardMonthKey());
+    const companies = Array.isArray(data.companies) ? data.companies : [];
+    const now = new Date();
+    const rows = [
+      ["Lover Legend Workforce ERP - Dashboard"],
+      ["月份", month],
+      ["导出日期", now],
+      [],
+      ["工资汇总", "数值"],
+      ["两间公司本月工资总数", Number(data.totalGross) || 0],
+      ["总共扣款", Number(data.totalDeduction) || 0],
+      ["实发工资总数", Number(data.totalNet) || 0],
+      [],
+      ["Payroll 进度", "数值"],
+      ["总工人数", Number(data.workerCount) || 0],
+      ["已出粮", Number(data.paidCount) || 0],
+      ["未出粮", Number(data.unpaidCount) || 0],
+      ["Payroll 进度 %", Number(data.payrollPercent) || 0],
+      [],
+      ["公司", "工人数", "本月实发", "欠款余额"]
+    ];
+
+    companies.forEach(item => rows.push([
+      String(item.company || ""),
+      Number(item.workerCount) || 0,
+      Number(item.netSalary) || 0,
+      Number(item.debtBalance) || 0
+    ]));
+
+    rows.push(
+      [],
+      ["全部欠款余额", Number(data.totalDebt) || 0],
+      [],
+      ["本月缺席", "天数"],
+      ["缺席总数", Number(data.absenceDays) || 0],
+      ["扣薪", Number(data.absenceDeductDays) || 0],
+      ["免扣", Number(data.absenceWaivedDays) || 0],
+      ["待处理", Number(data.absencePendingDays) || 0]
+    );
+
+    const moneyLabels = new Set([
+      "两间公司本月工资总数", "总共扣款", "实发工资总数", "全部欠款余额"
+    ]);
+    const xmlRows = rows.map((row, rowIndex) => {
+      const cells = row.map((value, colIndex) => {
+        let type = "String";
+        let style = rowIndex === 0 ? "Title" : "Default";
+        let cellValue = value == null ? "" : value;
+
+        if (value instanceof Date) {
+          type = "DateTime";
+          style = "Date";
+          cellValue = dashboardExcelDateTime_(value);
+        } else if (typeof value === "number") {
+          type = "Number";
+          const label = String(row[0] || "");
+          const isCompanyMoney = rowIndex > 0 && companies.some(item => String(item.company || "") === label) && colIndex >= 2;
+          style = (moneyLabels.has(label) && colIndex === 1) || isCompanyMoney ? "Money" : "Number";
+        } else if (rowIndex === 4 || rowIndex === 9 || rowIndex === 15 || rowIndex === rows.length - 5) {
+          style = "Header";
+        }
+
+        return `<Cell ss:StyleID="${style}"><Data ss:Type="${type}">${escapeDashboardExcelXml_(cellValue)}</Data></Cell>`;
+      }).join("");
+      return `<Row>${cells}</Row>`;
+    }).join("");
+
+    const widths = dashboardExcelColumnWidths_(rows);
+    const columns = widths.map(width => `<Column ss:AutoFitWidth="0" ss:Width="${width}"/>`).join("");
+    const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+<Style ss:ID="Default"><Alignment ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="11"/></Style>
+<Style ss:ID="Title"><Font ss:FontName="Arial" ss:Size="14" ss:Bold="1"/></Style>
+<Style ss:ID="Header"><Font ss:FontName="Arial" ss:Size="11" ss:Bold="1"/></Style>
+<Style ss:ID="Money"><NumberFormat ss:Format="#\,##0.00"/></Style>
+<Style ss:ID="Number"><NumberFormat ss:Format="0.##"/></Style>
+<Style ss:ID="Date"><NumberFormat ss:Format="dd-mm-yyyy"/></Style>
+</Styles>
+<Worksheet ss:Name="Dashboard ${escapeDashboardExcelXml_(month)}"><Table>${columns}${xmlRows}</Table></Worksheet>
+</Workbook>`;
+
+    const blob = new Blob(["\ufeff", xml], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Lover_Legend_Dashboard_${month}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showStatus("status", "Dashboard Excel 已导出", true);
+  } catch (error) {
+    showStatus("status", "Excel 导出失败：" + error.message, false);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+function dashboardExcelDateTime_(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T00:00:00.000`;
+}
+
+function dashboardExcelColumnWidths_(rows) {
+  const maxColumns = rows.reduce((max, row) => Math.max(max, row.length), 1);
+  return Array.from({ length: maxColumns }, (_, colIndex) => {
+    let maxLength = 10;
+    rows.forEach(row => {
+      const value = row[colIndex];
+      const text = value instanceof Date ? "dd-mm-yyyy" : String(value == null ? "" : value);
+      const visualLength = Array.from(text).reduce((sum, char) => sum + (/[^\x00-\xff]/.test(char) ? 2 : 1), 0);
+      maxLength = Math.max(maxLength, visualLength);
+    });
+    return Math.min(260, Math.max(75, maxLength * 7.2 + 18));
+  });
+}
+
+function escapeDashboardExcelXml_(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 function formatDashboardCurrency(value) {

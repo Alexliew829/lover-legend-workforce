@@ -206,7 +206,9 @@ async function loadPayrollPage() {
   }
 
   try {
-    const data = await loadPayrollBootstrapWithRetry(Boolean(cached));
+    const data = cached && typeof refreshReadWithRetry_ === "function"
+      ? await refreshReadWithRetry_("getPayrollBootstrap", {})
+      : await loadPayrollBootstrapWithRetry(false);
 
     applyPayrollBootstrapData(data);
     showStatus("status", "系统已就绪，可以计算 Payroll", true);
@@ -216,8 +218,8 @@ async function loadPayrollPage() {
     if (cached) {
       showStatus(
         "status",
-        "暂时无法同步，正在使用上次成功载入的资料",
-        false
+        "系统已就绪，正在使用最近成功载入的 Payroll 资料；后台同步稍后再试",
+        true
       );
       return;
     }
@@ -1149,7 +1151,7 @@ function getPayrollPaymentDate() {
   const year = Number(form?.payYear?.value || 0);
   if (!month || !year) return formatDateDDMMYYYY(new Date());
 
-  // V4.7：Payment Date 不能早于工资月份的次月 1 日；
+  // V4.9：Payment Date 不能早于工资月份的次月 1 日；
   // 如果实际处理 Payroll 时已经超过 1 日，则使用当天日期。
   // 例如：31/08 准备 08-2026 -> 01-09-2026；02/09 准备 -> 02-09-2026。
   const scheduledDate = new Date(year, month, 1);
@@ -1447,7 +1449,7 @@ function renderPayrollHistory() {
     (sum, item) => sum + parsePayrollMoney(item["总扣款"]),
     0
   );
-  // V4.7：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
+  // V4.9：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
   const totalGrossSalary = totalNetSalary + totalDeductionSalary;
 
   const recordsHtml = currentMonthRecords.map(item => {

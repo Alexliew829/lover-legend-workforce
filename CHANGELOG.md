@@ -1,3 +1,24 @@
+# V4.9 Enterprise Stable
+
+- Built from V4.8.
+- Dashboard adds “导出 Excel / Export Excel”.
+- Export follows the currently selected Dashboard month and includes salary totals, total deductions, net salary, Payroll progress, company summaries, outstanding debt and absence summary.
+- Excel date format: dd-mm-yyyy.
+- Excel amount format: #,##0.00.
+- Excel columns are automatically sized from exported content.
+- Dashboard / Payroll / Advance / Payslip calculations and existing display formulas are unchanged.
+- Current package/UI/API/cache version references updated to V4.9 / API 4.9.0.
+
+# V4.9 Enterprise Stable
+
+- Built directly from V4.7. Payroll formulas, debt formulas, Payslip formulas/layout, Payment Date logic, cutoff-day logic, and business calculations are unchanged.
+- Fixes V4.7 cache migration so V4.9 can reuse V4.7/V4.6 successful local datasets instead of discarding them on upgrade.
+- Worker / Advance / Payroll / Dashboard show cached data immediately and retry the latest READ sync once before falling back to the last successful data. API fetch transport and config.js URL are unchanged.
+- When usable cached data exists but the latest READ sync fails, the page stays usable and clearly states that it is using the most recent successful data; write actions still go directly to the server and are never auto-retried.
+- Current-month Advance view no longer repeats “已清欠款” summary rows when the same -RM repayment details are already shown directly under the original debt. Historical-month display is preserved.
+- V4.7 Dashboard one-pass debt aggregation, 10-minute server data cache, cross-page Worker/Advance/Payroll reuse, and mobile pending-absence layout are preserved.
+- All current UI/API/resource/cache/package versions updated to V4.9 / API 4.9.0.
+
 # V4.7 Enterprise Stable
 
 - Built from V4.6 without changing Payroll formulas, deduction formulas, Payslip formulas, Payment Date logic, Payroll cutoff logic, or existing page layout.

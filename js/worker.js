@@ -120,18 +120,16 @@ async function loadWorkers() {
   }
 
   try {
-    const workers = await api(
-      "getWorkers",
-      {},
-      { forceRefresh: Array.isArray(cached) }
-    );
+    const workers = Array.isArray(cached) && typeof refreshReadWithRetry_ === "function"
+      ? await refreshReadWithRetry_("getWorkers", {})
+      : await api("getWorkers", {});
 
     workersCache = Array.isArray(workers) ? workers : [];
     renderWorkersFromCache();
     showStatus("status", "系统已就绪，可以正常使用", true);
   } catch (error) {
     if (Array.isArray(cached)) {
-      showStatus("status", "暂时无法同步，正在使用上次载入的工人资料", false);
+      showStatus("status", "系统已就绪，正在使用最近成功载入的工人资料；后台同步稍后再试", true);
       return;
     }
 

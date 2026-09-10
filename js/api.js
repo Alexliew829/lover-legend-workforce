@@ -1,7 +1,7 @@
 const API_READ_CACHE_MS = 30000;
 const API_STALE_CACHE_MS = 24 * 60 * 60 * 1000;
-const API_CACHE_PREFIX = "ll-api-cache-v470:";
-const API_PREVIOUS_CACHE_PREFIXES = ["ll-api-cache-v470:"];
+const API_CACHE_PREFIX = "ll-api-cache-v490:";
+const API_PREVIOUS_CACHE_PREFIXES = ["ll-api-cache-v470:", "ll-api-cache-v460:"];
 
 const apiReadCache = new Map();
 const apiPendingRequests = new Map();
@@ -75,6 +75,19 @@ function getSharedAdvancesCache_() {
 
 function getSharedPayrollsCache_() {
   return getApiCachedData("getPayrolls", {});
+}
+
+async function refreshReadWithRetry_(action, payload = {}, retryDelayMs = 1200) {
+  try {
+    return await api(action, payload, { forceRefresh: true });
+  } catch (firstError) {
+    await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+    try {
+      return await api(action, payload, { forceRefresh: true });
+    } catch (_) {
+      throw firstError;
+    }
+  }
 }
 
 migratePreviousApiCaches_();
