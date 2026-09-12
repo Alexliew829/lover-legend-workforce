@@ -1479,7 +1479,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.2 Monthly Payroll three-total summary */
+/* V5.3 Monthly Payroll three-total summary */
 .payroll-month-summary-row,
 .dashboard-payroll-summary-row {
   display: flex;
@@ -1509,7 +1509,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.2: pending absence row is stable on both desktop and mobile narrow cards. */
+/* V5.3: pending absence row is stable on both desktop and mobile narrow cards. */
 .absence-ledger-line {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1534,13 +1534,13 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.2 Dashboard Excel export */
+/* V5.3 Dashboard Excel export */
 .dashboard-export-btn {
   width: 100%;
   margin-top: 12px;
 }
 
-/* V5.2 Payment Date: desktop editable beside Payslip actions; mobile read-only. */
+/* V5.3 Payment Date: desktop editable beside Payslip actions; mobile read-only. */
 .payroll-payment-row {
   display: grid;
   grid-template-columns: minmax(150px, 0.8fr) minmax(180px, 1fr);
@@ -1560,7 +1560,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.2 unified system status */
+/* V5.3 unified system status */
 .home-system-status { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:14px 8px 4px; }
 .home-system-state,.home-system-check { appearance:none; border:1px solid #d8e8d4; background:#f8fbf7; border-radius:999px; padding:8px 12px; min-height:38px; font:700 15px/1.2 inherit; color:#12351e; cursor:pointer; box-sizing:border-box; }
 .home-system-state { display:inline-flex; align-items:center; gap:7px; }
@@ -1574,10 +1574,10 @@ select[name="existingWorkerNo"] {
 .home-menu-after-status { margin-top:10px; }
 @media (max-width:600px){ .home-system-status{justify-content:space-between;margin-top:12px}.home-system-state,.home-system-check{font-size:14px;padding:8px 10px;} }
 
-/* V5.2 Payment Date: visible text is always dd-mm-yyyy; no grey flash while saving. */
+/* V5.3 Payment Date: visible text is always dd-mm-yyyy; no grey flash while saving. */
 .payroll-payment-date-input { font-variant-numeric: tabular-nums; }
 
-/* V5.2 dashboard system information */
+/* V5.3 dashboard system information */
 .system-info-grid { display:grid; gap:0; margin-top:4px; }
 .system-info-row { display:grid; grid-template-columns:minmax(130px,1fr) minmax(160px,1.5fr); gap:12px; padding:10px 0; border-bottom:1px solid #e3e8e1; align-items:center; }
 .system-info-row:last-child{border-bottom:0}.system-info-row span{color:#647067}.system-info-row strong{text-align:right;overflow-wrap:anywhere}

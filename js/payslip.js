@@ -435,15 +435,10 @@ function normalizePayslipMonth(value) {
 }
 
 function getPayslipPaymentDate(monthValue, savedPaymentDate) {
-  // V5.2：新 Payroll 直接显示保存时写入的实际 Payment Date。
-  // 历史记录若没有发薪日期，才沿用旧规则：工资月份的次月 1 日。
+  // V5.3: Payslip must use the Payment Date saved in this Payroll snapshot.
+  // Never recalculate it from the payroll month or print date.
   if (savedPaymentDate) return formatPayslipDate(savedPaymentDate);
-
-  const month = normalizePayslipMonth(monthValue);
-  const match = month.match(/^(\d{2})-(\d{4})$/);
-  if (!match) return "-";
-  const date = new Date(Number(match[2]), Number(match[1]), 1);
-  return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
+  return "-";
 }
 
 function formatPayslipDate(value) {
