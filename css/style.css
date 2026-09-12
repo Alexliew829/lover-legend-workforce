@@ -1479,7 +1479,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.0 Monthly Payroll three-total summary */
+/* V5.1 Monthly Payroll three-total summary */
 .payroll-month-summary-row,
 .dashboard-payroll-summary-row {
   display: flex;
@@ -1509,7 +1509,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.0: pending absence row is stable on both desktop and mobile narrow cards. */
+/* V5.1: pending absence row is stable on both desktop and mobile narrow cards. */
 .absence-ledger-line {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1534,8 +1534,27 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.0 Dashboard Excel export */
+/* V5.1 Dashboard Excel export */
 .dashboard-export-btn {
   width: 100%;
   margin-top: 12px;
+}
+
+/* V5.1 Payment Date: desktop editable beside Payslip actions; mobile read-only. */
+.payroll-payment-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(180px, 1fr);
+  gap: 8px 12px;
+  align-items: center;
+  margin: 10px 0 8px;
+}
+.payroll-payment-row label { font-weight: 700; }
+.payroll-payment-date-input { width: 100%; box-sizing: border-box; }
+.payroll-payment-date-input.is-saving { opacity: .65; }
+.payroll-payment-date-readonly { display: none; font-weight: 700; padding: 8px 0; }
+@media (max-width: 600px) {
+  .payroll-payment-row { display: block; margin: 10px 0 8px; }
+  .payroll-payment-row label { display: block; margin-bottom: 3px; }
+  .payroll-payment-date-input { display: none !important; }
+  .payroll-payment-date-readonly { display: block; }
 }

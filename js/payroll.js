@@ -1146,20 +1146,9 @@ function prepareDebtAllocationRemarks(details) {
 }
 
 function getPayrollPaymentDate() {
-  const form = document.getElementById("payrollForm");
-  const month = Number(form?.payMonth?.value || 0);
-  const year = Number(form?.payYear?.value || 0);
-  if (!month || !year) return formatDateDDMMYYYY(new Date());
-
-  // V5.0：Payment Date 不能早于工资月份的次月 1 日；
-  // 如果实际处理 Payroll 时已经超过 1 日，则使用当天日期。
-  // 例如：31/08 准备 08-2026 -> 01-09-2026；02/09 准备 -> 02-09-2026。
-  const scheduledDate = new Date(year, month, 1);
-  scheduledDate.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const paymentDate = today > scheduledDate ? today : scheduledDate;
-  return formatDateDDMMYYYY(paymentDate);
+  // V5.1：新 Payroll 的 Payment Date 默认当天。
+  // 保存后日期属于该笔 Payroll snapshot，之后重新打开/打印不会自动改变。
+  return formatDateDDMMYYYY(new Date());
 }
 
 async function handlePayrollSubmit(event) {
@@ -1423,6 +1412,62 @@ async function handlePayrollSubmit(event) {
   }
 }
 
+function payrollDateToInputValue(value) {
+  const text = formatAnyDateDDMMYYYY(value);
+  const match = text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
+}
+
+function payrollInputValueToDate(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
+}
+
+async function updatePayrollPaymentDate(company, workerNo, month, input) {
+  if (isPayrollMobileReadonly()) return;
+
+  const payDate = payrollInputValueToDate(input?.value);
+  if (!payDate) {
+    showStatus("status", "请选择正确的发薪日期", false);
+    return;
+  }
+
+  const oldValue = input.dataset.savedValue || "";
+  input.disabled = true;
+  input.classList.add("is-saving");
+
+  try {
+    showStatus("status", "正在保存 Payment Date...", true);
+    const result = await api("updatePayrollPaymentDate", {
+      key: { company, workerNo, month },
+      payDate
+    });
+
+    const record = payrollRecords.find(item =>
+      String(item["公司"] || "") === String(company || "") &&
+      String(item["工人编号"] || "") === String(workerNo || "") &&
+      normalizePayrollMonth(item["月份"]) === normalizePayrollMonth(month)
+    );
+    if (record) record["发薪日期"] = result?.["发薪日期"] || payDate;
+
+    input.dataset.savedValue = input.value;
+    if (typeof setApiCachedData === "function") {
+      setApiCachedData("getPayrollBootstrap", {}, {
+        workers: payrollWorkers,
+        advances: payrollAdvances,
+        payrolls: payrollRecords
+      });
+    }
+    showStatus("status", `Payment Date 已保存：${payDate}`, true);
+  } catch (error) {
+    if (oldValue) input.value = oldValue;
+    showStatus("status", error.message || "Payment Date 保存失败", false);
+  } finally {
+    input.disabled = false;
+    input.classList.remove("is-saving");
+  }
+}
+
 function renderPayrollHistory() {
   const list = document.getElementById("payrollList");
   if (!payrollRecords.length) {
@@ -1449,7 +1494,7 @@ function renderPayrollHistory() {
     (sum, item) => sum + parsePayrollMoney(item["总扣款"]),
     0
   );
-  // V5.0：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
+  // V5.1：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
   const totalGrossSalary = totalNetSalary + totalDeductionSalary;
 
   const recordsHtml = currentMonthRecords.map(item => {
@@ -1479,6 +1524,17 @@ const summaryParts = [];
       <div class="payroll-total-deduction-line"><span>本月扣款：</span><strong>${formatPayrollCurrency(totalDeduction)}</strong></div>
       <div class="payroll-debt-balance-line"><span>累计欠款：</span><strong>${formatPayrollCurrency(debtBalance)}</strong></div>
       <div class="payroll-net-line"><span>实发：</span><strong>${formatPayrollCurrency(item["实发薪水"])}</strong></div>
+        <div class="payroll-payment-row">
+          <label>发薪日期 / Payment Date</label>
+          <input
+            class="payroll-payment-date-input"
+            type="date"
+            value="${escapePayrollHtml(payrollDateToInputValue(item["发薪日期"]) || payrollDateToInputValue(new Date()))}"
+            data-saved-value="${escapePayrollHtml(payrollDateToInputValue(item["发薪日期"]) || payrollDateToInputValue(new Date()))}"
+            onchange="updatePayrollPaymentDate('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}', this)"
+          />
+          <span class="payroll-payment-date-readonly">${escapePayrollHtml(formatPayrollRecordDate(item) || formatDateDDMMYYYY(new Date()))}</span>
+        </div>
         <div class="payroll-record-actions">
           <button
             type="button"

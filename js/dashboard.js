@@ -7,7 +7,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-// V5.0: permanent, version-independent terminal notice history.
+// V5.1: permanent, version-independent terminal notice history.
 // Future upgrades must keep this key unchanged.
 const MAINTENANCE_NOTICE_STORE_KEY = "ll-workforce-maintenance-terminal-notices";
 
@@ -237,7 +237,7 @@ function getDashboardMonthKey() {
   return `${document.getElementById("dashboardMonth").value}-${document.getElementById("dashboardYear").value}`;
 }
 
-const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v500-";
+const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v510-";
 const DASHBOARD_BROWSER_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
 
 function readDashboardBrowserCache(monthKey) {
@@ -279,7 +279,7 @@ async function exportDashboardExcel() {
     button.disabled = true;
     button.textContent = "正在读取所有工人欠款并导出...";
 
-    // V5.0: export every worker debt record (including cleared records),
+    // V5.1: export every worker debt record (including cleared records),
     // while keeping Dashboard calculations untouched.
     const ledger = await refreshReadWithRetry_("getAdvanceLedger", {}, 900);
     const month = String(data.month || getDashboardMonthKey());

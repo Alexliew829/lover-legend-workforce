@@ -1,6 +1,6 @@
 const API_READ_CACHE_MS = 30000;
 const API_STALE_CACHE_MS = 24 * 60 * 60 * 1000;
-const API_CACHE_PREFIX = "ll-api-cache-v500:";
+const API_CACHE_PREFIX = "ll-api-cache-v510:";
 const API_PREVIOUS_CACHE_PREFIXES = ["ll-api-cache-v490:", "ll-api-cache-v470:", "ll-api-cache-v460:"];
 
 const apiReadCache = new Map();
