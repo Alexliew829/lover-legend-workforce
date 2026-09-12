@@ -1,7 +1,7 @@
 const API_READ_CACHE_MS = 30000;
 const API_STALE_CACHE_MS = 24 * 60 * 60 * 1000;
-const API_CACHE_PREFIX = "ll-api-cache-v510:";
-const API_PREVIOUS_CACHE_PREFIXES = ["ll-api-cache-v490:", "ll-api-cache-v470:", "ll-api-cache-v460:"];
+const API_CACHE_PREFIX = "ll-api-cache-v520:";
+const API_PREVIOUS_CACHE_PREFIXES = ["ll-api-cache-v510:", "ll-api-cache-v490:", "ll-api-cache-v470:", "ll-api-cache-v460:"];
 
 const apiReadCache = new Map();
 const apiPendingRequests = new Map();
@@ -101,6 +101,7 @@ const API_READ_ACTIONS = new Set([
   "getPayrolls",
   "getPayrollBootstrap",
   "getPayrollData",
+  "getSystemStatus",
   "createYearlyBackup",
   "getMaintenanceJob",
   "translatePayrollRemarks"
@@ -146,6 +147,7 @@ const API_INVALIDATION_MAP = {
     "getAdvanceBootstrap",
     "getAdvanceLedger",
     "getPayrollData",
+  "getSystemStatus",
     "getPayrollBootstrap",
     "getDashboardSummary"
   ],
@@ -154,6 +156,7 @@ const API_INVALIDATION_MAP = {
     "getAdvanceBootstrap",
     "getAdvanceLedger",
     "getPayrollData",
+  "getSystemStatus",
     "getPayrollBootstrap",
     "getDashboardSummary"
   ],
@@ -162,12 +165,14 @@ const API_INVALIDATION_MAP = {
     "getAdvanceBootstrap",
     "getAdvanceLedger",
     "getPayrollData",
+  "getSystemStatus",
     "getPayrollBootstrap",
     "getDashboardSummary"
   ],
   savePayroll: [
     "getPayrolls",
     "getPayrollData",
+  "getSystemStatus",
     "getPayrollBootstrap",
     "getAdvanceLedger",
     "getDashboardSummary"
@@ -175,6 +180,7 @@ const API_INVALIDATION_MAP = {
   deletePayroll: [
     "getPayrolls",
     "getPayrollData",
+  "getSystemStatus",
     "getPayrollBootstrap",
     "getAdvanceLedger",
     "getDashboardSummary"

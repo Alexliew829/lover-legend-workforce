@@ -1479,7 +1479,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.1 Monthly Payroll three-total summary */
+/* V5.2 Monthly Payroll three-total summary */
 .payroll-month-summary-row,
 .dashboard-payroll-summary-row {
   display: flex;
@@ -1509,7 +1509,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.1: pending absence row is stable on both desktop and mobile narrow cards. */
+/* V5.2: pending absence row is stable on both desktop and mobile narrow cards. */
 .absence-ledger-line {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1534,13 +1534,13 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.1 Dashboard Excel export */
+/* V5.2 Dashboard Excel export */
 .dashboard-export-btn {
   width: 100%;
   margin-top: 12px;
 }
 
-/* V5.1 Payment Date: desktop editable beside Payslip actions; mobile read-only. */
+/* V5.2 Payment Date: desktop editable beside Payslip actions; mobile read-only. */
 .payroll-payment-row {
   display: grid;
   grid-template-columns: minmax(150px, 0.8fr) minmax(180px, 1fr);
@@ -1550,7 +1550,7 @@ select[name="existingWorkerNo"] {
 }
 .payroll-payment-row label { font-weight: 700; }
 .payroll-payment-date-input { width: 100%; box-sizing: border-box; }
-.payroll-payment-date-input.is-saving { opacity: .65; }
+.payroll-payment-date-input.is-saving { opacity: 1; }
 .payroll-payment-date-readonly { display: none; font-weight: 700; padding: 8px 0; }
 @media (max-width: 600px) {
   .payroll-payment-row { display: block; margin: 10px 0 8px; }
@@ -1558,3 +1558,27 @@ select[name="existingWorkerNo"] {
   .payroll-payment-date-input { display: none !important; }
   .payroll-payment-date-readonly { display: block; }
 }
+
+
+/* V5.2 unified system status */
+.home-system-status { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:14px 8px 4px; }
+.home-system-state,.home-system-check { appearance:none; border:1px solid #d8e8d4; background:#f8fbf7; border-radius:999px; padding:8px 12px; min-height:38px; font:700 15px/1.2 inherit; color:#12351e; cursor:pointer; box-sizing:border-box; }
+.home-system-state { display:inline-flex; align-items:center; gap:7px; }
+.home-system-dot { width:10px; height:10px; border-radius:50%; background:#8a948c; flex:0 0 auto; }
+.home-system-state.is-ok .home-system-dot { background:#16a34a; }
+.home-system-state.is-warning .home-system-dot { background:#d69e00; }
+.home-system-state.is-error .home-system-dot { background:#d11a2a; }
+.home-system-state.is-checking .home-system-dot { background:#8a948c; }
+.home-system-details { margin:8px 8px 14px; padding:12px 14px; border:1px solid #efb0b7; border-radius:14px; background:#fff4f5; color:#9f1221; font-size:14px; line-height:1.55; }
+.home-system-details-title { font-weight:800; margin-bottom:4px; }
+.home-menu-after-status { margin-top:10px; }
+@media (max-width:600px){ .home-system-status{justify-content:space-between;margin-top:12px}.home-system-state,.home-system-check{font-size:14px;padding:8px 10px;} }
+
+/* V5.2 Payment Date: visible text is always dd-mm-yyyy; no grey flash while saving. */
+.payroll-payment-date-input { font-variant-numeric: tabular-nums; }
+
+/* V5.2 dashboard system information */
+.system-info-grid { display:grid; gap:0; margin-top:4px; }
+.system-info-row { display:grid; grid-template-columns:minmax(130px,1fr) minmax(160px,1.5fr); gap:12px; padding:10px 0; border-bottom:1px solid #e3e8e1; align-items:center; }
+.system-info-row:last-child{border-bottom:0}.system-info-row span{color:#647067}.system-info-row strong{text-align:right;overflow-wrap:anywhere}
+@media(max-width:600px){.system-info-row{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:8px}.system-info-row strong{font-size:13px}}

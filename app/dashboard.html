@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payroll System - Dashboard</title>
-  <link rel="manifest" href="../manifest.json?v=5.1" />
-  <link rel="icon" href="../assets/icons/payroll-system.ico?v=5.1" />
-  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=5.1" />
-  <link rel="stylesheet" href="../css/style.css?v=5.1" />
+  <link rel="manifest" href="../manifest.json?v=5.2" />
+  <link rel="icon" href="../assets/icons/payroll-system.ico?v=5.2" />
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=5.2" />
+  <link rel="stylesheet" href="../css/style.css?v=5.2" />
 </head>
 <body>
   <div class="app">
@@ -75,10 +75,19 @@
       <input id="restorePayrollPayslipFile" type="file" accept=".json,application/json" hidden />
       <div id="maintenanceStatus" class="status"></div>
     </section>
+
+    <section class="card">
+      <div class="section-title dashboard-section-title">系统资料 / System Information</div>
+      <div id="systemInfo" class="system-info-grid">
+        <div class="system-info-row"><span>版本</span><strong>V5.2 Enterprise Stable</strong></div>
+        <div class="system-info-row"><span>API 版本</span><strong>5.2.0</strong></div>
+        <div class="system-info-row"><span>连接状态</span><strong>正在检查…</strong></div>
+      </div>
+    </section>
   </div>
 
-  <script src="../js/config.js?v=5.1"></script>
-  <script src="../js/api.js?v=5.1"></script>
-  <script src="../js/dashboard.js?v=5.1"></script>
+  <script src="../js/config.js?v=5.2"></script>
+  <script src="../js/api.js?v=5.2"></script>
+  <script src="../js/dashboard.js?v=5.2"></script>
 </body>
 </html>

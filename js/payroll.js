@@ -1146,7 +1146,7 @@ function prepareDebtAllocationRemarks(details) {
 }
 
 function getPayrollPaymentDate() {
-  // V5.1：新 Payroll 的 Payment Date 默认当天。
+  // V5.2：新 Payroll 的 Payment Date 默认当天。
   // 保存后日期属于该笔 Payroll snapshot，之后重新打开/打印不会自动改变。
   return formatDateDDMMYYYY(new Date());
 }
@@ -1413,14 +1413,17 @@ async function handlePayrollSubmit(event) {
 }
 
 function payrollDateToInputValue(value) {
-  const text = formatAnyDateDDMMYYYY(value);
-  const match = text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
+  return formatAnyDateDDMMYYYY(value);
 }
 
 function payrollInputValueToDate(value) {
-  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
+  const text = String(value || "").trim().replace(/[/.]/g, "-");
+  const match = text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (!match) return "";
+  const day = Number(match[1]), month = Number(match[2]), year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return "";
+  return `${match[1]}-${match[2]}-${match[3]}`;
 }
 
 async function updatePayrollPaymentDate(company, workerNo, month, input) {
@@ -1433,7 +1436,6 @@ async function updatePayrollPaymentDate(company, workerNo, month, input) {
   }
 
   const oldValue = input.dataset.savedValue || "";
-  input.disabled = true;
   input.classList.add("is-saving");
 
   try {
@@ -1450,6 +1452,7 @@ async function updatePayrollPaymentDate(company, workerNo, month, input) {
     );
     if (record) record["发薪日期"] = result?.["发薪日期"] || payDate;
 
+    input.value = result?.["发薪日期"] || payDate;
     input.dataset.savedValue = input.value;
     if (typeof setApiCachedData === "function") {
       setApiCachedData("getPayrollBootstrap", {}, {
@@ -1463,7 +1466,6 @@ async function updatePayrollPaymentDate(company, workerNo, month, input) {
     if (oldValue) input.value = oldValue;
     showStatus("status", error.message || "Payment Date 保存失败", false);
   } finally {
-    input.disabled = false;
     input.classList.remove("is-saving");
   }
 }
@@ -1494,7 +1496,7 @@ function renderPayrollHistory() {
     (sum, item) => sum + parsePayrollMoney(item["总扣款"]),
     0
   );
-  // V5.1：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
+  // V5.2：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
   const totalGrossSalary = totalNetSalary + totalDeductionSalary;
 
   const recordsHtml = currentMonthRecords.map(item => {
@@ -1528,7 +1530,10 @@ const summaryParts = [];
           <label>发薪日期 / Payment Date</label>
           <input
             class="payroll-payment-date-input"
-            type="date"
+            type="text"
+            inputmode="numeric"
+            maxlength="10"
+            placeholder="dd-mm-yyyy"
             value="${escapePayrollHtml(payrollDateToInputValue(item["发薪日期"]) || payrollDateToInputValue(new Date()))}"
             data-saved-value="${escapePayrollHtml(payrollDateToInputValue(item["发薪日期"]) || payrollDateToInputValue(new Date()))}"
             onchange="updatePayrollPaymentDate('${escapePayrollJsString(item["公司"] || "")}', '${escapePayrollJsString(item["工人编号"] || "")}', '${escapePayrollJsString(normalizePayrollMonth(item["月份"]))}', this)"

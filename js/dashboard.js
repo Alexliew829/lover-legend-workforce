@@ -7,7 +7,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-// V5.1: permanent, version-independent terminal notice history.
+// V5.2: permanent, version-independent terminal notice history.
 // Future upgrades must keep this key unchanged.
 const MAINTENANCE_NOTICE_STORE_KEY = "ll-workforce-maintenance-terminal-notices";
 
@@ -100,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
     event.returnValue = "Backup / Restore 仍在进行中。";
   });
   loadDashboard();
+  loadDashboardSystemInfo();
 });
 
 function setupDashboardPeriod() {
@@ -237,7 +238,7 @@ function getDashboardMonthKey() {
   return `${document.getElementById("dashboardMonth").value}-${document.getElementById("dashboardYear").value}`;
 }
 
-const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v510-";
+const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v520-";
 const DASHBOARD_BROWSER_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
 
 function readDashboardBrowserCache(monthKey) {
@@ -279,7 +280,7 @@ async function exportDashboardExcel() {
     button.disabled = true;
     button.textContent = "正在读取所有工人欠款并导出...";
 
-    // V5.1: export every worker debt record (including cleared records),
+    // V5.2: export every worker debt record (including cleared records),
     // while keeping Dashboard calculations untouched.
     const ledger = await refreshReadWithRetry_("getAdvanceLedger", {}, 900);
     const month = String(data.month || getDashboardMonthKey());
@@ -1009,5 +1010,28 @@ async function resumeMaintenanceJob() {
 
   if (job.status === "running") {
     startMaintenanceJobPolling(job.jobId, true);
+  }
+}
+
+
+async function loadDashboardSystemInfo() {
+  const box = document.getElementById("systemInfo");
+  if (!box) return;
+  try {
+    const data = await api("getSystemStatus", {}, { forceRefresh: true });
+    const rows = [
+      ["版本", "V5.2 Enterprise Stable"],
+      ["API 版本", "5.2.0"],
+      ["Revision", String(data?.revision || "-")],
+      ["储存方式", "Google Sheet 自动同步"],
+      ["Google Sheet", data?.sheetConnected ? "已连接 Google Web App" : "连接异常"],
+      ["工人数", String(data?.workerCount ?? "-")],
+      ["Payroll 记录", String(data?.payrollCount ?? "-")],
+      ["欠款记录", String(data?.advanceCount ?? "-")],
+      ["检查时间", String(data?.checkedAt || "-")]
+    ];
+    box.innerHTML = rows.map(([k,v]) => `<div class="system-info-row"><span>${k}</span><strong>${v}</strong></div>`).join("");
+  } catch (_) {
+    box.innerHTML = `<div class="system-info-row"><span>版本</span><strong>V5.2 Enterprise Stable</strong></div><div class="system-info-row"><span>API 版本</span><strong>5.2.0</strong></div><div class="system-info-row"><span>Google Sheet</span><strong>连接异常</strong></div>`;
   }
 }
