@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-const HOME_SYSTEM_STATUS_CACHE_KEY = "ll-workforce-system-status-v530";
+const HOME_SYSTEM_STATUS_CACHE_KEY = "ll-workforce-system-status-v540";
 let homeSystemStatusData = null;
 
 function renderHomeSystemStatus(data) {

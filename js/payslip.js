@@ -388,8 +388,8 @@ function createPayslipCopyHtml(item, advances) {
     <div class="payslip-lines"><div class="payslip-total-line"><span>Jumlah Potongan / Total Deduction</span><strong>${formatPayslipCurrency(totalDeduction)}</strong></div></div>
 
     <div class="payslip-result-row">
-      <div class="payslip-net-box"><span>Gaji Bersih / Net Salary</span><strong>${formatPayslipCurrency(netSalary)}</strong></div>
       <div class="payslip-debt-box"><span>Baki Hutang / Outstanding Balance</span><strong>${formatPayslipCurrency(debtBalance)}</strong></div>
+      <div class="payslip-net-box"><span>Gaji Bersih / Net Salary</span><strong>${formatPayslipCurrency(netSalary)}</strong></div>
     </div>
   `;
 }
@@ -435,7 +435,7 @@ function normalizePayslipMonth(value) {
 }
 
 function getPayslipPaymentDate(monthValue, savedPaymentDate) {
-  // V5.3: Payslip must use the Payment Date saved in this Payroll snapshot.
+  // V5.4: Payslip must use the Payment Date saved in this Payroll snapshot.
   // Never recalculate it from the payroll month or print date.
   if (savedPaymentDate) return formatPayslipDate(savedPaymentDate);
   return "-";
