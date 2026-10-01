@@ -1146,7 +1146,7 @@ function prepareDebtAllocationRemarks(details) {
 }
 
 function getPayrollPaymentDate() {
-  // V5.5：新 Payroll 的 Payment Date 默认当天。
+  // V5.6：新 Payroll 的 Payment Date 默认当天。
   // 保存后日期属于该笔 Payroll snapshot，之后重新打开/打印不会自动改变。
   return formatDateDDMMYYYY(new Date());
 }
@@ -1238,7 +1238,7 @@ async function handlePayrollSubmit(event) {
 
     const salaryType = String(selectedPayrollWorker["薪水类型"] || "");
     const payroll = {
-      // V5.5: existing Payroll keeps its saved Payment Date when editing salary fields.
+      // V5.6: existing Payroll keeps its saved Payment Date when editing salary fields.
       // Only a genuinely new Payroll defaults to today's date.
       payDate: payrollDateToInputValue(existingPayroll?.["发薪日期"]) || getPayrollPaymentDate(),
       month: getSelectedPayrollMonthKey(),
@@ -1457,7 +1457,7 @@ async function updatePayrollPaymentDate(company, workerNo, month, input) {
     input.value = result?.["发薪日期"] || payDate;
     input.dataset.savedValue = input.value;
     if (typeof setApiCachedData === "function") {
-      // V5.5: Payslip reads getPayrolls; refresh that cache immediately so
+      // V5.6: Payslip reads getPayrolls; refresh that cache immediately so
       // a manually changed Payment Date is used by the very next print.
       setApiCachedData("getPayrolls", {}, payrollRecords);
       setApiCachedData("getPayrollBootstrap", {}, {
@@ -1501,7 +1501,7 @@ function renderPayrollHistory() {
     (sum, item) => sum + parsePayrollMoney(item["总扣款"]),
     0
   );
-  // V5.5：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
+  // V5.6：工资总数只从已经保存的 Payroll 快照计算，避免重新套用当前工资/欠款逻辑。
   const totalGrossSalary = totalNetSalary + totalDeductionSalary;
 
   const recordsHtml = currentMonthRecords.map(item => {

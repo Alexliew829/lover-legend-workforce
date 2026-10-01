@@ -1479,7 +1479,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.5 Monthly Payroll three-total summary */
+/* V5.6 Monthly Payroll three-total summary */
 .payroll-month-summary-row,
 .dashboard-payroll-summary-row {
   display: flex;
@@ -1509,7 +1509,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.5: pending absence row is stable on both desktop and mobile narrow cards. */
+/* V5.6: pending absence row is stable on both desktop and mobile narrow cards. */
 .absence-ledger-line {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1534,13 +1534,13 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.5 Dashboard Excel export */
+/* V5.6 Dashboard Excel export */
 .dashboard-export-btn {
   width: 100%;
   margin-top: 12px;
 }
 
-/* V5.5 Payment Date: desktop editable beside Payslip actions; mobile read-only. */
+/* V5.6 Payment Date: desktop editable beside Payslip actions; mobile read-only. */
 .payroll-payment-row {
   display: grid;
   grid-template-columns: minmax(150px, 0.8fr) minmax(180px, 1fr);
@@ -1560,7 +1560,7 @@ select[name="existingWorkerNo"] {
 }
 
 
-/* V5.5 unified system status */
+/* V5.6 unified system status */
 .home-system-status { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:14px 8px 4px; }
 .home-system-state,.home-system-check { appearance:none; border:1px solid #d8e8d4; background:#f8fbf7; border-radius:999px; padding:8px 12px; min-height:38px; font:700 15px/1.2 inherit; color:#12351e; cursor:pointer; box-sizing:border-box; }
 .home-system-state { display:inline-flex; align-items:center; gap:7px; }
@@ -1574,14 +1574,14 @@ select[name="existingWorkerNo"] {
 .home-menu-after-status { margin-top:10px; }
 @media (max-width:600px){ .home-system-status{justify-content:space-between;margin-top:12px}.home-system-state,.home-system-check{font-size:14px;padding:8px 10px;} }
 
-/* V5.5 Payment Date: visible text is always dd-mm-yyyy; no grey flash while saving. */
+/* V5.6 Payment Date: visible text is always dd-mm-yyyy; no grey flash while saving. */
 .payroll-payment-date-input { font-variant-numeric: tabular-nums; }
 
-/* V5.5 dashboard system information */
+/* V5.6 dashboard system information */
 .system-info-grid { display:grid; gap:0; margin-top:4px; }
 .system-info-row { display:grid; grid-template-columns:minmax(130px,1fr) minmax(160px,1.5fr); gap:12px; padding:10px 0; border-bottom:1px solid #e3e8e1; align-items:center; }
 .system-info-row:last-child{border-bottom:0}.system-info-row span{color:#647067}.system-info-row strong{text-align:right;overflow-wrap:anywhere}
 @media(max-width:600px){.system-info-row{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:8px}.system-info-row strong{font-size:13px}}
 
-/* V5.5 resignation workflow and Dashboard */
+/* V5.6 resignation workflow and Dashboard */
 .resign-panel{margin-top:12px;padding:14px;border:1px solid #efb3b3;border-radius:14px;background:#fff8f8}.resign-panel-title{font-weight:700;margin-bottom:8px}.resign-date-row{display:flex;gap:8px}.resign-date-row select{flex:1}.resign-date-row select:last-child{flex:1.3}.resign-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.resign-actions .btn{margin:0}.resigned-worker-item{cursor:default}.dashboard-resigned-list{margin-top:10px;border-top:1px solid #e0e8df}.dashboard-resigned-row{padding:10px 0;border-bottom:1px solid #e0e8df;display:flex;flex-direction:column;gap:3px}.dashboard-resigned-row span{color:#657267;font-size:.92em}@media(max-width:600px){.resign-actions{grid-template-columns:1fr}}
