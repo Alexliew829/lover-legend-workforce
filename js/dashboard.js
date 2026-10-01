@@ -7,7 +7,7 @@ const DASHBOARD_COMPANIES = [
 ];
 
 const MAINTENANCE_JOB_KEY = "ll-workforce-maintenance-job-v360";
-// V5.4: permanent, version-independent terminal notice history.
+// V5.5: permanent, version-independent terminal notice history.
 // Future upgrades must keep this key unchanged.
 const MAINTENANCE_NOTICE_STORE_KEY = "ll-workforce-maintenance-terminal-notices";
 
@@ -231,6 +231,7 @@ function renderDashboard(data) {
         <div><span>待处理</span><strong>${formatDashboardDay(data?.absencePendingDays)} 天</strong></div>
       </div>
     </article>
+    <article class="dashboard-card dashboard-resigned-card"><div class="dashboard-card-label">本月离职</div><div class="dashboard-big-number">${Number(data?.resignedCount)||0} 人</div>${Array.isArray(data?.resignedWorkers)&&data.resignedWorkers.length?`<div class="dashboard-resigned-list">${data.resignedWorkers.map(worker=>`<div class="dashboard-resigned-row"><strong>${escapeDashboardHtml(worker.workerNo)} · ${escapeDashboardHtml(worker.name)}</strong><span>${escapeDashboardHtml(worker.company)} · ${escapeDashboardHtml(worker.resignDate)}</span></div>`).join("")}</div>`:'<div class="dashboard-card-note">本月没有离职记录</div>'}</article>
   `;
 }
 
@@ -238,7 +239,7 @@ function getDashboardMonthKey() {
   return `${document.getElementById("dashboardMonth").value}-${document.getElementById("dashboardYear").value}`;
 }
 
-const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v540-";
+const DASHBOARD_BROWSER_CACHE_PREFIX = "ll-dashboard-v550-";
 const DASHBOARD_BROWSER_CACHE_MAX_AGE = 12 * 60 * 60 * 1000;
 
 function readDashboardBrowserCache(monthKey) {
@@ -280,7 +281,7 @@ async function exportDashboardExcel() {
     button.disabled = true;
     button.textContent = "正在读取所有工人欠款并导出...";
 
-    // V5.4: export every worker debt record (including cleared records),
+    // V5.5: export every worker debt record (including cleared records),
     // while keeping Dashboard calculations untouched.
     const ledger = await refreshReadWithRetry_("getAdvanceLedger", {}, 900);
     const month = String(data.month || getDashboardMonthKey());
@@ -321,7 +322,7 @@ async function exportDashboardExcel() {
       ["缺席总数", Number(data.absenceDays) || 0],
       ["扣薪", Number(data.absenceDeductDays) || 0],
       ["免扣", Number(data.absenceWaivedDays) || 0],
-      ["待处理", Number(data.absencePendingDays) || 0]
+      ["待处理", Number(data.absencePendingDays) || 0], [], ["本月离职人数", Number(data.resignedCount) || 0]
     );
 
     const debtRows = buildDashboardDebtExportRows_(Array.isArray(ledger) ? ledger : [], month);
@@ -1020,8 +1021,8 @@ async function loadDashboardSystemInfo() {
   try {
     const data = await api("getSystemStatus", {}, { forceRefresh: true });
     const rows = [
-      ["版本", "V5.4 Enterprise Stable"],
-      ["API 版本", "5.4.0"],
+      ["版本", "V5.5 Enterprise Stable"],
+      ["API 版本", "5.5.0"],
       ["Revision（上次 → 当前）", `${data?.previousRevision ?? "-"} → ${data?.revision ?? "-"}`],
       ["储存方式", "Google Sheet 自动同步"],
       ["Google Sheet", data?.sheetConnected ? "已连接 Google Web App" : "连接异常"],
@@ -1032,6 +1033,6 @@ async function loadDashboardSystemInfo() {
     ];
     box.innerHTML = rows.map(([k,v]) => `<div class="system-info-row"><span>${k}</span><strong>${v}</strong></div>`).join("");
   } catch (_) {
-    box.innerHTML = `<div class="system-info-row"><span>版本</span><strong>V5.4 Enterprise Stable</strong></div><div class="system-info-row"><span>API 版本</span><strong>5.4.0</strong></div><div class="system-info-row"><span>Google Sheet</span><strong>连接异常</strong></div>`;
+    box.innerHTML = `<div class="system-info-row"><span>版本</span><strong>V5.5 Enterprise Stable</strong></div><div class="system-info-row"><span>API 版本</span><strong>5.5.0</strong></div><div class="system-info-row"><span>Google Sheet</span><strong>连接异常</strong></div>`;
   }
 }

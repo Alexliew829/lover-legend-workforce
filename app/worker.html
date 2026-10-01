@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payroll System - Worker</title>
   <link rel="manifest" href="../manifest.json" />
-  <link rel="icon" href="../assets/icons/payroll-system.ico?v=5.4" />
-  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=5.4" />
-  <link rel="stylesheet" href="../css/style.css?v=5.4" />
+  <link rel="icon" href="../assets/icons/payroll-system.ico?v=5.5" />
+  <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png?v=5.5" />
+  <link rel="stylesheet" href="../css/style.css?v=5.5" />
 </head>
 <body>
   <div class="app">
@@ -90,18 +90,25 @@
           style="display:none; margin-top:10px;">
           办理离职
         </button>
+
+        <div id="resignPanel" class="resign-panel" style="display:none;">
+          <div class="resign-panel-title">离职日期</div>
+          <div class="date-select-row resign-date-row">
+            <select id="resignDay" aria-label="离职日"></select><select id="resignMonth" aria-label="离职月"></select><select id="resignYear" aria-label="离职年"></select>
+          </div>
+          <div class="resign-actions"><button id="confirmResignBtn" class="btn danger" type="button">确认办理离职</button><button id="cancelResignBtn" class="btn secondary" type="button">取消</button></div>
+        </div>
       </form>
     </section>
 
-    <section class="card">
-      <div id="workerList" class="list"></div>
-    </section>
+    <section class="card"><div class="section-title">在职工人</div><div id="workerList" class="list"></div></section>
+    <section class="card"><div class="section-title">已离职工人</div><div id="resignedWorkerList" class="list"><p class="muted">正在读取离职记录...</p></div></section>
   </div>
 
   <script src="../js/config.js"></script>
-  <script src="../js/api.js?v=5.4"></script>
+  <script src="../js/api.js?v=5.5"></script>
   <script src="../js/format.js"></script>
-  <script src="../js/worker.js?v=5.4"></script>
-  <script src="../js/app.js?v=5.4"></script>
+  <script src="../js/worker.js?v=5.5"></script>
+  <script src="../js/app.js?v=5.5"></script>
 </body>
 </html>

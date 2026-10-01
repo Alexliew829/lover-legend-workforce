@@ -435,7 +435,7 @@ function normalizePayslipMonth(value) {
 }
 
 function getPayslipPaymentDate(monthValue, savedPaymentDate) {
-  // V5.4: Payslip must use the Payment Date saved in this Payroll snapshot.
+  // V5.5: Payslip must use the Payment Date saved in this Payroll snapshot.
   // Never recalculate it from the payroll month or print date.
   if (savedPaymentDate) return formatPayslipDate(savedPaymentDate);
   return "-";

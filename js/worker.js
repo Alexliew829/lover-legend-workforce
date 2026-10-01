@@ -1,13 +1,14 @@
 let workersCache = [];
 let editingWorkerNo = null;
+let resignedWorkersCache = [];
 
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("workerForm");
   const resignBtn = document.getElementById("resignWorkerBtn");
 
-  if (resignBtn) {
-    resignBtn.addEventListener("click", handleResignWorker);
-  }
+  if (resignBtn) resignBtn.addEventListener("click", openResignPanel);
+  document.getElementById("confirmResignBtn")?.addEventListener("click", handleResignWorker);
+  document.getElementById("cancelResignBtn")?.addEventListener("click", closeResignPanel);
 
   if (form) {
     setupDateDropdowns();
@@ -105,7 +106,9 @@ document.addEventListener("DOMContentLoaded", () => {
     handleSalaryType();
   }
 
+  setupResignDateDropdowns();
   loadWorkers();
+  loadResignedWorkers();
 });
 
 async function loadWorkers() {
@@ -262,6 +265,7 @@ function clearWorkerDetailsForNew() {
 }
 
 function resetWorkerForm() {
+  closeResignPanel();
   const form = document.getElementById("workerForm");
   if (!form) return;
 
@@ -277,6 +281,7 @@ function resetWorkerForm() {
 }
 
 function editWorker(workerNo) {
+  closeResignPanel();
   const worker = workersCache.find(w => String(w["工人编号"]) === String(workerNo));
 
   if (!worker) {
@@ -383,34 +388,26 @@ if (salaryAmount <= 0) {
 }
 
 async function handleResignWorker() {
-  if (!editingWorkerNo) {
-    showStatus("status", "请先选择一个工人", false);
-    return;
-  }
-
-  const form = document.getElementById("workerForm");
-  const workerName = form.name.value.trim();
-
-  const ok = confirm("确定要将 " + editingWorkerNo + " · " + workerName + " 办理离职？");
-  if (!ok) return;
-
+  if (!editingWorkerNo) { showStatus("status", "请先选择一个工人", false); return; }
+  const workerName = document.getElementById("workerForm").name.value.trim();
+  const resignDate = getResignDateValue();
+  const btn = document.getElementById("confirmResignBtn");
   try {
-    const result = await api("resignWorker", {
-      workerNo: editingWorkerNo,
-      workerName: workerName
-    });
-
-    workersCache = workersCache.filter(item =>
-      String(item["工人编号"]) !== String(editingWorkerNo)
-    );
+    if (btn) { btn.disabled = true; btn.textContent = "处理中..."; }
+    await api("resignWorker", { workerNo: editingWorkerNo, workerName, resignDate });
+    workersCache = workersCache.filter(item => String(item["工人编号"]) !== String(editingWorkerNo));
     updateWorkersBrowserCache();
-    showStatus("status", "工人已办理离职并保存到 Google Sheet", true);
-    resetWorkerForm();
-    renderWorkersFromCache();
-  } catch (error) {
-    showStatus("status", error.message, false);
-  }
+    showStatus("status", `工人已办理离职 · ${resignDate}`, true);
+    closeResignPanel(); resetWorkerForm(); renderWorkersFromCache(); await loadResignedWorkers();
+  } catch (error) { showStatus("status", error.message, false); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = "确认办理离职"; } }
 }
+function openResignPanel() { if (!editingWorkerNo) return; setResignDateToday(); document.getElementById("resignPanel").style.display = "block"; }
+function closeResignPanel() { const p=document.getElementById("resignPanel"); if(p) p.style.display="none"; }
+function setupResignDateDropdowns() { const now=new Date(); fillSelect(document.getElementById("resignDay"),1,31,"日"); fillSelect(document.getElementById("resignMonth"),1,12,"月"); fillSelect(document.getElementById("resignYear"),2010,now.getFullYear()+5,"年"); setResignDateToday(); }
+function setResignDateToday() { const now=new Date(); const d=document.getElementById("resignDay"),m=document.getElementById("resignMonth"),y=document.getElementById("resignYear"); if(d)d.value=String(now.getDate()).padStart(2,"0"); if(m)m.value=String(now.getMonth()+1).padStart(2,"0"); if(y)y.value=String(now.getFullYear()); }
+function getResignDateValue() { const d=document.getElementById("resignDay")?.value||"",m=document.getElementById("resignMonth")?.value||"",y=document.getElementById("resignYear")?.value||""; if(!d||!m||!y) throw new Error("请选择完整离职日期"); return `${d}-${m}-${y}`; }
+async function loadResignedWorkers() { const box=document.getElementById("resignedWorkerList"); if(!box)return; try { const rows=await api("getResignedWorkers",{}); resignedWorkersCache=Array.isArray(rows)?rows:[]; if(!resignedWorkersCache.length){box.innerHTML='<p class="muted">目前没有离职记录。</p>';return;} box.innerHTML=resignedWorkersCache.map(worker=>`<div class="worker-item resigned-worker-item"><div class="worker-name">${escapeHtml(worker["工人编号"])} · ${escapeHtml(worker["工人名字"])}</div><div class="muted">${escapeHtml(worker["公司"])} · 已离职 · ${escapeHtml(worker["离职日期"]||"未记录日期")}</div></div>`).join(""); } catch(error){box.innerHTML=`<p class="muted">离职记录暂时无法读取：${escapeHtml(error.message)}</p>`;} }
 
 function setupDateDropdowns() {
   const form = document.getElementById("workerForm");
